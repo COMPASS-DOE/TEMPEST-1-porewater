@@ -65,26 +65,26 @@ ReadMes <- list.files(path = directory, pattern = "Readme", full.names = TRUE)
 npoc_raw <- files %>% 
   map_df(read_data) %>% 
   filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
-  filter(!grepl("202306", date)) %>% #filter to 2022-May 2023 dates> note this only works when run before data uploaded in July 2023. Will need to modify if re-running later. 
+ # filter(!grepl("202306", date)) %>% #filter to <2022-May 2023 dates> note this only works when run before data uploaded in July 2023. Will need to modify if re-running later. 
   bind_rows() 
 
 blanks_raw <- files %>% 
   map_df(read_data) %>% 
   filter(grepl("^Blank", sample_name)) %>% # filter to TMP samples only
-  filter(!grepl("202306", date)) %>% #filter to 2022-May 2023 dates> note this only works when run before data uploaded in July 2023. Will need to modify if re-running later. 
+ # filter(!grepl("202306", date)) %>% #filter to <2022-May 2023 dates> note this only works when run before data uploaded in July 2023. Will need to modify if re-running later. 
   bind_rows() 
 
 readmes_dilution_action <- ReadMes %>% 
   map_df(read_mes) %>% 
   filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
   filter(grepl("ilution correction", Action)) %>%
-  filter(!grepl("202306", date)) %>% #filter to 2022-May 2023 dates> note this only works when run before data uploaded in July 2023. Will need to modify if re-running later. 
+ # filter(!grepl("202306", date)) %>% #filter to <2022-May 2023 dates> note this only works when run before data uploaded in July 2023. Will need to modify if re-running later. 
   bind_rows() 
 
 readmes_all <- ReadMes %>% 
   map_df(read_mes) %>% 
   filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
-  filter(!grepl("202306", date)) %>% #filter to 2022-May 2023 dates> note this only works when run before data uploaded in July 2023. Will need to modify if re-running later. 
+#  filter(!grepl("202306", date)) %>% #filter to <2022-May 2023 dates> note this only works when run before data uploaded in July 2023. Will need to modify if re-running later. 
   mutate(Action = case_when(sample_name == "TMP_SW_F4_T3" ~ "Omit", # due to incorrect duplicate naming
                             TRUE ~ Action)) %>%
   bind_rows() 
@@ -274,9 +274,21 @@ npoc_wflags_metadata <-  npoc_flags %>%
   filter(Grid != "WELL") %>%
   filter(Grid != "BARGE") 
 
+npoc_wflags_metadata_ALL_DATA <-  npoc_flags %>%
+  mutate(sample_name = stringr::str_replace(sample_name,"pooled","POOL"),
+         Event = stringr::str_extract(sample_name, "TMP"),
+         Plot = stringr::str_extract(sample_name, 'FW|SW|C|ESTUARY'), 
+         Grid = stringr::str_extract(sample_name, "B4|C3|C6|D5|E3|F4|F6|H3|H6|I5|SOURCE|BARGE|POOL|WELL"),
+         Timepoint = stringr::str_extract(sample_name,"[0-9]{8}|T[0-9]|HR[0-9]|PreW"),
+         doc_mg_l = case_when(doc_mg_l == "NaN" ~ NA,
+                              TRUE ~ doc_mg_l),
+         tdn_mg_l = case_when(tdn_mg_l == "NaN" ~ NA,
+                              TRUE ~ tdn_mg_l)) 
+
 
 # 8. Write data ----------------------------------------------------------------
 
-write_csv(npoc_wflags_metadata , "../TEMPEST-1-porewater/data/TMP_PW_NPOC_TDN_L1_May2022-May2023.csv")
+write_csv(npoc_wflags_metadata , "../TEMPEST-1-porewater/data/TMP_PW_NPOC_TDN_L1_May2022-Aug2023.csv")
 
+write_csv(npoc_wflags_metadata_ALL_DATA , "./data/TMP_PW_SOURCE_NPOC_TDN_L1_May2022-Aug2023.csv")
 
