@@ -272,10 +272,14 @@ npoc_wflags_metadata <-  npoc_flags %>%
          tdn_mg_l = case_when(tdn_mg_l == "NaN" ~ NA,
                               TRUE ~ tdn_mg_l)) %>%
   mutate(date= stringr::str_extract(sample_name, "[0-9]{8}"),
-         time = stringr::str_extract(sample_name, "(?<=[0-9]{8}_)\\d{4}")) %>%
-  mutate(date = as.POSIXct(date, format = "%Y%m%d", tz = "EST" ))
+         time = stringr::str_extract(sample_name, "(?<=[0-9]{8}_)\\d{4}"),
+         time = str_replace(time, '\\d+', function(m) str_pad(m, 6, pad = '0', side = ("right")))
+         ) %>%
+  mutate(date = lubridate::as_date(date, format = "%Y%m%d"),
+         time= strptime(time, format ="%H%M%S"),
+         time = strftime(time, "%H:%M:%S"))
 
-endstudydate = as.POSIXct("2023-05-31", tz= "EST")
+endstudydate = lubridate::as_date("2023-05-31")
 
 PW_npoc_wflags_metadata <- npoc_wflags_metadata %>%
   filter(date < endstudydate) %>%
