@@ -65,26 +65,26 @@ ReadMes <- list.files(path = directory, pattern = "Readme", full.names = TRUE)
 npoc_raw <- files %>% 
   map_df(read_data) %>% 
   filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
-  filter(grepl("202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>% # filter to just run dates you need 
+  filter(grepl("202207|202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>% # filter to just run dates you need 
   bind_rows() 
 
 blanks_raw <- files %>% 
   map_df(read_data) %>% 
   filter(grepl("^Blank", sample_name)) %>% # filter to blanks only
-  filter(grepl("202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>% # filter to just run dates you need
+  filter(grepl("202207|202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>% # filter to just run dates you need
   bind_rows() 
 
 readmes_dilution_action <- ReadMes %>% 
   map_df(read_mes) %>% 
   filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
   filter(grepl("ilution correction", Action)) %>%
-  filter(grepl("202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>% # filter to just run dates you need
+  filter(grepl("202207|202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>% # filter to just run dates you need
   bind_rows() 
 
 readmes_all <- ReadMes %>% 
   map_df(read_mes) %>% 
   filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
-  filter(grepl("202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>% # filter to just run dates you need 
+  filter(grepl("202207|202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>% # filter to just run dates you need 
   mutate(Action = case_when(sample_name == "TMP_SW_F4_T3" ~ "Omit", # due to incorrect duplicate naming
                             TRUE ~ Action)) %>%
   bind_rows() 
@@ -92,7 +92,7 @@ readmes_all <- ReadMes %>%
 curvepts <-files %>% 
   map_df(read_data) %>% 
   filter(grepl("STD_", sample_name)) %>% # filter to curves only
-  filter(grepl("202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>%
+  filter(grepl("202207|202208|202209|202210|202211|202212|202301|202302|202303|202304|202305|202306", rundate)) %>%
   filter(!grepl("10/25/2022 7:24:33 PM|9/22/2022 9:03:23 PM", run_datetime)) %>% # filter to just run dates you need 
   rename(standard_high_C = npoc_raw,
          standard_high_N = tdn_raw) %>%
@@ -100,7 +100,6 @@ curvepts <-files %>%
   pivot_longer(cols = c(standard_high_C,standard_high_N)) %>%
   na.omit() %>%
   group_by(rundate) %>%
-  # COME BACK HERE
   distinct()%>%
   pivot_wider(names_from= name, values_from = value)%>%
   bind_rows() 
@@ -277,12 +276,14 @@ npoc_wflags_metadata <-  npoc_flags %>%
          ) %>%
   mutate(date = lubridate::as_date(date, format = "%Y%m%d"),
          time= strptime(time, format ="%H%M%S"),
-         time = strftime(time, "%H:%M:%S"))
+         time = strftime(time, "%H:%M:%S")) %>%
+  filter(!is.na(date))
 
 endstudydate = lubridate::as_date("2023-05-31")
+startstudydate = lubridate::as_date("2022-07-01")
 
 PW_npoc_wflags_metadata <- npoc_wflags_metadata %>%
-  filter(date < endstudydate) %>%
+  filter(date < endstudydate & date > startstudydate) %>%
   filter(Grid != "SOURCE") %>%
   filter(Grid != "WELL") %>%
   filter(Grid != "BARGE") 
@@ -290,6 +291,6 @@ PW_npoc_wflags_metadata <- npoc_wflags_metadata %>%
 # 8. Write data ----------------------------------------------------------------
 
 #not sure the blank is >25% is staying to the end of this data frame 
-write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/data/TMP_PW_NPOC_TDN_L1_Jul2023-May2023.csv")
+write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/data/TMP_PW_NPOC_TDN_L1_Jul2022-May2023.csv")
 
 
