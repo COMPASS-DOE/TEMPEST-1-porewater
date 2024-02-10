@@ -16,7 +16,8 @@ require(pacman)
 pacman::p_load(tidyverse, # keep things tidy
                janitor, # useful for simplifying column names
                googlesheets4, # read_sheet 
-               googledrive) # drive_ functions
+               googledrive, # drive_ functions
+               plotrix ) 
 
 #double check your wd. should be ../tempest-system-level-analysis
 #if not you need to do new relative file pathing
@@ -288,9 +289,26 @@ PW_npoc_wflags_metadata <- npoc_wflags_metadata %>%
   filter(Grid != "WELL") %>%
   filter(Grid != "BARGE") 
 
+PW_npoc_wflags_metadata_summarized <- PW_npoc_wflags_metadata  %>%
+  group_by(Plot, date) %>% 
+  filter(Grid != "POOL") %>%
+  filter(!npoc_flag %in% "omitted for high dilution and blank values") %>%
+  filter(!tdn_flag %in% "omitted for high dilution and blank values") %>%
+  summarise(n=n(),
+            doc_mg_l_sd = round(sd(doc_mg_l, na.rm = TRUE), 2),
+            doc_mg_l_se = round(std.error(doc_mg_l, na.rm=TRUE), 2),
+            doc_mg_l = round(mean(doc_mg_l, na.rm = TRUE), 2),
+            tdn_mg_l_sd = round(sd(tdn_mg_l, na.rm = TRUE), 2),
+            tdn_mg_l_se = round(std.error(tdn_mg_l, na.rm=TRUE), 2),
+            tdn_mg_l = round(mean(tdn_mg_l, na.rm = TRUE),2),
+            date = min(date),
+            .groups = "drop") 
+  
+
 # 8. Write data ----------------------------------------------------------------
 
 #not sure the blank is >25% is staying to the end of this data frame 
 write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/data/TMP_PW_NPOC_TDN_L1_Jul2022-May2023.csv")
 
+write_csv(PW_npoc_wflags_metadata_summarized, "../TEMPEST-1-porewater/data/TMP_PW_NPOC_TDN_L2_Summary_Jul2022-May2023.csv")
 
