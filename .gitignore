@@ -48,3 +48,6 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 .DS_Store
+
+#data files
+/data/DOC data backup
