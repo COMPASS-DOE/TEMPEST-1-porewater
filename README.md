@@ -1,4 +1,4 @@
-# Porewater chemistry following TEMPEST 1.0 
+# TEMPEST Porewater Manuscript 1 
 Data analysis &amp; manuscript prep for porewater data after TEMPEST 1.0 & TEMPEST 2.0
 
 Contact: allison.myers-pigg@pnnl.gov
