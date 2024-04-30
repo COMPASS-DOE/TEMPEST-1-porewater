@@ -1,0 +1,165 @@
+---
+title: "figures"
+author: "AMP"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r load data}
+pw2022event <- read_csv("../tempest-system-level-analysis/data/for manuscript/TMP_PW_NPOC_TDN_L2_2022_jun_jul_all_grids.csv")
+pw2022 <- read_csv("../TEMPEST-1-porewater/data/TMP_PW_NPOC_TDN_L1_Jul2022-May2023.csv")
+pw2023 <- read_csv("../TEMPEST-2-porewater/data/TMP_PW_NPOC_TDN_L1_Jun2023-Dec2023.csv")
+eems <- read_csv("./data/TMP_PW_EEMS_L1_POOL.csv")
+
+event_2022 <- lubridate::as_date("2022-06-22")
+event_2023 <- lubridate::as_date("2023-06-06")
+event2_2023 <- lubridate::as_date("2023-06-07")
+
+all_the_doc <- pw2022event %>%
+  full_join(pw2022) %>%
+  full_join(pw2023) %>%
+  mutate(date = as.POSIXct(date)) %>%
+  mutate(Plot = stringr::str_replace(Plot,"SW","Estuarine-water Plot")) %>%
+  mutate(Plot = stringr::str_replace(Plot,"FW","Freshwater Plot")) %>%
+  mutate(Plot = stringr::str_replace(Plot,"C","Control Plot")) %>%
+  mutate(date_formatted = paste0(lubridate::year(date), "-", lubridate::month(date), "-", lubridate::day(date))) %>%
+  mutate(date_formatted = lubridate::as_date(date_formatted)) %>%
+  mutate(plot_date = case_when( lubridate::month(date_formatted) == lubridate::month(event_2023) ~ paste0(lubridate::year(date), "-", lubridate::month(date), "-", lubridate::day(date)),
+                               lubridate::month(date_formatted) == lubridate::month(event_2023) ~ paste0(lubridate::year(date), "-", lubridate::month(date), "-", lubridate::day(date)),
+          TRUE ~  paste0(lubridate::year(date), "-", lubridate::month(date), "-", "01")),
+        month = lubridate::month(date),
+        year = lubridate::year(date)) %>%
+  mutate(plot_date = lubridate::with_tz(plot_date, "UTC")) %>%
+  group_by(Plot, plot_date, month, year) %>% 
+  filter(Grid != "POOL") %>%
+  filter(!npoc_flag %in% "omitted for high dilution and blank values") %>%
+  filter(!tdn_flag %in% "omitted for high dilution and blank values") %>%
+  filter(!sample_name %in% "Lysimeter Empty") %>%
+  summarise(n=n(),
+              doc_mg_l_sd = round(sd(doc_mg_l, na.rm = TRUE), 2),
+            doc_mg_l = round(mean(doc_mg_l, na.rm = TRUE), 2),
+            tdn_mg_l_sd = round(sd(tdn_mg_l, na.rm = TRUE), 2),
+            tdn_mg_l = round(mean(tdn_mg_l, na.rm = TRUE),2),
+            .groups = "drop") %>%
+    arrange(Plot, year, month)
+
+all_eems <- eems %>%
+   mutate(date = as.POSIXct(date)) %>%
+  mutate(Plot = stringr::str_replace(Plot,"SW","Estuarine-water Plot")) %>%
+  mutate(Plot = stringr::str_replace(Plot,"FW","Freshwater Plot")) %>%
+  mutate(Plot = stringr::str_replace(Plot,"C","Control Plot")) %>%
+  mutate(date_formatted = paste0(lubridate::year(date), "-", lubridate::month(date), "-", lubridate::day(date))) %>%
+  mutate(date_formatted = lubridate::as_date(date_formatted)) %>%
+  mutate(plot_date = case_when( lubridate::month(date_formatted) == lubridate::month(event_2023) ~ paste0(lubridate::year(date), "-", lubridate::month(date), "-", lubridate::day(date)),
+                               lubridate::month(date_formatted) == lubridate::month(event_2023) ~ paste0(lubridate::year(date), "-", lubridate::month(date), "-", lubridate::day(date)),
+          TRUE ~  paste0(lubridate::year(date), "-", lubridate::month(date), "-", "01")),
+        month = lubridate::month(date),
+        year = lubridate::year(date)) %>%
+  mutate(plot_date = lubridate::with_tz(plot_date, "UTC")) %>%
+  group_by(Plot, plot_date, month, year) %>% 
+    arrange(Plot, year, month)
+```
+
+```{r figures for COMPASS Meeting 2/12}
+Start = as.POSIXct("2022-06-22 05:30:00", tz="UTC")
+End = as.POSIXct("2022-06-22 14:30:00", tz="UTC")
+Start_2023_1 <- as.POSIXct("2023-06-06 06:00:00", tz= "UTC")
+End_2023_1 <- as.POSIXct("2023-06-06 16:00:00", tz= "UTC")
+Start_2023_2 <- as.POSIXct("2023-06-07 06:00:00", tz="UTC")
+End_2023_2 <- as.POSIXct("2023-06-07 16:00:00", tz= "UTC")
+plot_order <- c('Control Plot', 'Freshwater Plot','Estuarine-water Plot')
+Anyas_colors_alpha_order = c("springgreen2", "violetred2", "cyan2")
+
+plot_all_the_doc <- all_the_doc %>%
+    ggplot() +
+  #     # Water 2022
+   annotate("rect", xmin = Start, xmax = End, ymin = -Inf, ymax = Inf, fill = "blue")+
+  #  # Water 1
+    annotate("rect", xmin = Start_2023_1, xmax = End_2023_1, ymin = -Inf, ymax = Inf, fill = "blue") +
+  # #Water 2
+    annotate("rect", xmin = Start_2023_2 , xmax = End_2023_2, ymin = -Inf, ymax = Inf, fill = "blue") +
+   scale_x_datetime(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %y')+
+    geom_errorbar(aes(x = plot_date, ymin =doc_mg_l - doc_mg_l_sd, ymax=doc_mg_l + doc_mg_l_sd, color = Plot))+
+    geom_point(aes(x = plot_date, y =doc_mg_l, color = Plot), size = 2)+
+ # geom_line(aes(x = plot_date, y =doc_mg_l, color = Plot))+
+  ylab("DOC mgC/L")+
+    xlab("Date")+
+    ylim(0,100)+
+   scale_color_manual(values=Anyas_colors_alpha_order) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme_classic()
+  
+print(plot_all_the_doc)
+plotly::ggplotly(plot_all_the_doc)
+cowplot::save_plot("./figures/doc_pw_all_2022-2023.png",plot_all_the_doc, dpi=300, base_aspect_ratio = 2:1)
+```
+
+```{r}
+plot_FI <- all_eems %>%
+    ggplot() +
+  #     # Water 2022
+   annotate("rect", xmin = Start, xmax = End, ymin = -Inf, ymax = Inf, fill = "blue")+
+  #  # Water 1
+    annotate("rect", xmin = Start_2023_1, xmax = End_2023_1, ymin = -Inf, ymax = Inf, fill = "blue") +
+  # #Water 2
+    annotate("rect", xmin = Start_2023_2 , xmax = End_2023_2, ymin = -Inf, ymax = Inf, fill = "blue") +
+   scale_x_datetime(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %y')+
+    geom_point(aes(x = plot_date, y = FI, color = Plot), size = 2)+
+ # geom_line(aes(x = plot_date, y =doc_mg_l, color = Plot))+
+  ylab("Fluorescence Index")+
+    xlab("Date")+
+   scale_color_manual(values=Anyas_colors_alpha_order) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme_classic()
+  
+print(plot_FI)
+plotly::ggplotly(plot_FI)
+cowplot::save_plot("./figures/FI_pw_all_2022-2023.png",plot_FI, dpi=300, base_aspect_ratio = 2:1)
+
+plot_HIX <- all_eems %>%
+    ggplot() +
+  #     # Water 2022
+   annotate("rect", xmin = Start, xmax = End, ymin = -Inf, ymax = Inf, fill = "blue")+
+  #  # Water 1
+    annotate("rect", xmin = Start_2023_1, xmax = End_2023_1, ymin = -Inf, ymax = Inf, fill = "blue") +
+  # #Water 2
+    annotate("rect", xmin = Start_2023_2 , xmax = End_2023_2, ymin = -Inf, ymax = Inf, fill = "blue") +
+   scale_x_datetime(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %y')+
+    geom_point(aes(x = plot_date, y = HIX, color = Plot), size = 2)+
+ # geom_line(aes(x = plot_date, y =doc_mg_l, color = Plot))+
+  ylab("Humification Index (HIX)")+
+    xlab("Date")+
+   scale_color_manual(values=Anyas_colors_alpha_order) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme_classic()
+  
+print(plot_HIX)
+plotly::ggplotly(plot_HIX)
+cowplot::save_plot("./figures/HIX_pw_all_2022-2023.png",plot_HIX, dpi=300, base_aspect_ratio = 2:1)
+```
+
+```{r}
+plotly_plot <- all_the_doc %>%
+    ggplot() +
+  #     # Water 2022
+   annotate("rect", xmin = Start, xmax = End, ymin = -Inf, ymax = Inf, fill = "blue")+
+  #  # Water 1
+    annotate("rect", xmin = as.POSIXct("2023-06-06 06:00:00", tz= "UTC"), xmax = as.POSIXct("2023-06-06 16:00:00", tz= "UTC"), ymin = -Inf, ymax = Inf, fill = "blue") +
+  # #Water 2
+    annotate("rect", xmin = as.POSIXct("2023-06-07 06:00:00", tz="UTC"), xmax = as.POSIXct("2023-06-07 16:00:00", tz= "UTC"), ymin = -Inf, ymax = Inf, fill = "blue") +
+    geom_errorbar(aes(x = as.POSIXct(plot_date, tz= "UTC"), ymin =doc_mg_l - doc_mg_l_sd, ymax=doc_mg_l + doc_mg_l_sd, color = Plot))+
+    geom_point(aes(x = as.POSIXct(plot_date, tz = "UTC"), y =doc_mg_l, color = Plot), size = 2)+
+    ylab("DOC mgC/L")+
+    xlab("Date")+
+    ylim(0,80)+
+   scale_color_manual(values=Anyas_colors_alpha_order) +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme_classic()
+
+plotly::ggplotly(plotly_plot)
+````
