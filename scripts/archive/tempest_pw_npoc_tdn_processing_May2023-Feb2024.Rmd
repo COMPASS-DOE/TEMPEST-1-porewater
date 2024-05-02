@@ -104,9 +104,9 @@ files_dates = c("20230531",
   
 ```
 
-IDK WHY THIS CHUNK DOES NOT WORK IN MARKDOWN, BUT IT DOES IN THE CONSOLE SO JUST DO THAT....
+
 # Import Data
-```{import data, include= TRUE}
+```{r import data, include= TRUE}
 
 npoc_raw <- files %>% 
   map_df(read_data) %>% 
@@ -358,7 +358,7 @@ PW_npoc_wflags_metadata_summarized <- PW_npoc_wflags_metadata  %>%
 
 ```{r write}
 
-write_csv(PW_npoc_wflags_metadata , "../TEMPEST-2-porewater/data/TMP_PW_NPOC_TDN_L1_Jun2023-Dec2023.csv")
+write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_Jun2023-Dec2023.csv")
 
-write_csv(PW_npoc_wflags_metadata_summarized, "../TEMPEST-2-porewater/data/TMP_PW_NPOC_TDN_L2_Summary_Jun2023-Dec2023.csv")
+write_csv(PW_npoc_wflags_metadata_summarized, "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L2_Summary_Jun2023-Dec2023.csv")
 ```

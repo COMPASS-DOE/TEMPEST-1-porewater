@@ -74,10 +74,11 @@ ReadMes <- list.files(path = here::here(directory), pattern = "Readme", full.nam
 files
 
 ```
-Set the event (NEED TO MAKE SURE THIS IS RIGHT!!!)
-```{r event and study dates}
-endstudydate = lubridate::as_date("2024-01-31")
-startstudydate = lubridate::as_date("2023-05-31")
+Set the event(s) 
+```{r event dates}
+
+WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
+WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
   
 WaterDeliveryStart1 = as.POSIXct("2023-06-06 05:30:00", tz = "EST")
 WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
@@ -97,6 +98,8 @@ source_water_dates_2022 <- readxl::read_excel("../TEMPEST-1-porewater/sample lis
                    stringr::str_detect(sample_name, 'SW') ~ "SW",
   TRUE ~ NA)) %>%
   select(-sample_name)
+
+sample_key <- readRDS("~/GitHub/tempest-system-level-analysis/data/for processing/TMP_Event_June2022_META_PW_SOURCE_DateTime.rds")
   
 ```
 
@@ -297,8 +300,8 @@ npoc_flags <- all_samples_dilution_corrected %>%
 
 
 npoc_wflags_metadata <-  npoc_flags %>%
-  mutate(sample_name = stringr::str_replace(sample_name,"_DOC",""),
-         sample_name = stringr::str_replace(sample_name,"HR6","HR7"),
+  mutate(sample_name = stringr::str_replace(sample_name,"_DOC",""), #dropping the DOC from the sample name
+         sample_name = stringr::str_replace(sample_name,"HR6","HR7"), #fixing the incorrect sample name
          Event = stringr::str_extract(sample_name, "TMP"),
          Plot = stringr::str_extract(sample_name, 'FW|SW|C|ESTUARY'), 
          Grid = stringr::str_extract(sample_name, "B4|C3|C6|D5|E3|F4|F6|H3|H6|I5|SOURCE|ESTUARY|POOL|WELL"),
@@ -314,10 +317,10 @@ npoc_wflags_metadata <-  npoc_flags %>%
          time = str_replace(time, '\\d+', function(m) str_pad(m, 6, pad = '0', side = ("right")))
          ) %>%
     full_join(source_water_dates_2022, by=c("Timepoint","Plot")) %>%
-  mutate(date = case_when(is.na(date)~ "20220622",
+  mutate(date = case_when(is.na(date)~ "20220622", #fixing the NAs for the estuary sampling 
                           TRUE ~ date),
-         time = case_when(Timepoint == "HR4" ~ "110000" ,
-                          Timepoint == "HR8" ~ "150000", 
+         time = case_when(Timepoint == "HR4" ~ "110000" , #fixing the NAs for the estuary sampling 
+                          Timepoint == "HR8" ~ "150000", #fixing the NAs for the estuary sampling 
                           TRUE ~ time)) %>%
   mutate(date = lubridate::as_date(date, format = "%Y%m%d"),
          time= strptime(time, format ="%H%M%S"),

@@ -1,0 +1,123 @@
+---
+title: "Sapflow data prep"
+author: "PR"
+date: "2024-04-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, 
+                      message = F,
+                      warning = F)
+```
+
+### General purpose
+
+I'm creating Rmds for each of the datastreams used in this project. Because our deployments were a little complex, and both SWAP and Firesting datasets were somewhat cobbled together, it's important to document as many details as possible as clearly as possible in order to streamline QC, clearly ID and explain any data decisions, and make the methods section easy to write.
+
+### Sapflow deployment
+
+Sapflow sensors were deployed well prior to any flooding in three species of trees across TEMPEST plots. I honestly don't know much about their deployment, which is okay because these data, in contrast to TEROS/Firesting/SWAP datasets is being pulled in as L1 curated data from GDrive meaning initial QC has already taken place (no need to edit timestamps, etc).
+
+```{r Setup}
+## First, load setup script to set up environment
+source("../scripts/0_0_setup.R")
+
+raw_data_path <- "../data/l1_raw_files/"
+
+l1_file_list <- drive_ls("https://drive.google.com/drive/folders/1HNsS2ACiZ_efOPJGtGzr5IxGBjBcsOPb", 
+                      pattern = ".csv")
+```
+
+
+```{r Pull L1 data from Gdrive, eval = F}
+## I'm keeping this chunk just for perpetuity, but it's not used since I've already
+## pulled down the data I want, and it takes a while to run since the files are big
+
+drive_download_ <- function(data){
+  #message(paste("Downloading", data$name))
+  # you could add an ifelse to only download files it doesn't fine in raw_data_path
+  drive_download(data$id, overwrite = T, path = paste0(raw_data_path, data$name))
+}
+
+## Use a for-loop to read in files in a way that I can see what's going on
+## Download data to local. I tried to map() but for some reasons it doesn't work?
+for(i in 1:nrow(l1_file_list)){
+  drive_download_(l1_file_list %>% slice(i))
+}
+```
+
+
+```{r Read in L1 data}
+## To do: pull in voltage and rain as well then pivot_wider()
+read_sapflow <- function(name){
+  read_csv(paste0(raw_data_path, name)) %>% 
+  clean_names() %>% 
+  filter(grepl("sapflow", research_name)) %>% 
+  mutate(datetime_est = force_tz(timestamp, tzone = common_tz), 
+         plot = case_when(plot == "C" ~ "Control", 
+                          plot == "S" ~ "Estuarine", 
+                          plot == "F" ~ "Freshwater")) %>% 
+    #filter(f_oob == 0) %>% 
+  dplyr::select(datetime_est, plot, location, sensor_id, value, contains("f_")) %>% 
+  rename("sapflow_mv" = value)
+}
+
+##Bind data together and filter out the data we definitely won't need.
+sapflow_raw <- l1_file_list$name %>% 
+  map(read_sapflow) %>% 
+  bind_rows() %>%
+  filter(datetime_est > pre_event_start & 
+           datetime_est < post_event_end)
+```
+
+### Raw data
+
+Let's first take a look at all the raw data. 
+
+```{r}
+## Plotly plot to look at individual sensors
+p <- ggplot(sapflow_raw,aes(datetime_est, sapflow_mv, color = sensor_id)) + 
+  geom_line() + 
+  facet_wrap(~plot, ncol = 1)
+
+ ggplotly(p)
+```
+
+### QC
+
+#### QC Step 1: Remove deep sensors
+
+We will scrub the sensors with a "D" suffix which indicates they are deep sensors. Since these are primarily used for calculating areal rates which we aren't doing, we'll keep things apples to apples and remove them.
+
+```{r}
+## Based on the plot above, there are sensors that periodically drop to 0. We
+## can use the lack of values between 0 and 0.2 to set a threshold of 0.1. Let's
+## ID which sensors have issues. For this time-period, it doesn't actually scrub anything, but 
+## leaving this code in case I want to update to a different/longer time-period
+bad_threshold = 0.1
+
+bad_sensors <- sapflow_raw %>%
+  filter(sapflow_mv < bad_threshold) %>%
+  group_by(sensor_id) %>%
+  summarize(sensor_id = first(sensor_id))
+
+sensors_to_remove <- bind_rows(sapflow_raw %>%
+                                 group_by(sensor_id) %>%
+                                 summarize(sensor_id = first(sensor_id)) %>% 
+                                 filter(grepl("D", sensor_id)), 
+                               bad_sensors) %>% 
+  unique() %>% pull()
+
+sapflow_qc1 <- sapflow_raw %>% 
+  filter(!(sensor_id %in% sensors_to_remove))
+```
+
+```{r}
+ggplot(sapflow_qc1, aes(datetime_est, sapflow_mv, color = sensor_id)) + 
+  geom_line() + 
+  facet_wrap(~plot, ncol = 1)
+```
+
+
+

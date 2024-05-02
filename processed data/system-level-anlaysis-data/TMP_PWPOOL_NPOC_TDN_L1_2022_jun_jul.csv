@@ -1,0 +1,9 @@
+sample_name,rundate,doc_mg_l,tdn_mg_l,npoc_flag,tdn_flag,Event,Plot,Grid,Timepoint,date
+TMP_C_POOL_T0,20220629,15.94,0.66,pooled sample,pooled sample,TMP,C,POOL,T0,2022-06-20
+TMP_FW_POOL_T3,20220701,13.54,0.35,pooled sample,pooled sample,TMP,FW,POOL,T3,2022-06-23
+TMP_SW_POOL_T3,20220708,9.17,0.84,pooled sample,pooled sample,TMP,SW,POOL,T3,2022-06-23
+TMP_FW_POOL_T4,20220708,11.12,0.46,pooled sample,pooled sample,TMP,FW,POOL,T4,2022-06-24
+TMP_C_POOL_T4,20220708,20.64,0.85,pooled sample,pooled sample,TMP,C,POOL,T4,2022-06-24
+TMP_SW_POOL_T4,20220708,9.76,0.74,pooled sample,pooled sample,TMP,SW,POOL,T4,2022-06-24
+TMP_SW_POOL_T2,20220708,13.51,1.42,pooled sample,pooled sample,TMP,SW,POOL,T2,2022-06-22
+TMP_FW_POOL_T2,20220708,7.58,0.36,pooled sample,pooled sample,TMP,FW,POOL,T2,2022-06-22
