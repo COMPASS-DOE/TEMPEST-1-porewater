@@ -1,0 +1,338 @@
+---
+title: "Prep TEROS data"
+author: "PR"
+date: "2024-03-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, 
+                      message = F, 
+                      warning = F)
+```
+
+### General purpose
+
+I'm creating Rmds for each of the datastreams used in this project. TEROS data are relatively simple to ingest because they're pulled from GDrive which is already formatted. However, because there are so many TEROS sensors, there's a significant amount of quality control to document and justify.
+
+### Teros deployment
+
+We deployed a total of XX Teros sensors across the plots as part of the intial TEMPEST setup. All three plots are outfitted with similar TEROS deployments, where many different grid cells have TEROS sensors at 15 cm, and a subset of grid cells have sensors at 5/15/30 cm. It gets a little tricky to include all sensors since some sensors are intermittent, so there's some significant QC efforts that go into data prep. First, we will be looking both at 5-minute and 15-minute data, where 15-minute data are the standard (collected year-round) and 5-minute data are only collected in proximity to treatment events. Initial examination says there are some differences between these datasets, so we'll start by considering both.
+
+```{r Setup}
+## First, load setup script to set up environment
+
+source("../scripts/0_0_setup.R")
+
+```
+
+```{r Read in data}
+
+## We will be using raw data downloaded from the TEMPEST dropbox, since the L1 TEMPEST TEROS data on GDrive have some issues to solve. These data are sourced from an archived script called x_1_1_230710_read_teros.R. Briefly, VWC is calculated as mutate(vwc = 3.879*10^-4 * vwc - 0.6956), and filter(vwc ##>= 0 & ec >= 0 & tsoil >= 0) removes impossible values
+
+## Read in data
+teros_5min_raw <- read_csv("../data/raw_data/230710_teros_raw_5min.csv") %>% 
+  mutate(datetime_raw = datetime, 
+         datetime = force_tz(datetime, tz = common_tz))
+
+teros_15min_raw <- read_csv("../data/raw_data/230710_teros_raw_15min.csv")  %>% 
+  mutate(datetime_raw = datetime, 
+         datetime = force_tz(datetime, tz = common_tz))
+
+```
+
+### Initial plots
+
+First, let's look at the initial datasets, and see what kinds of issues we'll need to address with our TEROS QC process:
+
+```{r}
+raw_vwc_plot_all <- function(data){
+  data %>% 
+    ggplot(aes(datetime, vwc, group = sensor_id, color = as.factor(depth))) + 
+    geom_line(show.legend = F) + 
+    facet_wrap(~plot)
+}
+
+plot_grid(raw_vwc_plot_all(teros_5min_raw) + ggtitle("5-minute"), 
+          raw_vwc_plot_all(teros_15min_raw) + ggtitle("15-minute"), 
+          ncol = 1)
+```
+
+### QC
+
+#### QC Step 1: remove sensors with only 15-cm resolution
+
+Per prior work (see earlier Teros rework script referenced above), we know that some of the problems are with TEROS sensors that only have 15-cm depths (which is many of the grid-cells). Since we are interested in depth-resolved, and because we have limited spatial resolution for DO and redox, let's first remove those to reduce the complexity of our dataset:
+
+```{r identify depth-resolved sensor nests}
+## Make a list of the unique combinations of plot, depth, and grid_square
+grouping_combos_5 <- unique(teros_5min_raw[c("plot", "depth", "grid_square")])
+grouping_combos_15 <- unique(teros_15min_raw[c("plot", "depth", "grid_square")])
+
+## TRUE
+# all_equal(grouping_combos_5, grouping_combos_15)
+
+## These are the same, so let's assign one of them to grouping_combos
+grouping_combos <- grouping_combos_15
+
+sensors_w_multiple_depths <- grouping_combos %>% 
+  group_by(plot, grid_square) %>%
+  summarize(num_depths = n_distinct(depth)) %>% 
+  filter(num_depths == 3) %>% ## only include nests with all three depths
+  select(-num_depths)
+```
+
+```{r filter datasets to depth-resolved only}
+teros_5min_qc1 <- inner_join(teros_5min_raw, sensors_w_multiple_depths, by = c("plot", "grid_square"))
+teros_15min_qc1 <- inner_join(teros_15min_raw, sensors_w_multiple_depths, by = c("plot", "grid_square"))
+
+plot_grid(raw_vwc_plot_all(teros_5min_qc1) + ggtitle("5-minute"), 
+          raw_vwc_plot_all(teros_15min_qc1) + ggtitle("15-minute"), 
+          ncol = 1)
+```
+
+#### **DECISION #1:** It's clear from this comparison that, unfortunately, the 5-minute datasets start right at the beginning of the event.
+
+# ---
+
+#### QC Step 2: remove nonsense sensors
+
+Based on QC Step 1 above, we're going to be using the 15-minute datasets. Next up, there are two sensors in Control that don't match any of the other sensors, and are reading unreasonably high VWC values. Let's strip them out.
+
+```{r}
+teros_15min_qc2 <- teros_15min_qc1 %>% 
+  filter(vwc < 0.6)
+
+raw_vwc_plot_all(teros_15min_qc2)
+```
+
+#### **DECISION #2:** Removed two sensors from Control based on VWC \> 0.6
+
+# ---
+
+#### QC Step 3: remove intermittent sensors
+
+Next, we need to check if there are sensors that are missing a lot of data, which should not be gap-filled. We'll do this simply by counting the number of records for a given period, and identifying if there are sensors with large gaps we can afford to lose:
+
+```{r examine and remove intermittent sensors}
+
+event_coverage <- teros_15min_qc2 %>% 
+  filter(datetime > "2023-06-06" & 
+           datetime < "2023-06-10") %>% 
+  ungroup() %>% 
+  group_by(plot, depth, grid_square) %>% 
+  count() 
+
+event_coverage %>% 
+  ggplot(aes(grid_square, n, fill = as.factor(depth))) + 
+  geom_col(position = "dodge", alpha = 0.5) + 
+  geom_hline(yintercept = 350) + 
+  facet_wrap(~plot, ncol = 1)
+
+## I did it more elegantly in the other Rmd, but this is easy to read and see
+teros_15min_qc3 <- teros_15min_qc2 %>% 
+  filter(!(plot == "Control" & grid_square == "C6")) %>% 
+  filter(!(plot == "Control" & grid_square == "H6"))
+
+```
+
+#### **DECISION #3:** Remove C6 and H6 from Control
+
+# ---
+
+#### QC Step 4: gap-filling {.tabset}
+
+Next up is identifying any sensors that are intermittent, and figuring out if/how to gap-fill. We can see that, of the sensors included, only a couple are missing more than 1% of their time-series. That's good news!
+
+```{r identify gaps}
+
+## First, make a vector of all the datetimes
+data_start = min(teros_15min_qc3$datetime)
+data_end = max(teros_15min_qc3$datetime)
+interval = "15 min"
+datetime = seq(from = data_start, 
+                to = data_end, 
+                by = interval)
+
+## Now grid_expand to all theoretical rows
+all_possible_rows <- expand_grid(datetime, unique(teros_15min_qc3[c("plot", "depth", "grid_square")]))
+
+## Calculate how many NAs we expect: 602. Not terrible, not great
+paste(nrow(all_possible_rows) - nrow(teros_15min_qc3), "NAs present")
+
+## Set up a vector for columns used to join
+join_cols = c("plot", "depth", "grid_square")
+
+teros_15min_gaps <- full_join(all_possible_rows, teros_15min_qc3, by = c("datetime", join_cols)) %>% 
+  mutate(gap_filled = ifelse(is.na(vwc), TRUE, FALSE)) 
+```
+
+##### % of data missing by sensor
+
+```{r}
+teros_15min_gaps %>% 
+  group_by(plot, depth, grid_square) %>% 
+  summarize(count = n(), 
+            na_count = sum(is.na(vwc))) %>% 
+  mutate(perc_na = (na_count / count) * 100) %>% 
+  ggplot(aes(grid_square, perc_na, fill = as.factor(depth))) + 
+  geom_col(position = "dodge", alpha = 0.2, color = "black") + 
+  facet_wrap(~plot, ncol = 1) + 
+  labs(y = "% NAs") + 
+  ggtitle("% NAs by sensor")
+```
+
+##### Length of gaps
+
+Gap lengths are generally not very long, though a gap length \>10 is equal to 2.5 hours, which is a little worrying
+
+```{r}
+teros_15min_gaps %>% 
+  group_by(plot, depth, grid_square) %>% 
+  mutate(is_na_vwc = is.na(vwc),
+    gap_id = cumsum(is_na_vwc),
+    gap_length = ifelse(is_na_vwc, NA, gap_id)) %>% 
+  ggplot(aes(grid_square, gap_length, fill = as.factor(depth))) + 
+  geom_boxplot(alpha = 0.2) + 
+  facet_wrap(~plot, ncol = 1) + 
+  ggtitle("NA gap length by sensor")
+```
+
+##### Location of gaps in time-series
+
+Welp. It's clear that there are some gaps during the event, so we'll need to keep an eye on our gap-filling and see if it influences our dataset in any noticable or meaningful way. The good news is, we'll be averaging between multiple sensors for each combination of depth and plot, so it is unlikely any given final value will be determined exclusively from gap-filled data.
+
+```{r}
+
+teros_15min_gaps %>% 
+  group_by(plot, depth, grid_square) %>% 
+  mutate(vwc_gap = ifelse(is.na(vwc), 0.6, vwc)) %>% 
+  ggplot(aes(datetime, vwc_gap, color = interaction(grid_square, as.factor(depth)))) + 
+  geom_line() + 
+  facet_wrap(~plot, ncol = 1) 
+
+```
+
+#### 
+
+```{r}
+teros_15min_qc4 <- teros_15min_gaps %>% 
+  #select(-contains("_id")) %>% 
+  ungroup() %>% 
+  group_by(plot, grid_square, depth) %>% 
+  mutate(across(where(is.numeric), ~ifelse(is.na(.), zoo::na.approx(., na.rm = FALSE), .), .names = "{.col}_filled")) %>%
+  ungroup()
+  
+  ggplot(teros_15min_qc4 %>% filter(gap_filled == FALSE), 
+                               aes(datetime, vwc_filled, color = (grid_square))) + 
+  geom_line() + 
+  geom_point(data = teros_15min_qc4 %>% filter(gap_filled == TRUE)) + 
+  facet_wrap(depth~plot) + 
+  ggtitle("Points show gaps filled, black = mean")
+
+```
+
+#### **DECISION #4:** Linearly gap-fill using the *zoo* package (199 missing values filled)
+
+# ---
+
+#### QC Step 5: choose statistics to average depths across grid squares {.tabset}
+
+As a final step, now that we've cleaned and gap-filled our data, we need to decide if we want to use the mean or median of sensors to calculate our final TEROS time-series. We'll look at all three variables to make this decision (and check that we don't need additional QC for them 
+
+```{r}
+teros_15_min_qc4_stat_choices <- teros_15min_qc4 %>%
+  group_by(datetime, plot, depth) %>%
+  dplyr::select(contains("_filled")) %>% 
+  dplyr::select(!contains("_id")) %>% 
+  rename_with(~str_replace_all(., "_filled", ""), everything()) %>% 
+  summarize(across(where(is.numeric), 
+                   list(mean = mean, median = median), 
+                   .names = "{.col}_{.fn}")) %>%
+  pivot_longer(cols = -c(datetime, plot, depth),
+               names_to = c("variable", "stat"),
+               names_sep = "_",
+               values_to = "value")
+```
+
+##### Temperature
+
+```{r}
+plot_stats <- function(var){
+  teros_15_min_qc4_stat_choices %>% 
+    filter(variable == var) %>% 
+    ggplot(aes(datetime, value, color = stat)) + 
+    geom_line() + 
+    facet_wrap(depth~plot)
+}
+
+plot_stats("tsoil")
+```
+
+
+##### VWC
+
+```{r}
+plot_stats("vwc")
+```
+
+
+##### EC
+
+```{r}
+plot_stats("ec")
+```
+
+#### **DECISION #5:** Use means because it preserves the event signatures better
+
+# ---
+
+#### Write out final dataset and make final plots {.tabset}
+
+```{r}
+
+teros_final <- teros_15min_qc4 %>%
+    select(-contains("_id")) %>% 
+  group_by(datetime, plot, depth) %>% 
+  mutate(filled = ifelse(gap_filled == TRUE, 1, 0)) %>% 
+  select(contains("filled")) %>%  ## A little tricky with strings here (include "filled")
+  summarize(across(where(is.numeric), mean)) %>%
+  rename_with(~str_remove(., "_filled"), contains("_filled")) %>% # now exclude "filled"
+  mutate(filled = ifelse(filled > 0, TRUE, FALSE)) %>% 
+  mutate(datetime_est = as.character(datetime))
+
+write_csv(teros_final, "../data/240326_teros_final.csv")
+```
+
+##### Temp
+
+```{r}
+plot_final_data <- function(var){
+  ggplot(teros_final, aes(datetime, {{var}}, color = as.factor(depth))) + 
+    geom_line() + 
+    geom_point(data = teros_final %>% filter(filled == TRUE)) + 
+    facet_wrap(~plot)
+}
+
+plot_final_data(tsoil)
+```
+
+##### VWC
+
+```{r}
+plot_final_data(vwc)
+```
+
+
+##### EC
+
+```{r}
+plot_final_data(ec)
+```
+
+####
+
+
+
+
+

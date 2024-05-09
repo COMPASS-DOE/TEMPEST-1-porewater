@@ -490,12 +490,9 @@ print(npoc_wflags_metadata)
 ```
 
 ```{r dataframe clean up for various saving}
-#Only porewater, all dates:
-PW_npoc_wflags_metadata <- npoc_wflags_metadata %>%
+
+clean_npoc_wflags_metadata <- npoc_wflags_metadata %>%
   filter(date < endstudydate & date > startstudydate) %>%
-  filter(Grid != "SOURCE") %>%
-  filter(Grid != "WELL") %>%
-  filter(Grid != "ESTUARY") %>%
   full_join(pwsite_key, by=c("Plot","Grid","Timepoint")) %>%
   #gap fill with NAs when lysimeters were dry for that sampling timepoint: 
   mutate(doc_mg_l = case_when(is.na(sample_name) & is.na(rundate) ~ NA,
@@ -520,16 +517,25 @@ PW_npoc_wflags_metadata <- npoc_wflags_metadata %>%
    mutate(Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::month(date), lubridate::year(date), sep = "-")),
                          lubridate::month(date) == 6 ~ as.character(date)))
 
-#Only porewater POOLED, all dates:
-PW_npoc_wflags_metadata_pooled_only <- npoc_wflags_metadata %>%
-    filter(date < endstudydate & date > startstudydate) %>%
+#Only porewater, all dates:
+
+PW_npoc_wflags_metadata <- clean_npoc_wflags_metadata %>%
   filter(Grid != "SOURCE") %>%
   filter(Grid != "WELL") %>%
-  filter(Grid != "BARGE") %>%
+  filter(Grid != "ESTUARY") 
+
+#Only porewater POOLED, all dates:
+PW_npoc_wflags_metadata_pooled_only <- PW_npoc_wflags_metadata %>%
+    filter(date < endstudydate & date > startstudydate) %>%
   filter(Grid == "POOL")
 
+#Only porewater grids not pooled, all dates:
+PW_npoc_wflags_metadata_grids_only <- PW_npoc_wflags_metadata %>%
+    filter(date < endstudydate & date > startstudydate) %>%
+  filter(Grid != "POOL")
+
 #Only sourcewater, all dates:
-source_npoc_wflags_metadata <- npoc_wflags_metadata %>%
+source_npoc_wflags_metadata <- clean_npoc_wflags_metadata %>%
   filter(date < endstudydate & date > startstudydate) %>%
   filter(grepl("SOURCE|ESTUARY|BARGE", sample_name)) 
 
@@ -569,5 +575,17 @@ saveRDS(source_npoc_wflags_metadata, "../TEMPEST-1-porewater/processed data/TMP_
 saveRDS(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.rds")
 
 write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.csv")
+
+```
+
+# Work up for Manuscript
+
+1) Save the pooled DOC data separately from the grid resolved:
+
+```{r manuscript specific write out}
+
+saveRDS(PW_npoc_wflags_metadata_pooled_only, "../TEMPEST-1-porewater/processed data/TMP_PW_POOL_NPOC_TDN_L1_May2022-Dec2023.rds")
+
+saveRDS(PW_npoc_wflags_metadata_grids_only, "../TEMPEST-1-porewater/processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.rds")
 
 ```
