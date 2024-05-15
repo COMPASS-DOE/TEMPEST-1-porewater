@@ -35,6 +35,17 @@ eems_grids <- readRDS("./processed data/TMP_PW_grids_CDOM_L1_May2022-Dec2023.rds
 
 ```
 
+```{r prep data for plotting}
+
+pw_plotting <- pw_grids %>%
+  filter(sample_name != "Lysimeter Empty") %>%
+  select(doc_mg_l, tdn_mg_l, plot, Grid, date, time, datetime, Group) %>%
+  group_by(plot, Group) %>% 
+    arrange(plot, date, time)
+  
+```
+
+
 all_the_doc <- pw2022event %>%
   full_join(pw2022) %>%
   full_join(pw2023) %>%
@@ -83,8 +94,12 @@ all_eems <- eems %>%
 
 Figure X for Take Home Message: There is a prolonged and sustained release of carbon following exposure to salinity.
 
-```{r DOC plot through time}
+```{r set up plots}
 plot_order <- c('Control Plot', 'Freshwater Plot','Estuarine-water Plot')
 Anyas_colors_alpha_order = c("springgreen2", "violetred2", "cyan2")
+
+```
+
+```{r plot through time}
 
 ```
