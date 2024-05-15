@@ -37,11 +37,46 @@ eems_grids <- readRDS("./processed data/TMP_PW_grids_CDOM_L1_May2022-Dec2023.rds
 
 ```{r prep data for plotting}
 
+levels = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25)
+
 pw_plotting <- pw_grids %>%
   filter(sample_name != "Lysimeter Empty") %>%
   select(doc_mg_l, tdn_mg_l, plot, Grid, date, time, datetime, Group) %>%
   group_by(plot, Group) %>% 
-    arrange(plot, date, time)
+    arrange(plot, date, time) %>%
+  mutate(plotting_group= case_when(Group == "5-2022" ~ "1",
+                                   Group == "2022-06-15" ~ "2",
+                                   Group == "2022-06-20" ~ "2",
+                                   Group == "2022-06-22" ~ "3", # Event Day
+                                   Group == "2022-06-23" ~ "4",
+                                   Group == "2022-06-24" ~ "5",
+                                   Group == "7-2022" ~ "6",
+                                   Group == "8-2022" ~ "7",
+                                   Group == "9-2022" ~ "8",
+                                   Group == "10-2022" ~ "9",
+                                   Group == "11-2022" ~ "10",
+                                   Group == "12-2022" ~ "11",
+                                   Group == "2-2023" ~ "12",
+                                   Group == "4-2023" ~ "13",
+                                   Group == "5-2023" ~ "14",
+                                   Group == "2023-06-03" ~ "15",
+                                   Group == "2023-06-05" ~ "15", 
+                                   Group == "2023-06-06" ~ "16", #Event Day
+                                   Group == "2023-06-07" ~ "17", #Event Day
+                                   Group == "2023-06-08" ~ "18", 
+                                   Group == "2023-06-12" ~ "19",
+                                   Group == "2023-06-14" ~ "19",
+                                   Group == "2023-06-17" ~ "19",
+                                   Group == "2023-06-27" ~ "20",
+                                   Group == "2023-06-28" ~ "20",
+                                   Group == "7-2023" ~ "21",
+                                   Group == "8-2023" ~ "22",
+                                   Group == "10-2023" ~ "23",
+                                   Group == "11-2023" ~ "24",
+                                   Group == "12-2023" ~ "25",
+                                   TRUE ~ NA)) %>%
+         mutate(plotting_group= factor(plotting_group, levels = levels))
+
   
 ```
 
@@ -101,5 +136,22 @@ Anyas_colors_alpha_order = c("springgreen2", "violetred2", "cyan2")
 ```
 
 ```{r plot through time}
-
+pw_plotting %>%
+  group_by(plot) %>%
+  ggplot() +
+  #     # Water 2022
+  annotate("rect", xmin = WaterDeliveryStart2022, xmax = WaterDeliveryStop2022, ymin = -Inf, ymax = Inf, fill = "blue")+
+  #  # Water 1
+  annotate("rect", xmin = WaterDeliveryStart1, xmax = WaterDeliveryStop1, ymin = -Inf, ymax = Inf, fill = "blue") +
+  # #Water 2
+  annotate("rect", xmin = WaterDeliveryStart2 , xmax = WaterDeliveryStop2, ymin = -Inf, ymax = Inf, fill = "blue") +
+  scale_x_datetime(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %y')+
+  geom_violin(aes(x = datetime, y =doc_mg_l, group= plotting_group, color = plot), size = 2)+
+  # geom_line(aes(x = plot_date, y =doc_mg_l, color = Plot))+
+  ylab("DOC mgC/L")+
+  xlab("Date")+
+  ylim(0,100)+
+  scale_color_manual(values=Anyas_colors_alpha_order) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme_classic()
 ```
