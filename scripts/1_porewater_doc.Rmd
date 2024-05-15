@@ -515,8 +515,9 @@ clean_npoc_wflags_metadata <- npoc_wflags_metadata %>%
                           Plot == "C" ~ "Control",
                           Plot == "SW" ~ "Estuarine-water",
                           TRUE ~ Plot)) %>%
-   mutate(Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::month(date), lubridate::year(date), sep = "-")),
-                         lubridate::month(date) == 6 ~ as.character(date)))
+   mutate(Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::year(date), lubridate::month(date), 1, sep = "-")),
+                         lubridate::month(date) == 6 ~ as.character(date)))%>%
+  mutate(Group = lubridate::as_date(Group))
 
 #Only porewater, all dates:
 
@@ -551,8 +552,9 @@ PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
   filter(!npoc_flag %in% "omitted for high dilution and blank values") %>%
   filter(!tdn_flag %in% "omitted for high dilution and blank values") %>%
   mutate(
-         Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::month(date), lubridate::year(date), sep = "-")),
+         Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::year(date), lubridate::month(date), 1, sep = "-")),
                          lubridate::month(date) == 6 ~ as.character(date))) %>%
+  mutate(Group = lubridate::as_date(Group)) %>%
   group_by(Plot, Group) %>% 
   summarise(n=n(),
             doc_mg_l_sd = round(sd(doc_mg_l, na.rm = TRUE), 2),
