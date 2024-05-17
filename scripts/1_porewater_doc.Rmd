@@ -555,7 +555,7 @@ PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
          Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::year(date), lubridate::month(date), 1, sep = "-")),
                          lubridate::month(date) == 6 ~ as.character(date))) %>%
   mutate(Group = lubridate::as_date(Group)) %>%
-  group_by(Plot, Group) %>% 
+  group_by(plot, Group) %>% 
   summarise(n=n(),
             doc_mg_l_sd = round(sd(doc_mg_l, na.rm = TRUE), 2),
             doc_mg_l_se = round(std.error(doc_mg_l, na.rm=TRUE), 2),
@@ -565,7 +565,7 @@ PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
             tdn_mg_l = round(mean(tdn_mg_l, na.rm = TRUE),2),
             date = min(date),
             .groups = "drop") %>%
-  select(Plot, Group, date, n, doc_mg_l, doc_mg_l_sd, doc_mg_l_se, tdn_mg_l, tdn_mg_l_sd, tdn_mg_l_se) 
+  select(plot, Group, date, n, doc_mg_l, doc_mg_l_sd, doc_mg_l_se, tdn_mg_l, tdn_mg_l_sd, tdn_mg_l_se) 
   
 ```
 

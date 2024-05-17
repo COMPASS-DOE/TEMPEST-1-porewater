@@ -1,13 +1,15 @@
 ---
-title: "figures"
+title: "Porewater DOC Story Figs"
 author: "AMP"
 date: "`r Sys.Date()`"
 output: html_document
 ---
 
+# Prep 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(plotrix)
 getwd()
 ```
 
@@ -15,6 +17,12 @@ getwd()
 endstudydate = lubridate::as_date("2024-01-31")
 startstudydate = lubridate::as_date("2022-05-01")
 
+#water delivery just dates:
+water2022 = lubridate::as_date("2022-06-22")
+water2023_1 = lubridate::as_date("2023-06-06")
+water2023_2 = lubridate::as_date("2023-06-07")
+
+#water delivery dates and times:
 WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
 WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
 
@@ -35,9 +43,15 @@ eems_grids <- readRDS("./processed data/TMP_PW_grids_CDOM_L1_May2022-Dec2023.rds
 
 ```
 
-```{r prep data for plotting}
+```{r set up for making plots}
+plot_order <- c('Control Plot', 'Freshwater Plot','Estuarine-water Plot')
+Anyas_colors_alpha_order = c("springgreen2", "violetred2", "cyan2")
 
-levels = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25)
+```
+
+# DOC 
+
+```{r prep data for plotting}
 
 pw_plotting <- pw_grids %>%
   filter(!is.na(doc_mg_l)) %>%
@@ -48,7 +62,65 @@ pw_plotting <- pw_grids %>%
   
 ```
 
-  mutate(plotting_group= case_when(Group == "5-2022" ~ "1",
+
+```{r doc summary statistics}
+
+pw_sum_stats <- pw_plotting %>%
+   group_by(Group, plot) %>%
+   summarise(n=n(),
+              doc_mg_l_mean = round(mean(doc_mg_l, na.rm = TRUE), 2),
+              doc_mg_l_median = round(median(doc_mg_l, na.rm = TRUE), 2),
+              doc_mg_l_sd = round(sd(doc_mg_l, na.rm = TRUE), 2),
+              doc_mg_l_se = round(std.error(doc_mg_l, na.rm = TRUE), 2),
+              Q1_doc = round(quantile(doc_mg_l, 0.25, na.rm= TRUE),2),
+              Q3_doc = round(quantile(doc_mg_l, 0.75, na.rm= TRUE),2),
+              min_doc = round(min(doc_mg_l, na.rm= TRUE),2),
+              max_doc = round(max(doc_mg_l, na.rm= TRUE),2),
+              tdn_mg_l_mean = round(mean(tdn_mg_l, na.rm = TRUE),2),
+              tdn_mg_l_median = round(median(tdn_mg_l, na.rm = TRUE),2),
+              tdn_mg_l_sd = round(sd(tdn_mg_l, na.rm = TRUE), 2),
+              tdn_mg_l_se = round(std.error(tdn_mg_l, na.rm = TRUE), 2),
+              Q1_tdn = round(quantile(tdn_mg_l, 0.25, na.rm= TRUE),2),
+              Q3_tdn = round(quantile(tdn_mg_l, 0.75, na.rm= TRUE),2),
+              min_tdn = round(min(tdn_mg_l, na.rm= TRUE),2),
+              max_tdn = round(max(tdn_mg_l, na.rm= TRUE),2),
+            .groups = "drop") %>%
+    arrange(plot, Group) 
+```
+
+ 
+# RANDOM EXPLORATORY 
+
+Boxplots and Violins to look at the data distribution: 
+
+```{r plot distribution of data}
+
+pw_plotting %>%
+    group_by(Group) %>%
+# filter(datetime > WaterDeliveryStop2022 & datetime < WaterDeliveryStart1) %>%
+  ggplot() +
+  #     # Water 2022
+ # annotate("rect", xmin = WaterDeliveryStart2022, xmax = WaterDeliveryStop2022, ymin = -Inf, ymax = Inf, fill = "blue")+
+  #  # Water 1
+ # annotate("rect", xmin = WaterDeliveryStart1, xmax = WaterDeliveryStop1, ymin = -Inf, ymax = Inf, fill = "blue") +
+  # #Water 2
+ # annotate("rect", xmin = WaterDeliveryStart2 , xmax = WaterDeliveryStop2, ymin = -Inf, ymax = Inf, fill = "blue") +
+  #scale_x_datetime(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %y')+
+  geom_violin(aes(x = factor(Group), y =doc_mg_l, color= plot), drop= FALSE)+
+  # geom_line(aes(x = plot_date, y =doc_mg_l, color = Plot))+
+  ylab("DOC mgC/L")+
+  xlab("Date")+
+  ylim(0,100)+
+  scale_color_manual(values=Anyas_colors_alpha_order) +
+  theme_classic() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+         axis.text.x= element_text(size=10, color= "black",angle = 45, hjust = 1)) 
+```
+
+
+levels = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25)
+
+ mutate(plotting_group= case_when(Group == "5-2022" ~ "1",
                                    Group == "2022-06-15" ~ "2",
                                    Group == "2022-06-20" ~ "2",
                                    Group == "2022-06-22" ~ "3", # Event Day
@@ -125,60 +197,114 @@ all_eems <- eems %>%
   group_by(Plot, plot_date, month, year) %>% 
     arrange(Plot, year, month)
     
-# Plotting
+
+# DOC Plots 
 
 Figure X for Take Home Message: There is a prolonged and sustained release of carbon following exposure to salinity.
 
-```{r set up plots}
-plot_order <- c('Control Plot', 'Freshwater Plot','Estuarine-water Plot')
-Anyas_colors_alpha_order = c("springgreen2", "violetred2", "cyan2")
+```{r timeseries plots, warning=FALSE}
 
-```
-
-Boxplots and Violins to look at the data distribution: 
-
-```{r plot distribution of data}
-
-pw_plotting %>%
-  group_by(Group) %>%
- filter(datetime > WaterDeliveryStop2022 & datetime < WaterDeliveryStart1) %>%
+plot <- pw_sum_stats %>%
   ggplot() +
-  #     # Water 2022
- # annotate("rect", xmin = WaterDeliveryStart2022, xmax = WaterDeliveryStop2022, ymin = -Inf, ymax = Inf, fill = "blue")+
-  #  # Water 1
- # annotate("rect", xmin = WaterDeliveryStart1, xmax = WaterDeliveryStop1, ymin = -Inf, ymax = Inf, fill = "blue") +
-  # #Water 2
- # annotate("rect", xmin = WaterDeliveryStart2 , xmax = WaterDeliveryStop2, ymin = -Inf, ymax = Inf, fill = "blue") +
-  #scale_x_datetime(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %y')+
-  geom_violin(aes(x = factor(Group), y =doc_mg_l, color= plot), drop= FALSE)+
-  # geom_line(aes(x = plot_date, y =doc_mg_l, color = Plot))+
-  ylab("DOC mgC/L")+
-  xlab("Date")+
-  ylim(0,100)+
+       # Water 2022
+  geom_vline("line", xintercept = water2022,  color = "blue")+
+  annotate("text", label= "2022 Event", x = lubridate::as_date("2022-06-24"), y = 100, size=6, color = "blue") +
+    # Water 1
+  geom_vline("line", xintercept = water2023_1,  color = "blue")+
+   #Water 2
+  geom_vline("line", xintercept = water2023_2,  color = "blue")+
+   annotate("text", label= "2023 Events", x = lubridate::as_date("2023-06-17"), y = 100, size=6, color = "blue") +
+ scale_x_date(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %Y')+
+ geom_errorbar(aes(x= Group, ymin= min_doc, ymax=  max_doc, color = plot))+
+  geom_point(aes(x= Group, y= doc_mg_l_mean, color = plot), size = 2)+
+ labs(x = "Date", y = "DOC mgC/L", color = "Plot") +
+ # ylim(0,100)+
   scale_color_manual(values=Anyas_colors_alpha_order) +
   theme_classic() +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-         axis.text.x= element_text(size=10, color= "black",angle = 45, hjust = 1)) 
+         axis.text.x= element_text(size=12, color= "black",angle = 45, hjust = 1),
+        axis.text =  element_text(size = 14, color= "black"),
+        axis.title = element_text(size = 14, color= "black")) 
+
+plot
+
+cowplot::save_plot("./figures/doc_timeseries_2022-2023.pdf", plot, dpi=300, base_aspect_ratio = 2:1)
 ```
 
-```{r timeseries plot}
-pw_plotting %>%
-  group_by(Group) %>%
+# EEMS
+
+```{r doc summary statistics}
+
+eems_sum_stats <- eems_pooled %>%
+   dplyr::bind_rows(eems_grids) %>%
+  group_by(plot, Group) %>%
+  summarise(n=n(),
+              Sr_mean = round(mean(Sr, na.rm = TRUE), 2),
+              Sr_min = round(min(Sr, na.rm= TRUE),2),
+              Sr_max = round(max(Sr, na.rm= TRUE),2),
+              Sr_mean = round(mean(Sr, na.rm = TRUE), 2),
+              Sr_min = round(min(Sr, na.rm= TRUE),2),
+              Sr_max = round(max(Sr, na.rm= TRUE),2),
+              FI_mean = round(mean(FI, na.rm = TRUE), 2),
+              FI_min = round(min(FI, na.rm= TRUE),2),
+              FI_max = round(max(FI, na.rm= TRUE),2),
+              FI_mean = round(mean(FI, na.rm = TRUE), 2),
+              FI_min = round(min(FI, na.rm= TRUE),2),
+              FI_max = round(max(FI, na.rm= TRUE),2),
+            .groups = "drop") %>%
+    arrange(plot, Group)
+
+```
+
+```{r timeseries plots, warning=FALSE}
+
+Sr_plot <- eems_sum_stats %>%
   ggplot() +
-  #     # Water 2022
- # annotate("rect", xmin = WaterDeliveryStart2022, xmax = WaterDeliveryStop2022, ymin = -Inf, ymax = Inf, fill = "blue")+
-  #  # Water 1
- # annotate("rect", xmin = WaterDeliveryStart1, xmax = WaterDeliveryStop1, ymin = -Inf, ymax = Inf, fill = "blue") +
-  # #Water 2
- # annotate("rect", xmin = WaterDeliveryStart2 , xmax = WaterDeliveryStop2, ymin = -Inf, ymax = Inf, fill = "blue") +
-  #scale_x_datetime(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %y')+
-  geom_boxplot(aes(x = factor(Group), y =doc_mg_l, color= plot), drop= FALSE)+
-  # geom_line(aes(x = plot_date, y =doc_mg_l, color = Plot))+
-  ylab("DOC mgC/L")+
-  xlab("Date")+
-  ylim(0,100)+
+       # Water 2022
+  geom_vline("line", xintercept = water2022,  color = "blue")+
+  annotate("text", label= "2022 Event", x = lubridate::as_date("2022-08-08"), y = 2, size=6, color = "blue") +
+    # Water 1
+  geom_vline("line", xintercept = water2023_1,  color = "blue")+
+   #Water 2
+  geom_vline("line", xintercept = water2023_2,  color = "blue")+
+   annotate("text", label= "2023 Events", x = lubridate::as_date("2023-06-17"), y = 2, size=6, color = "blue") +
+ scale_x_date(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %Y')+
+ geom_errorbar(aes(x= Group, ymin= Sr_min, ymax=  Sr_max, color = plot))+
+  geom_point(aes(x= Group, y= Sr_mean, color = plot), size = 2)+
+ labs(x = "Date", y = "Slope Ratio", color = "Plot") +
   scale_color_manual(values=Anyas_colors_alpha_order) +
   theme_classic() +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-         axis.text.x= element_text(size=10, color= "black",angle = 45, hjust = 1)) 
+         axis.text.x= element_text(size=12, color= "black",angle = 45, hjust = 1),
+        axis.text =  element_text(size = 14, color= "black"),
+        axis.title = element_text(size = 14, color= "black")) 
+
+Sr_plot
+
+cowplot::save_plot("./figures/Sr_timeseries_2022-2023.pdf", Sr_plot, dpi=300, base_aspect_ratio = 2:1)
+
+FI_plot <- eems_sum_stats %>%
+  ggplot() +
+       # Water 2022
+  geom_vline("line", xintercept = water2022,  color = "blue")+
+  annotate("text", label= "2022 Event", x = lubridate::as_date("2022-08-08"), y = 2, size=6, color = "blue") +
+    # Water 1
+  geom_vline("line", xintercept = water2023_1,  color = "blue")+
+   #Water 2
+  geom_vline("line", xintercept = water2023_2,  color = "blue")+
+   annotate("text", label= "2023 Events", x = lubridate::as_date("2023-06-17"), y = 2, size=6, color = "blue") +
+ scale_x_date(minor_breaks= waiver(),date_minor_breaks = "1 month", date_breaks="2 months",date_labels= '%b %Y')+
+ geom_errorbar(aes(x= Group, ymin= FI_min, ymax=  FI_max, color = plot))+
+  geom_point(aes(x= Group, y= FI_mean, color = plot), size = 2)+
+ labs(x = "Date", y = "Fluorescence Index", color = "Plot") +
+  scale_color_manual(values=Anyas_colors_alpha_order) +
+  theme_classic() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+         axis.text.x= element_text(size=12, color= "black",angle = 45, hjust = 1),
+        axis.text =  element_text(size = 14, color= "black"),
+        axis.title = element_text(size = 14, color= "black")) 
+
+FI_plot
+
+cowplot::save_plot("./figures/FI_timeseries_2022-2023.pdf", FI_plot, dpi=300, base_aspect_ratio = 2:1)
 ```

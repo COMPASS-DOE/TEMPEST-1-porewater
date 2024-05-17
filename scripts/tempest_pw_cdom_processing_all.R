@@ -211,8 +211,14 @@ eems_all_meta_dups_merged <- eems_all_meta_no_reps %>%
   mutate(date = lubridate::as_date(date, format = "%Y%m%d"),
          time= strptime(time, format ="%H%M%S"),
          time = strftime(time, "%H:%M:%S"))  %>%
-  mutate(Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::month(date), lubridate::year(date), sep = "-")),
-                         lubridate::month(date) == 6 ~ as.character(date)))
+  mutate(plot = case_when(Plot == "FW" ~ "Freshwater",
+                          Plot == "C" ~ "Control",
+                          Plot == "SW" ~ "Estuarine-water",
+                          TRUE ~ Plot)) %>%
+  mutate(Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::year(date), lubridate::month(date), 1, sep = "-")),
+                         lubridate::month(date) == 6 ~ as.character(date)))%>%
+  mutate(Group = lubridate::as_date(Group))
+
 
 #Only porewater POOLED, all dates:
 PW_eems_all_pooled_only <- eems_all_meta_dups_merged %>%
