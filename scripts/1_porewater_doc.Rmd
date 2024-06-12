@@ -1,0 +1,594 @@
+---
+title: "TMP Porewater DOC for Manuscript"
+author: "AMP"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+This script imports raw data for NPOC and TDN measured using a Shimadzu TOC-L at PNNL MCRL and exports clean, Level 1 QC'ed data. Raw Data are read in from L0 folder on Google Drive. 
+
+Created: 2022-01-15 by Peter Regier for EXCHANGE
+Updated: 2022-06-26 by Allison Myers-Pigg for TEMPEST
+Updated and adapted for markdown: 2024-02-10 by Allison Myers-Pigg for TEMPEST 2.0
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# load packages
+require(pacman)
+pacman::p_load(tidyverse, # keep things tidy
+               janitor, # useful for simplifying column names
+               googlesheets4, # read_sheet 
+               googledrive, # drive_ functions
+               plotrix,
+               here) 
+getwd()
+```
+
+## Pull in TMP system level analysis (2022 event) 
+
+```{r sys}
+## Set Github filepath for NPOC raw data files:
+
+#source("../tempest-system-level-analysis/scripts/02_tmp_doc_processing_2022Event.R")
+
+sample_key <- readRDS("~/GitHub/tempest-system-level-analysis/data/for processing/TMP_Event_June2022_META_PW_SOURCE_DateTime.rds")
+
+pwsite_key <- readxl::read_excel("../tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx")
+
+inventory_directory <- "https://docs.google.com/spreadsheets/d/1sFWq-WKhemPzbOFInqhCu_Lx0lsO6a_Z/edit#gid=496164093"
+
+drive_download(inventory_directory, path="./data_do_not_commit/porewaterinventory.xlsx", overwrite = TRUE)
+
+non_event_sample_key <- readxl::read_excel("./data_do_not_commit/porewaterinventory.xlsx", skip=3, sheet="Individual") %>%
+  select(Sample_ID, Evacuation_date_YYYMMDD, Collection_Date_YYYYMMDD, Collection_End_Time_24hrs, EST_EDT) %>%
+  filter(str_detect(Sample_ID, "DOC")) %>%
+  rename(sample_name = Sample_ID,
+         collection_date = Collection_Date_YYYYMMDD,
+         time = Collection_End_Time_24hrs,
+         tz = EST_EDT) %>%
+  select(sample_name, collection_date, time, tz)
+```
+
+```{r TEMPEST 1 sample key}
+## add into here time points for pre and post sampling for gapfilling purposes later on
+estuary_key1 = tibble(Plot = "ESTUARY",
+                     Timepoint = "HR4", 
+                     date = "20220622", 
+                     time= "110000")
+
+estuary_key2 = tibble(Plot = "ESTUARY",
+                     Timepoint = "HR7", 
+                     date = "20220622", 
+                     time= "150000")
+
+sample_key_merging <- sample_key %>%
+  mutate(date = stringr::str_remove_all(Date, "-")) %>%
+  rename(time = Start_time) %>%
+  mutate(time = str_replace_all(time, ":", "")) %>%
+  select(Plot,Timepoint, date, time) %>%
+  bind_rows(estuary_key1,estuary_key2) %>%
+  mutate(time = str_replace(time, "^[0-9]{5}$", function(x) paste0("0",x)))
+
+non_event_sample_key_merging <- non_event_sample_key %>%
+  mutate(Plot = stringr::str_extract(sample_name, 'FW|SW|C|ESTUARY'), 
+         Grid = stringr::str_extract(sample_name, "B4|C3|C6|D5|E3|F4|F6|H3|H6|I5|SOURCE|ESTUARY|POOL|WELL"),
+         date = stringr::str_extract(sample_name, "[0-9]{8}"),
+         time = str_replace(time, "^[0-9]{3}$", function(x) paste0("0", x, "00")),
+         time = str_replace(time, "^[0-9]{4}$", function(x) paste0(x, "00"))
+         ) %>%
+  select(Plot, Grid, date, time) 
+```
+
+
+# ```{r read in and save files from google drive}
+# 
+# raw_data_path <- "../data_do_not_commit/doc_L0_fromdrive/"
+# 
+# l0_file_list <- drive_ls("https://drive.google.com/drive/folders/1P65nP0CFY8V1iEY47O_fnNhvNS6D6eNt")
+# ```
+# #currently having issues getting this to work going to use the data already on github for this for now
+# ```{r Pull L0 data from Gdrive, eval = F}
+# ## Only use this chunk if you've not saved the data into github previously, pull from drive
+# ## pulled down the data I want, and it takes a while to run since the files are big
+# 
+# drive_download_ <- function(data){
+#   message(paste("Downloading", data$name))
+#   # you could add an ifelse to only download files it doesn't fine in raw_data_path
+#   drive_download(
+#     as_id(data$id), overwrite = T, path = paste0(raw_data_path, data$name))
+# }
+# 
+# ## Use a for-loop to read in files in a way that I can see what's going on
+# ## Download data to local. I tried to map() but for some reasons it doesn't work?
+# for(i in 1:nrow(l0_file_list)){
+#   drive_download_(l0_file_list %>% slice(i))
+# }
+# ```
+
+## Set Github filepath for NPOC raw data files - this is temporary - do the previous steps
+
+```{r github directory}
+directory= file.path(here() %>% dirname(), 'tempest-system-level-analysis/data/raw/DOC')
+
+```
+
+# Functions
+
+```{r functions, include=FALSE}
+## Create a function to read in data
+read_data <- function(data){
+  # First, scrape date from filename
+  rundate <- str_extract(data, "[0-9]{8}")
+  # Second, read in data
+  read_delim(file = data, skip = 10, delim = "\t") %>% 
+    rename(sample_name = `Sample Name`, 
+           npoc_raw = `Result(NPOC)`, 
+           tdn_raw = `Result(TN)`,
+           run_datetime = `Date / Time`) %>% 
+    select(sample_name, npoc_raw, tdn_raw,run_datetime) %>% 
+    mutate(rundate = rundate)
+}
+
+read_mes <- function(readme){
+  # First, scrape date from filename
+  rundate <- str_extract(readme, "[0-9]{8}")
+  # Second, read in Read Me
+  readxl::read_excel(path = readme, sheet = 1) %>% 
+    rename(sample_name = `Sample Name`,
+           sample_vol = `Sample wt`,
+           total_vol = `Total vol:`) %>% 
+    select(sample_name, Action, sample_vol, total_vol) %>% 
+    mutate(rundate = rundate)
+}
+```
+
+# Set Up Date Ranges
+
+```{r figure out files to use, include=TRUE}
+files <- list.files(path = here::here(directory), pattern = "Summary", full.names = TRUE) 
+ReadMes <- list.files(path = here::here(directory), pattern = "Readme", full.names = TRUE) 
+
+files
+
+
+```
+
+# Set the dates:
+
+```{r event and study dates}
+endstudydate = lubridate::as_date("2024-01-31")
+startstudydate = lubridate::as_date("2022-05-01")
+
+WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
+WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
+
+WaterDeliveryStart1 = as.POSIXct("2023-06-06 05:30:00", tz = "EST")
+WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
+
+WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
+WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
+```
+
+<!-- Input your run dates of interest into the files_dates dataframe:  -->
+
+<!-- ```{r set dates for analysis, include=TRUE} -->
+<!-- #  -->
+<!-- # #files_dates = c( -->
+<!-- #                 "20220701", #2022  -->
+<!-- #                 "20220708", -->
+<!-- #                 "20220711", -->
+<!-- #                 "20220715", -->
+<!-- #                 "20220729", -->
+<!-- #                 "20220803", -->
+<!-- #                 "20220819", -->
+<!-- #                 "20220922", -->
+<!-- #                 "20221025", -->
+<!-- #                 "20221209", -->
+<!-- #                 "20230209", -->
+<!-- #                 "20230512", -->
+<!-- #                 "20230531", #2023 start -->
+<!-- #                 "20230608", -->
+<!-- #                 "20230609", -->
+<!-- #                 "20230622", -->
+<!-- #                 "20230706", -->
+<!-- #                 "20230824", -->
+<!-- #                 "20231010", -->
+<!-- #                 "20231012", -->
+<!-- #                 "20231115", -->
+<!-- #                 "20231214") -->
+
+
+
+
+<!-- ``` -->
+
+
+# Import Data
+```{r import data, include= TRUE, message=FALSE, warning=FALSE}
+
+npoc_raw <- files %>% 
+  map_df(read_data) %>% 
+  filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
+#  filter(rundate %in% files_dates) %>% # filter to just run dates you need 
+  bind_rows() 
+
+blanks_raw <- files %>% 
+  map_df(read_data) %>% 
+  filter(grepl("^Blank", sample_name)) %>% # filter to blanks only
+#  filter(rundate %in% files_dates) %>% # filter to just run dates you need 
+  bind_rows() 
+
+readmes_dilution_action <- ReadMes %>% 
+  map_df(read_mes) %>% 
+  filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
+  filter(grepl("ilution correction", Action)) %>%
+#  filter(rundate %in% files_dates) %>% # filter to just run dates you need 
+  bind_rows() 
+
+readmes_all <- ReadMes %>% 
+  map_df(read_mes) %>% 
+  filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
+#  filter(rundate %in% files_dates) %>% # filter to just run dates you need 
+    mutate(Action = case_when(sample_name == "TMP_SW_F4_T3" ~ "Omit", # due to incorrect duplicate naming
+                            sample_name == "TMP_ESTUARY_BARGE_HR8_DOC" & rundate == "20220629" ~ "Omit", #remove this weird sample that should have been flagged because its basically 0
+                              TRUE ~ Action)) %>%
+  bind_rows() 
+
+curvepts <-files %>% 
+  map_df(read_data) %>% 
+  filter(grepl("STD_", sample_name)) %>% # filter to curves only
+#  filter(rundate %in% files_dates) %>% # filter to just run dates you need 
+  filter(!grepl("10/25/2022 7:24:33 PM|9/22/2022 9:03:23 PM", run_datetime)) %>% # filter out curve points you don't want
+  rename(standard_high_C = npoc_raw,
+         standard_high_N = tdn_raw) %>%
+  select(rundate,standard_high_C,standard_high_N) %>%
+  pivot_longer(cols = c(standard_high_C,standard_high_N)) %>%
+  na.omit() %>%
+  group_by(rundate) %>%
+  distinct()%>%
+  pivot_wider(names_from= name, values_from = value)%>%
+  bind_rows() 
+```
+
+# Calculate blanks and add to data
+
+```{r blanks}
+blanks <- blanks_raw %>% 
+  filter(!run_datetime %in% NA) %>% 
+  mutate(npoc_raw = ifelse(npoc_raw > 0, npoc_raw, NA)) %>%
+  mutate(tdn_raw = ifelse(tdn_raw > 0, tdn_raw, NA)) %>%
+  group_by(rundate) %>% 
+  summarize(npoc_blank= round(mean(npoc_raw[!is.na(npoc_raw)]), 2),
+            npoc_blank_SD= round(sd(npoc_raw[!is.na(npoc_raw)]), 2), #add SD columns
+            tdn_blank= round(mean(tdn_raw[!is.na(tdn_raw)]), 2),
+            tdn_blank_SD= round(sd(tdn_raw[!is.na(tdn_raw)]), 2)) %>% #add SD columns
+  select(rundate, npoc_blank, npoc_blank_SD, tdn_blank, tdn_blank_SD)
+
+print(blanks) # Check out the blank data 
+```
+
+# Flag sketch data 
+
+```{r flagging} 
+npoc_flagged <- npoc_raw %>% 
+  filter(grepl("TMP", sample_name)) %>% # filter to TMP samples only
+  inner_join(blanks, by = "rundate") %>% 
+  inner_join(curvepts, by= "rundate") %>%
+  mutate(tdn_flag = case_when(tdn_raw > standard_high_N ~ "value above cal curve",
+                              tdn_blank > 0.25*tdn_raw ~ "blank is ≥ 25% of sample value", # flagging if blank concentration is > 20% of the sample concentration 
+                               sample_name == "TMP_SW_F4_T3" ~ "incorrect sample naming, cannot resolve"), 
+         #most curves only to 50, those samples were not above it. making 100 for the August and September, which used 0-100
+         npoc_flag = case_when(npoc_raw > standard_high_C ~ "value above cal curve",
+                               npoc_blank > 0.25*npoc_raw ~ "blank is ≥ 25% of sample value", # flagging if blank concentration is > 20% of the sample concentration
+                              sample_name == "TMP_SW_F4_T3" ~ "incorrect sample naming, cannot resolve"),
+          npoc_raw = case_when(npoc_flag == "incorrect sample naming, cannot resolve" ~ NA,
+                               TRUE ~ npoc_raw),
+          tdn_raw = case_when(tdn_flag == "incorrect sample naming, cannot resolve" ~ NA,
+                              TRUE ~ tdn_raw)
+  )
+
+print(npoc_flagged)
+```
+
+# Dilution Corrections & Flagging 
+
+Some of the pooled samples are actually not pooled and only one lysimeter. These should be incorporated herein so if they are replicates of a DOC value from an individual lysimeter they are incorporated into the values, and then removed as a "Pooled" sample. 
+
+```{r dilutions}
+dilutions = 
+  readmes_dilution_action %>% 
+  mutate(Dilution =  total_vol/sample_vol) %>% 
+  dplyr::select(rundate, sample_name, Action, Dilution) %>% 
+  force()
+
+samples_to_dilution_corrected = 
+  npoc_flagged %>%
+  left_join(dilutions, by = c("sample_name", "rundate")) %>% 
+  filter(grepl("ilution correction", Action)) %>%
+  filter(!Action %in% "Omit") %>% 
+  filter(!Action %in% "omit") %>% 
+  mutate(doc_mg_l= npoc_raw * Dilution, tdn_mg_l = tdn_raw * Dilution, # True concentration = diluted concentration * total vol / sample vol
+         doc_mg_l = as.numeric(doc_mg_l), doc_mg_l = round(doc_mg_l, 2),
+         tdn_mg_l= as.numeric(tdn_mg_l), tdn_mg_l= round(tdn_mg_l, 2)) %>%
+  mutate(doc_mg_l = case_when(Dilution > 30 & npoc_flag == "blank is ≥ 25% of sample value" ~ NA,
+                              TRUE ~ doc_mg_l), # removing values if high blanks and high dilution ratios, potentially large source of error. 
+         npoc_flag = case_when(is.na(doc_mg_l) ~ "omitted for high dilution and blank values",
+                               TRUE ~ npoc_flag),
+         tdn_mg_l = case_when(Dilution > 30 & tdn_flag == "blank is ≥ 25% of sample value" ~ NA,
+                              TRUE ~ tdn_mg_l),
+         tdn_flag = case_when(is.na(tdn_mg_l) ~ "omitted for high dilution and blank values",
+                              TRUE ~ tdn_flag)) # removing values if high blanks and high dilution ratios, potentially large source of error. 
+
+all_samples_dilution_corrected =
+  npoc_flagged %>%
+  left_join(readmes_all, by = c("sample_name", "rundate")) %>% 
+  mutate(doc_mg_l = npoc_raw, tdn_mg_l = tdn_raw) %>%
+  filter(!grepl("ilution correction", Action)) %>% 
+  filter(!Action %in% "Omit") %>%
+  filter(!Action %in% "omit") %>% 
+  bind_rows(samples_to_dilution_corrected) %>%
+  dplyr::select(sample_name, rundate, doc_mg_l, tdn_mg_l, npoc_flag, tdn_flag)%>%
+  mutate(doc_mg_l = if_else(doc_mg_l < 0, "NA", as.character(doc_mg_l)),
+         tdn_mg_l = if_else(tdn_mg_l < 0, "NA", as.character(tdn_mg_l)),
+         doc_mg_l = as.numeric(doc_mg_l), doc_mg_l = round(doc_mg_l, 2),
+         tdn_mg_l= as.numeric(tdn_mg_l), tdn_mg_l= round(tdn_mg_l, 2))
+
+#Identify if any duplicates were run, this should return an empty data frame if not:#
+
+duplicates <- all_samples_dilution_corrected %>% subset(duplicated(sample_name))
+
+print(duplicates)
+
+
+#MANUALLY Fix sample names and see if there were multiple of the same sample split for some reason run:
+
+ all_samples_dilution_corrected2 <- all_samples_dilution_corrected %>% 
+   #2022 event naming was a hot mess: 
+    mutate(sample_name = stringr::str_replace(sample_name,"HR6","HR7")) %>% #HR6 samples are mislabeled, should be HR7
+    mutate(sample_name = stringr::str_replace(sample_name, "_DILUTED4mLsmpl3mLwater", "")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "_Diluted", "")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "_1of1", "")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "_1of2", "")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "_2of2", "")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "_1of3", "")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "_2of3", "")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "_3of3", "")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "PreW", "T0")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name, "TMP_C_F4_20221128", "TMP_C_F6_20221128")) %>% # nov/dec C F6 naming mix up with F4 in DOC run
+      mutate(sample_name = case_when(sample_name == "TMP_FW_POOL_202310" ~ "TMP_FW_POOL_20231002", #this didn't have a date in the sample name
+                              TRUE ~ sample_name)) %>%
+   #Relevant Beyond the 2022 Event: 
+    mutate(sample_name = stringr::str_remove(sample_name,"_DOC")) %>%
+    mutate(sample_name = stringr::str_remove(sample_name,"_A$")) %>%
+    mutate(sample_name = stringr::str_remove(sample_name, "_B$")) %>%
+    mutate(sample_name = stringr::str_remove(sample_name,"_EXTRA")) %>%
+    mutate(sample_name = stringr::str_replace(sample_name,"POOLED","POOL")) %>%
+    mutate(sample_name = stringr::str_remove(sample_name,"_Subsample")) %>% ####WHAT ARE THESE???????####
+   #These are the pooled samples that are not actually pooled:
+    mutate(sample_name = stringr::str_replace(sample_name, "TMP_C_POOL_T2", "TMP_C_H6_T2"))
+      # control pooled T2 is actually not a pooled sample - field metadata sheets have that sample coming from one grid: H6
+ # the rest of these I think are an error in how the pooled inventory datasheet is compiled so don't change them for now, they don't exist anyway according to the actual dataset.
+    # mutate(sample_name = stringr::str_replace(sample_name, "TMP_SW_POOL_20230612", "TMP_SW_B4_20230612")) %>%
+      # Porewater inventory says this is just B4. However, in the raw datafile it doesn't look like this sample exists for DOC.
+    #mutate(sample_name = stringr::str_replace(sample_name, "TMP_SW_POOL_20230606", "TMP_SW_C3_20230606")) %>%
+      # Porewater inventory says this is just C3. However, in the raw datafile it doesn't look like this sample exists for DOC.
+  
+reps <- all_samples_dilution_corrected2  %>%
+  group_by(sample_name) %>%
+  filter(n() > 1) 
+
+print(reps)
+
+reps_names <- reps %>%
+  select(sample_name) %>%
+  unique() 
+
+samples_dilution_corrected2_no_reps <- all_samples_dilution_corrected2 %>%
+  filter(!sample_name %in% reps_names$sample_name)
+
+#need to remove a rep if the following conditions are met:
+# 1) Flag says "high blank" &
+# 2) Values are > 20% apart 
+# If second condition is met but the first is not met, need to flag with "Inconsistent reps"
+# If they are close in value, regardless of condition for 1), can be confident that they look good. 
+
+reps_clean <- reps %>%
+  group_by(sample_name) %>%
+  mutate(doc_mg_l_max = max(doc_mg_l),
+         doc_mg_l_min = min(doc_mg_l),
+         doc_mg_l_percerr = (doc_mg_l_max - doc_mg_l_min) / doc_mg_l_max,
+         Keep_doc = case_when(doc_mg_l_percerr < .25 ~ TRUE),
+         tdn_mg_l_max = max(tdn_mg_l),
+         tdn_mg_l_min = min(tdn_mg_l),
+         tdn_mg_l_percerr = (tdn_mg_l_max - tdn_mg_l_min) / tdn_mg_l_max,
+         Keep_tdn = case_when(tdn_mg_l_percerr < .25 ~ TRUE),
+         doc_mg_l = case_when(Keep_doc == TRUE ~ doc_mg_l,
+                              FALSE ~ NA),
+         tdn_mg_l = case_when(Keep_tdn == TRUE ~ tdn_mg_l,
+                              FALSE ~ NA)) %>%
+  select(sample_name, rundate, doc_mg_l, tdn_mg_l, npoc_flag, tdn_flag) %>%
+  group_by(sample_name) %>% 
+  summarise(doc_mg_l = mean(doc_mg_l, na.rm = TRUE),
+            tdn_mg_l = mean(tdn_mg_l, na.rm = TRUE)) %>%
+  mutate(npoc_flag = case_when(doc_mg_l == 'NaN' ~ "replicates greater than 25% different",
+                              TRUE ~ "replicates analyzed and values averaged"),
+         tdn_flag = case_when(tdn_mg_l == 'NaN' ~ "replicates greater than 25% different",
+                              TRUE ~ "replicates analyzed and values averaged"))
+#Need to merge those:
+npoc_dups_merged <- samples_dilution_corrected2_no_reps %>% 
+  bind_rows(reps_clean)
+
+print(npoc_dups_merged)
+```
+
+# Clean data 
+
+```{r start cleaning}
+
+## Flagging data
+npoc_flags <- npoc_dups_merged %>% 
+  ## add flags 
+  # Below blank 
+  mutate(npoc_flag = case_when(doc_mg_l == 'NaN'& sample_name %in% reps_clean$sample_name ~ "replicates greater than 25% different",
+                               sample_name %in% reps_clean$sample_name ~ "average value of multiple aliquots",
+                               doc_mg_l == 'NaN' ~ "value below blank",
+                               grepl("POOL", sample_name) ~ "pooled sample",
+                               grepl("pool", sample_name) ~ "pooled sample",
+                               grepl("value above cal curve",npoc_flag) ~ "value above cal curve",
+                               TRUE ~ npoc_flag), 
+         tdn_flag = case_when(tdn_mg_l == 'NaN'& sample_name %in% reps_clean$sample_name ~ "replicates greater than 25% different",
+                              sample_name %in% reps_clean$sample_name ~ "average value of multiple aliquots",
+                              tdn_mg_l == 'NaN' ~ "value below blank",
+                              grepl("POOL", sample_name) ~ "pooled sample",
+                              grepl("pool", sample_name) ~ "pooled sample",
+                              grepl("value above cal curve",tdn_flag) ~ "value above cal curve",
+                              TRUE ~ tdn_flag)) 
+
+
+npoc_wflags_metadata <-  npoc_flags %>%
+  mutate(sample_name = stringr::str_replace(sample_name,"pooled","POOL"),
+         Event = stringr::str_extract(sample_name, "TMP"),
+         Plot = stringr::str_extract(sample_name, 'FW|SW|C|ESTUARY'), 
+         Grid = stringr::str_extract(sample_name, "B4|C3|C6|D5|E3|F4|F6|H3|H6|I5|SOURCE|ESTUARY|POOL|WELL"),
+         Timepoint = stringr::str_extract(sample_name,"T[0-9]|HR[0-9]"),
+         Timepoint = case_when(Timepoint == "HR8" ~ "HR7", #change the estuary HR8 to HR7
+                                TRUE ~ Timepoint),
+         Pool_Timepoint = stringr::str_extract(sample_name,"[0-9]{8}_\\d{8}|[0-9]{8}-\\d{8}"),
+         sample_name = stringr::str_remove(sample_name,"(?<=[0-9]{8})_\\d{8}|(?<=[0-9]{8})-\\d{8}"),
+         sample_name = stringr::str_remove(sample_name, "_FW\\d{2}|_SW\\d{2}"),
+         doc_mg_l = case_when(doc_mg_l == "NaN" ~ NA,
+                              TRUE ~ doc_mg_l),
+         tdn_mg_l = case_when(tdn_mg_l == "NaN" ~ NA,
+                              TRUE ~ tdn_mg_l)
+         ) %>%
+   mutate(Plot = case_when(Grid == "ESTUARY" ~ "ESTUARY",
+                        TRUE ~ Plot)) %>%
+  left_join(sample_key_merging, by = c("Plot","Timepoint")) %>%
+  mutate(date= case_when(is.na(date) ~ stringr::str_extract(sample_name, "[0-9]{8}"),
+                  TRUE ~ date)) %>%
+ left_join(non_event_sample_key_merging, by= c("Plot","Grid","date"), suffix = c("", ".fill")) %>%
+  mutate(time = coalesce(time, time.fill)) %>%
+  select(-time.fill) %>%
+  mutate(time = case_when(is.na(time) ~ stringr::str_extract(sample_name, "(?<=[0-9]{8}_)\\d{4}"),
+                          TRUE ~ time),
+         time = str_replace(time, '\\d+', function(m) str_pad(m, 6, pad = '0', side = ("right")))
+         ) %>%
+  mutate(time = case_when(is.na(time) ~ "115900", 
+                          TRUE ~ time)) %>% #if no time recorded in the metadata sheet, fill in with noon
+  mutate(date = lubridate::as_date(date, format = "%Y%m%d"),
+         time= strptime(time, format ="%H%M%S"),
+         time = strftime(time, "%H:%M:%S")) %>%
+   mutate(Timepoint = case_when(is.na(Timepoint) & date == "2022-07-18" ~ "T5",
+                             is.na(Timepoint) & date == "2022-07-21" ~ "T5",
+                             is.na(Timepoint) & date == "2022-06-15" ~ "T0",
+                                      TRUE ~ Timepoint)) %>%
+  mutate(datetime = as.POSIXct(paste(date, time), format = "%Y-%m-%d %H:%M:%S"))
+
+print(npoc_wflags_metadata)
+
+```
+
+```{r dataframe clean up for various saving}
+
+clean_npoc_wflags_metadata <- npoc_wflags_metadata %>%
+  filter(date < endstudydate & date > startstudydate) %>%
+  full_join(pwsite_key, by=c("Plot","Grid","Timepoint")) %>%
+  #gap fill with NAs when lysimeters were dry for that sampling timepoint: 
+  mutate(doc_mg_l = case_when(is.na(sample_name) & is.na(rundate) ~ NA,
+                              TRUE ~ doc_mg_l),
+         tdn_mg_l = case_when(is.na(sample_name) & is.na(rundate) ~ NA,
+                              TRUE ~ tdn_mg_l),
+         date = case_when(is.na(sample_name) & Timepoint == "T0" ~ lubridate::as_date("2022-06-20"),
+                          is.na(sample_name) & Timepoint == "T1" ~ lubridate::as_date("2022-06-22"),
+                          is.na(sample_name) & Timepoint == "T2" ~ lubridate::as_date("2022-06-22"),
+                          is.na(sample_name) & Timepoint == "T3" ~ lubridate::as_date("2022-06-23"),
+                          is.na(sample_name) & Timepoint == "T4" ~ lubridate::as_date("2022-06-24"),
+                          is.na(sample_name) & Timepoint == "T5" ~ lubridate::as_date("2022-07-21"),
+                          TRUE ~ date),
+         Event = case_when(is.na(Event) ~ "TMP",
+                           TRUE ~ Event),
+         sample_name = case_when(is.na(sample_name)~ "Lysimeter Empty",
+                                 TRUE ~ sample_name)) %>%
+  mutate(plot = case_when(Plot == "FW" ~ "Freshwater",
+                          Plot == "C" ~ "Control",
+                          Plot == "SW" ~ "Estuarine-water",
+                          TRUE ~ Plot)) %>%
+   mutate(Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::year(date), lubridate::month(date), 1, sep = "-")),
+                         lubridate::month(date) == 6 ~ as.character(date)))%>%
+  mutate(Group = lubridate::as_date(Group))
+
+#Only porewater, all dates:
+
+PW_npoc_wflags_metadata <- clean_npoc_wflags_metadata %>%
+  filter(Grid != "SOURCE") %>%
+  filter(Grid != "WELL") %>%
+  filter(Grid != "ESTUARY") 
+
+#Only porewater POOLED, all dates:
+PW_npoc_wflags_metadata_pooled_only <- PW_npoc_wflags_metadata %>%
+    filter(date < endstudydate & date > startstudydate) %>%
+  filter(Grid == "POOL")
+
+#Only porewater grids not pooled, all dates:
+PW_npoc_wflags_metadata_grids_only <- PW_npoc_wflags_metadata %>%
+    filter(date < endstudydate & date > startstudydate) %>%
+  filter(Grid != "POOL")
+
+#Only sourcewater, all dates:
+source_npoc_wflags_metadata <- clean_npoc_wflags_metadata %>%
+  filter(date < endstudydate & date > startstudydate) %>%
+  filter(grepl("SOURCE|ESTUARY|BARGE", sample_name)) 
+
+#partially summarized except for june, no event. might be useful for plotting, not sure yet
+PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
+  filter(date < endstudydate & date > startstudydate) %>%
+  filter(datetime < WaterDeliveryStart2022 | datetime > WaterDeliveryStop2022) %>%
+  filter(datetime < WaterDeliveryStart1 | datetime > WaterDeliveryStop1) %>%
+  filter(datetime < WaterDeliveryStart2 | datetime > WaterDeliveryStop2) %>%
+  filter(Grid != "POOL") %>%
+  filter(!sample_name %in% "Lysimeter Empty") %>%
+  filter(!npoc_flag %in% "omitted for high dilution and blank values") %>%
+  filter(!tdn_flag %in% "omitted for high dilution and blank values") %>%
+  mutate(
+         Group=case_when(lubridate::month(date) != 6 ~ as.character(paste(lubridate::year(date), lubridate::month(date), 1, sep = "-")),
+                         lubridate::month(date) == 6 ~ as.character(date))) %>%
+  mutate(Group = lubridate::as_date(Group)) %>%
+  group_by(plot, Group) %>% 
+  summarise(n=n(),
+            doc_mg_l_sd = round(sd(doc_mg_l, na.rm = TRUE), 2),
+            doc_mg_l_se = round(std.error(doc_mg_l, na.rm=TRUE), 2),
+            doc_mg_l = round(mean(doc_mg_l, na.rm = TRUE), 2),
+            tdn_mg_l_sd = round(sd(tdn_mg_l, na.rm = TRUE), 2),
+            tdn_mg_l_se = round(std.error(tdn_mg_l, na.rm=TRUE), 2),
+            tdn_mg_l = round(mean(tdn_mg_l, na.rm = TRUE),2),
+            date = min(date),
+            .groups = "drop") %>%
+  select(plot, Group, date, n, doc_mg_l, doc_mg_l_sd, doc_mg_l_se, tdn_mg_l, tdn_mg_l_sd, tdn_mg_l_se) 
+  
+```
+
+# Write data
+
+```{r write}
+
+saveRDS(source_npoc_wflags_metadata, "../TEMPEST-1-porewater/processed data/TMP_SOURCE_NPOC_TDN_L1_TMP1TMP2.rds")
+
+saveRDS(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.rds")
+
+write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.csv")
+
+```
+
+# Work up for Manuscript
+
+1) Save the pooled DOC data separately from the grid resolved:
+
+```{r manuscript specific write out}
+
+saveRDS(PW_npoc_wflags_metadata_pooled_only, "../TEMPEST-1-porewater/processed data/TMP_PW_POOL_NPOC_TDN_L1_May2022-Dec2023.rds")
+
+saveRDS(PW_npoc_wflags_metadata_grids_only, "../TEMPEST-1-porewater/processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.rds")
+
+```
