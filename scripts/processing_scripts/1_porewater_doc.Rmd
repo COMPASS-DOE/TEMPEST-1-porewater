@@ -27,6 +27,7 @@ getwd()
 ```
 
 ## Pull in TMP system level analysis (2022 event) 
+,  col_types = c("text","text","text","numeric","text","text","text","text", "text","text","text","text","text")
 
 ```{r sys}
 ## Set Github filepath for NPOC raw data files:
@@ -35,7 +36,9 @@ getwd()
 
 sample_key <- readRDS("~/GitHub/tempest-system-level-analysis/data/for processing/TMP_Event_June2022_META_PW_SOURCE_DateTime.rds")
 
-pwsite_key <- readxl::read_excel("../tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx")
+pwsite_key <- readxl::read_excel("../tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx") %>%
+  select(Plot, Grid) %>%
+  unique()
 
 inventory_directory <- "https://docs.google.com/spreadsheets/d/1sFWq-WKhemPzbOFInqhCu_Lx0lsO6a_Z/edit#gid=496164093"
 
@@ -45,10 +48,14 @@ non_event_sample_key <- readxl::read_excel("./data_do_not_commit/porewaterinvent
   select(Sample_ID, Evacuation_date_YYYMMDD, Collection_Date_YYYYMMDD, Collection_End_Time_24hrs, EST_EDT) %>%
   filter(str_detect(Sample_ID, "DOC")) %>%
   rename(sample_name = Sample_ID,
+         evacuation_date = Evacuation_date_YYYMMDD,
          collection_date = Collection_Date_YYYYMMDD,
          time = Collection_End_Time_24hrs,
          tz = EST_EDT) %>%
-  select(sample_name, collection_date, time, tz)
+  mutate(evacuation_date = lubridate::as_date(as.character(evacuation_date), format = "%Y%m%d"),
+         collection_date = lubridate::as_date(as.character(collection_date), format = "%Y%m%d"),
+         elapsed_time = lubridate::days(collection_date - evacuation_date)) %>%
+  select(sample_name, evacuation_date, collection_date, time, tz, elapsed_time)
 ```
 
 ```{r TEMPEST 1 sample key}
@@ -78,7 +85,7 @@ non_event_sample_key_merging <- non_event_sample_key %>%
          time = str_replace(time, "^[0-9]{3}$", function(x) paste0("0", x, "00")),
          time = str_replace(time, "^[0-9]{4}$", function(x) paste0(x, "00"))
          ) %>%
-  select(Plot, Grid, date, time) 
+  select(Plot, Grid, date, time, evacuation_date, collection_date) 
 ```
 
 
@@ -446,8 +453,7 @@ npoc_flags <- npoc_dups_merged %>%
                               grepl("value above cal curve",tdn_flag) ~ "value above cal curve",
                               TRUE ~ tdn_flag)) 
 
-
-npoc_wflags_metadata <-  npoc_flags %>%
+npoc_wflags_metadata.1 <-  npoc_flags %>%
   mutate(sample_name = stringr::str_replace(sample_name,"pooled","POOL"),
          Event = stringr::str_extract(sample_name, "TMP"),
          Plot = stringr::str_extract(sample_name, 'FW|SW|C|ESTUARY'), 
@@ -471,14 +477,19 @@ npoc_wflags_metadata <-  npoc_flags %>%
  left_join(non_event_sample_key_merging, by= c("Plot","Grid","date"), suffix = c("", ".fill")) %>%
   mutate(time = coalesce(time, time.fill)) %>%
   select(-time.fill) %>%
+  mutate(date = lubridate::as_date(date, format = "%Y%m%d"))
+
+pwsite_key_all <- pwsite_key %>% expand(Plot, Grid, date = unique(npoc_wflags_metadata$date)) %>% drop_na()
+
+npoc_wflags_metadata <- npoc_wflags_metadata.1 %>%
+   full_join(pwsite_key_all, by=c("Plot","Grid", "date")) %>%  #gap fill with NAs when lysimeters were dry for that sampling timepoint
   mutate(time = case_when(is.na(time) ~ stringr::str_extract(sample_name, "(?<=[0-9]{8}_)\\d{4}"),
                           TRUE ~ time),
          time = str_replace(time, '\\d+', function(m) str_pad(m, 6, pad = '0', side = ("right")))
          ) %>%
   mutate(time = case_when(is.na(time) ~ "115900", 
                           TRUE ~ time)) %>% #if no time recorded in the metadata sheet, fill in with noon
-  mutate(date = lubridate::as_date(date, format = "%Y%m%d"),
-         time= strptime(time, format ="%H%M%S"),
+  mutate(time= strptime(time, format ="%H%M%S"),
          time = strftime(time, "%H:%M:%S")) %>%
    mutate(Timepoint = case_when(is.na(Timepoint) & date == "2022-07-18" ~ "T5",
                              is.na(Timepoint) & date == "2022-07-21" ~ "T5",
@@ -494,8 +505,6 @@ print(npoc_wflags_metadata)
 
 clean_npoc_wflags_metadata <- npoc_wflags_metadata %>%
   filter(date < endstudydate & date > startstudydate) %>%
-  full_join(pwsite_key, by=c("Plot","Grid","Timepoint")) %>%
-  #gap fill with NAs when lysimeters were dry for that sampling timepoint: 
   mutate(doc_mg_l = case_when(is.na(sample_name) & is.na(rundate) ~ NA,
                               TRUE ~ doc_mg_l),
          tdn_mg_l = case_when(is.na(sample_name) & is.na(rundate) ~ NA,
@@ -529,18 +538,28 @@ PW_npoc_wflags_metadata <- clean_npoc_wflags_metadata %>%
 #Only porewater POOLED, all dates:
 PW_npoc_wflags_metadata_pooled_only <- PW_npoc_wflags_metadata %>%
     filter(date < endstudydate & date > startstudydate) %>%
-  filter(Grid == "POOL")
+  filter(Grid == "POOL") %>%
+   select(Event, plot, Grid, datetime, Group, sample_name, doc_mg_l, tdn_mg_l, npoc_flag, tdn_flag, Timepoint, Pool_Timepoint)
 
 #Only porewater grids not pooled, all dates:
 PW_npoc_wflags_metadata_grids_only <- PW_npoc_wflags_metadata %>%
     filter(date < endstudydate & date > startstudydate) %>%
-  filter(Grid != "POOL")
+  filter(Grid != "POOL") %>%
+  group_by(date) %>%
+  fill(evacuation_date, collection_date) %>%
+  mutate(collection_date = case_when(is.na(collection_date) ~ date,
+                                     TRUE ~ collection_date)) %>%
+  select(Event, plot, Grid, datetime, Group, evacuation_date, collection_date, sample_name, doc_mg_l, tdn_mg_l, npoc_flag, tdn_flag)
+
 
 #Only sourcewater, all dates:
 source_npoc_wflags_metadata <- clean_npoc_wflags_metadata %>%
   filter(date < endstudydate & date > startstudydate) %>%
-  filter(grepl("SOURCE|ESTUARY|BARGE", sample_name)) 
+  filter(grepl("SOURCE|ESTUARY|BARGE", sample_name)) %>%
+  select(Event, plot, Grid, datetime, Group, sample_name, doc_mg_l, tdn_mg_l, npoc_flag, tdn_flag)
 
+
+```
 #partially summarized except for june, no event. might be useful for plotting, not sure yet
 PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
   filter(date < endstudydate & date > startstudydate) %>%
@@ -567,17 +586,17 @@ PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
             .groups = "drop") %>%
   select(plot, Group, date, n, doc_mg_l, doc_mg_l_sd, doc_mg_l_se, tdn_mg_l, tdn_mg_l_sd, tdn_mg_l_se) 
   
-```
-
 # Write data
 
+
 ```{r write}
+#metadata is too spare in these files so need to clean it up more before saving. 
 
-saveRDS(source_npoc_wflags_metadata, "../TEMPEST-1-porewater/processed data/TMP_SOURCE_NPOC_TDN_L1_TMP1TMP2.rds")
-
-saveRDS(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.rds")
-
-write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.csv")
+# saveRDS(source_npoc_wflags_metadata, "../TEMPEST-1-porewater/processed data/TMP_SOURCE_NPOC_TDN_L1_TMP1TMP2.rds")
+# 
+# saveRDS(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.rds")
+# 
+# write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.csv")
 
 ```
 
@@ -590,5 +609,12 @@ write_csv(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_P
 saveRDS(PW_npoc_wflags_metadata_pooled_only, "../TEMPEST-1-porewater/processed data/TMP_PW_POOL_NPOC_TDN_L1_May2022-Dec2023.rds")
 
 saveRDS(PW_npoc_wflags_metadata_grids_only, "../TEMPEST-1-porewater/processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.rds")
+
+for_fluxes <- PW_npoc_wflags_metadata_grids_only %>% 
+  rename(grid = Grid,
+         collection_datetime = datetime) %>%
+  select(Event, plot, grid, sample_name, doc_mg_l, tdn_mg_l, evacuation_date, collection_datetime)
+
+write_csv(for_fluxes, "../TEMPEST-1-porewater/processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.csv")
 
 ```
