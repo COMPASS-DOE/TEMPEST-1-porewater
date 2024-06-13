@@ -592,7 +592,6 @@ PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
 ```{r write}
 #metadata is too spare in these files so need to clean it up more before saving. 
 
-# saveRDS(source_npoc_wflags_metadata, "../TEMPEST-1-porewater/processed data/TMP_SOURCE_NPOC_TDN_L1_TMP1TMP2.rds")
 # 
 # saveRDS(PW_npoc_wflags_metadata , "../TEMPEST-1-porewater/processed data/TMP_PW_NPOC_TDN_L1_May2022-Dec2023.rds")
 # 
@@ -606,11 +605,14 @@ PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
 
 ```{r manuscript specific write out}
 
+saveRDS(source_npoc_wflags_metadata, "../TEMPEST-1-porewater/processed data/TMP_SOURCE_NPOC_TDN_L1_TMP1TMP2.rds")
+
 saveRDS(PW_npoc_wflags_metadata_pooled_only, "../TEMPEST-1-porewater/processed data/TMP_PW_POOL_NPOC_TDN_L1_May2022-Dec2023.rds")
 
 saveRDS(PW_npoc_wflags_metadata_grids_only, "../TEMPEST-1-porewater/processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.rds")
 
-for_fluxes <- PW_npoc_wflags_metadata_grids_only %>% 
+for_fluxes <- PW_npoc_wflags_metadata_grids_only %>%
+  ungroup() %>%
   rename(grid = Grid,
          collection_datetime = datetime) %>%
   select(Event, plot, grid, sample_name, doc_mg_l, tdn_mg_l, evacuation_date, collection_datetime)
