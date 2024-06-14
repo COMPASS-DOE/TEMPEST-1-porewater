@@ -1,0 +1,9 @@
+Event – short name for the tempest event (TMP)
+Plot – long name for the plots that the sample was collected in (Control, Freshwater, Estuarine-water)
+Grid- Grid that the sample was collected in 
+Sample_name – Name of the sample vial, if no sample was collected due to the lysimeter being empty, then this will read “Lysimeter Empty”
+Doc_mg_l – dissolved organic carbon concentration of lysimeter water in mgC/L
+Tdn_mg_l – total dissolved nitrogen concentration of lysimeter water in mgN/L
+Evacuation_date – Date the lysimeter was set to start collecting water
+Collection_datetime_estedt – date and time lysimeter was emptied and sample was collected. Times are in local time (EDT/EST), when time wasn’t recorded, the time was set to 11:59:00 
+Tz- timezone when sample was collected 
