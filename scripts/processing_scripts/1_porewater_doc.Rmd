@@ -85,7 +85,7 @@ non_event_sample_key_merging <- non_event_sample_key %>%
          time = str_replace(time, "^[0-9]{3}$", function(x) paste0("0", x, "00")),
          time = str_replace(time, "^[0-9]{4}$", function(x) paste0(x, "00"))
          ) %>%
-  select(Plot, Grid, date, time, evacuation_date, collection_date) 
+  select(Plot, Grid, date, time, tz, evacuation_date, collection_date) 
 ```
 
 
@@ -549,7 +549,7 @@ PW_npoc_wflags_metadata_grids_only <- PW_npoc_wflags_metadata %>%
   fill(evacuation_date, collection_date) %>%
   mutate(collection_date = case_when(is.na(collection_date) ~ date,
                                      TRUE ~ collection_date)) %>%
-  select(Event, plot, Grid, datetime, Group, evacuation_date, collection_date, sample_name, doc_mg_l, tdn_mg_l, npoc_flag, tdn_flag)
+  select(Event, plot, Grid, datetime, tz, Group, evacuation_date, collection_date, sample_name, doc_mg_l, tdn_mg_l, npoc_flag, tdn_flag)
 
 
 #Only sourcewater, all dates:
@@ -615,7 +615,7 @@ for_fluxes <- PW_npoc_wflags_metadata_grids_only %>%
   ungroup() %>%
   rename(grid = Grid,
          collection_datetime = datetime) %>%
-  select(Event, plot, grid, sample_name, doc_mg_l, tdn_mg_l, evacuation_date, collection_datetime)
+  select(Event, plot, grid, sample_name, doc_mg_l, tdn_mg_l, evacuation_date, collection_datetime, tz)
 
 write_csv(for_fluxes, "../TEMPEST-1-porewater/processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.csv")
 
