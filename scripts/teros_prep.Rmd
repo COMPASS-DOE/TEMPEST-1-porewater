@@ -1,7 +1,7 @@
 ---
 title: "Sapflow data prep"
-author: "PR"
-date: "2024-04-25"
+author: "PR Modified by AMP"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
@@ -9,30 +9,53 @@ output: html_document
 knitr::opts_chunk$set(echo = F, 
                       message = F,
                       warning = F)
+
+common_tz = "Etc/GMT+5"
 ```
 
 ### General purpose
 
-I'm creating Rmds for each of the datastreams used in this project. Because our deployments were a little complex, and both SWAP and Firesting datasets were somewhat cobbled together, it's important to document as many details as possible as clearly as possible in order to streamline QC, clearly ID and explain any data decisions, and make the methods section easy to write.
-
-### Sapflow deployment
-
-Sapflow sensors were deployed well prior to any flooding in three species of trees across TEMPEST plots. I honestly don't know much about their deployment, which is okay because these data, in contrast to TEROS/Firesting/SWAP datasets is being pulled in as L1 curated data from GDrive meaning initial QC has already taken place (no need to edit timestamps, etc).
+R markdown for the TEROS data for the project. 
 
 ```{r Setup}
 ## First, load setup script to set up environment
-source("../scripts/0_0_setup.R")
+pacman::p_load(tidyverse, 
+       #rdrop2, 
+       cowplot, 
+       lubridate, 
+       #ggtukey, # adding letters to boxplots
+      # multcompView, # compact letter display for comparing boxplots
+       plotly,
+       parsedate, # parse_date()
+       janitor, # clean_names()
+       purrr, # map()
+       furrr,  # future_map()
+       tictoc, # time stuff
+       sf, 
+       hms,
+       ggallin,
+       ggpubr, #stat_compare_means()
+       #metR, # geom_contour_fill
+       rnaturalearth,
+       ggspatial, # north arrow and compass
+       ggsflabel, # add labels
+       googledrive, 
+       ggthemes) #theme_map()
 
-raw_data_path <- "../data/l1_raw_files/"
+raw_data_path <- "./data_do_not_commit/teros/"
 
-l1_file_list <- drive_ls("https://drive.google.com/drive/folders/1HNsS2ACiZ_efOPJGtGzr5IxGBjBcsOPb", 
+l1_2022_file_list <- drive_ls("https://drive.google.com/drive/folders/1z-ecWwa7Xa2pbGOl6rZEW6p8RbLL8QdX", 
                       pattern = ".csv")
+
+l1_2023_file_list <- drive_ls("https://drive.google.com/drive/folders/1-ebNwEWViTIo2fb6fmPryfXJmD_VmHsK", 
+                      pattern = ".csv")
+
+getwd()
 ```
 
+If you need to download the data, this is how you can do it. If not, SKIP this chunk (eval = F). 
 
 ```{r Pull L1 data from Gdrive, eval = F}
-## I'm keeping this chunk just for perpetuity, but it's not used since I've already
-## pulled down the data I want, and it takes a while to run since the files are big
 
 drive_download_ <- function(data){
   #message(paste("Downloading", data$name))
@@ -42,82 +65,102 @@ drive_download_ <- function(data){
 
 ## Use a for-loop to read in files in a way that I can see what's going on
 ## Download data to local. I tried to map() but for some reasons it doesn't work?
-for(i in 1:nrow(l1_file_list)){
-  drive_download_(l1_file_list %>% slice(i))
+for(i in 1:nrow(l1_2022_file_list)){
+  drive_download_(l1_2022_file_list %>% slice(i))
+}
+
+for(i in 1:nrow(l1_2023_file_list)){
+  drive_download_(l1_2023_file_list %>% slice(i))
 }
 ```
 
+#### QC Step 1: Remove flagged values
 
-```{r Read in L1 data}
-## To do: pull in voltage and rain as well then pivot_wider()
-read_sapflow <- function(name){
+```{r Read in L1 data, message=FALSE, warning=FALSE}
+
+read_data <- function(name){
   read_csv(paste0(raw_data_path, name)) %>% 
   clean_names() %>% 
-  filter(grepl("sapflow", research_name)) %>% 
+  filter(str_detect(research_name, "soil_vwc") | str_detect(research_name, "soil_EC") | str_detect(research_name, "wx_rain24")) %>% #pull the teros vwc, EC, and the rain data
   mutate(datetime_est = force_tz(timestamp, tzone = common_tz), 
+         depth = str_extract(research_name, "\\d+(?=cm)"),
          plot = case_when(plot == "C" ~ "Control", 
                           plot == "S" ~ "Estuarine", 
-                          plot == "F" ~ "Freshwater")) %>% 
-    #filter(f_oob == 0) %>% 
-  dplyr::select(datetime_est, plot, location, sensor_id, value, contains("f_")) %>% 
-  rename("sapflow_mv" = value)
+                          plot == "FALSE" ~ "Freshwater")) %>% #for some reason the FW files are coming in with FALSE not F
+    filter(f_oob == 0) %>% #filters out flag, Flag: out of instrumental bounds (logical; 1=TRUE)
+  dplyr::select(datetime_est, research_name, plot, location, depth, sensor_id, value, contains("f_")) 
 }
 
 ##Bind data together and filter out the data we definitely won't need.
-sapflow_raw <- l1_file_list$name %>% 
-  map(read_sapflow) %>% 
-  bind_rows() %>%
-  filter(datetime_est > pre_event_start & 
-           datetime_est < post_event_end)
+teros_2022_raw <- l1_2022_file_list$name %>% 
+  map(read_data) %>% 
+  bind_rows() 
+
+teros_2023_raw <- l1_2023_file_list$name %>% 
+  map(read_data) %>% 
+  bind_rows() 
+
+teros_all_raw <- teros_2022_raw %>%
+  full_join(teros_2023_raw)
 ```
 
 ### Raw data
+
+```{r filter to pw grids}
+pwsite_key <- readxl::read_excel("../tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx") %>%
+  select(Plot, Grid) %>%
+  unique() %>%
+  rename(plot = Plot,
+         location = Grid) %>%
+  mutate( plot = case_when(plot == "C" ~ "Control", 
+                          plot == "SW" ~ "Estuarine", 
+                          plot == "FW" ~ "Freshwater"))
+
+grids <- pwsite_key %>%
+  dplyr::distinct(location)
+
+```
+
+Rain actuall only lives in GCW-W: https://github.com/COMPASS-DOE/data-workflows/issues/158
+
+```{r rain}
+
+rain_qc1 <- teros_all_raw %>% 
+  filter(research_name == "wx_rain24")
+```
+
+Remove the teros where we don't have lysimeters
+and filter out when lysimeter is out of service 
+
+```{r qc1}
+
+teros_qc1 <- teros_all_raw %>% 
+  filter((location %in% grids$location)) %>%
+  mutate(variable = str_extract(research_name, "(?<=_)[^_]+(?=_)")) %>%
+      filter(f_oos == 0) #filters out flag, Flag: sensor listed as out of service (logical; 1=TRUE)
+```
 
 Let's first take a look at all the raw data. 
 
 ```{r}
 ## Plotly plot to look at individual sensors
-p <- ggplot(sapflow_raw,aes(datetime_est, sapflow_mv, color = sensor_id)) + 
-  geom_line() + 
+p <- teros_qc1 %>%
+  filter(variable == "vwc") %>%
+  ggplot(aes(datetime_est, value, linetype= depth, color = location)) + 
+  geom_point() + 
   facet_wrap(~plot, ncol = 1)
 
  ggplotly(p)
 ```
+Notes from the ggplotly, *I5 at 15cm deep* in SW plot looks funky 2023-01-04 13:00 to 2023-05-31 13:00 - ie. reading the same value all winter: 0.3
+Everybody else is following roughly the same trend.
 
-### QC
-
-#### QC Step 1: Remove deep sensors
-
-We will scrub the sensors with a "D" suffix which indicates they are deep sensors. Since these are primarily used for calculating areal rates which we aren't doing, we'll keep things apples to apples and remove them.
-
-```{r}
-## Based on the plot above, there are sensors that periodically drop to 0. We
-## can use the lack of values between 0 and 0.2 to set a threshold of 0.1. Let's
-## ID which sensors have issues. For this time-period, it doesn't actually scrub anything, but 
-## leaving this code in case I want to update to a different/longer time-period
-bad_threshold = 0.1
-
-bad_sensors <- sapflow_raw %>%
-  filter(sapflow_mv < bad_threshold) %>%
-  group_by(sensor_id) %>%
-  summarize(sensor_id = first(sensor_id))
-
-sensors_to_remove <- bind_rows(sapflow_raw %>%
-                                 group_by(sensor_id) %>%
-                                 summarize(sensor_id = first(sensor_id)) %>% 
-                                 filter(grepl("D", sensor_id)), 
-                               bad_sensors) %>% 
-  unique() %>% pull()
-
-sapflow_qc1 <- sapflow_raw %>% 
-  filter(!(sensor_id %in% sensors_to_remove))
+```{r scrub the sketch}
+teros_qc2 <- teros_qc1 %>% 
+  mutate(value = case_when(research_name == "soil_EC_15cm" & location == "I5" & between(datetime_est, as.POSIXct("2023-01-04 13:00", tz = common_tz), as.POSIXct("2023-05-31 13:00", tz = common_tz)) ~ NA,
+                           TRUE ~ value))
 ```
 
-```{r}
-ggplot(sapflow_qc1, aes(datetime_est, sapflow_mv, color = sensor_id)) + 
-  geom_line() + 
-  facet_wrap(~plot, ncol = 1)
-```
 
 
 
