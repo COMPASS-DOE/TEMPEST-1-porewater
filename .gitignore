@@ -52,3 +52,4 @@ rsconnect/
 #data files
 /data/DOC data backup
 /data_do_not_commit/
+processed data/TMP_PW_L2_VWC_2022-2023.csv

@@ -38,7 +38,6 @@ pacman::p_load(tidyverse,
        #metR, # geom_contour_fill
        rnaturalearth,
        ggspatial, # north arrow and compass
-       ggsflabel, # add labels
        googledrive, 
        ggthemes) #theme_map()
 ```
@@ -148,8 +147,8 @@ Let's first take a look at all the raw data.
 ## Plotly plot to look at individual sensors
 p <- teros_qc2 %>%
   filter(variable == "vwc") %>%
-  ggplot(aes(datetime_est, value, point= depth, color = location)) + 
-  geom_point() + 
+  ggplot(aes(datetime_est, value, linetype= location, color = depth)) + 
+  geom_line() + 
   facet_wrap(~plot, ncol = 1)
 
  ggplotly(p)
@@ -163,6 +162,23 @@ teros_qc2 <- teros_qc1 %>%
                            TRUE ~ value))
 ```
 
+Write out for flux calcuations:
 
+```{r vwc for fluxes}
+
+vwc_L2 <- teros_qc2 %>%
+  filter(depth != "30") %>%
+  filter(variable == "vwc") %>%
+  rename(vwc_m3m3 = value,
+         grid = location) %>%
+  select(datetime_est, plot, grid, depth, research_name, vwc_m3m3)
+  
+print(vwc_L2)
+
+write_csv(vwc_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.csv")
+
+saveRDS(vwc_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.rds")
+  
+```
 
 
