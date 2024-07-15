@@ -41,7 +41,9 @@ pacman::p_load(tidyverse,
        ggsflabel, # add labels
        googledrive, 
        ggthemes) #theme_map()
+```
 
+```{r data setup}
 raw_data_path <- "./data_do_not_commit/teros/"
 
 l1_2022_file_list <- drive_ls("https://drive.google.com/drive/folders/1z-ecWwa7Xa2pbGOl6rZEW6p8RbLL8QdX", 
@@ -144,9 +146,9 @@ Let's first take a look at all the raw data.
 
 ```{r}
 ## Plotly plot to look at individual sensors
-p <- teros_qc1 %>%
+p <- teros_qc2 %>%
   filter(variable == "vwc") %>%
-  ggplot(aes(datetime_est, value, linetype= depth, color = location)) + 
+  ggplot(aes(datetime_est, value, point= depth, color = location)) + 
   geom_point() + 
   facet_wrap(~plot, ncol = 1)
 
