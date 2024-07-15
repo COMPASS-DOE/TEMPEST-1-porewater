@@ -86,7 +86,7 @@ read_data <- function(name){
   mutate(datetime_est = force_tz(timestamp, tzone = common_tz), 
          depth = str_extract(research_name, "\\d+(?=cm)"),
          plot = case_when(plot == "C" ~ "Control", 
-                          plot == "S" ~ "Estuarine", 
+                          plot == "S" ~ "Estuarine-water", 
                           plot == "FALSE" ~ "Freshwater")) %>% #for some reason the FW files are coming in with FALSE not F
     filter(f_oob == 0) %>% #filters out flag, Flag: out of instrumental bounds (logical; 1=TRUE)
   dplyr::select(datetime_est, research_name, plot, location, depth, sensor_id, value, contains("f_")) 
@@ -114,7 +114,7 @@ pwsite_key <- readxl::read_excel("../tempest-system-level-analysis/data/for proc
   rename(plot = Plot,
          location = Grid) %>%
   mutate( plot = case_when(plot == "C" ~ "Control", 
-                          plot == "SW" ~ "Estuarine", 
+                          plot == "SW" ~ "Estuarine-water", 
                           plot == "FW" ~ "Freshwater"))
 
 grids <- pwsite_key %>%
@@ -171,7 +171,9 @@ vwc_L2 <- teros_qc2 %>%
   filter(variable == "vwc") %>%
   rename(vwc_m3m3 = value,
          grid = location) %>%
-  select(datetime_est, plot, grid, depth, research_name, vwc_m3m3)
+  select(datetime_est, plot, grid, depth, research_name, vwc_m3m3) %>%
+  mutate(plot = case_when(plot == "Estuarine" ~ "Estuarine-water",
+                          TRUE ~ plot))
   
 print(vwc_L2)
 
