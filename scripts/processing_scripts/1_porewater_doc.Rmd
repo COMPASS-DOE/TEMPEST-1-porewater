@@ -35,15 +35,15 @@ getwd()
 
 sample_key <- readRDS("~/GitHub/tempest-system-level-analysis/data/for processing/TMP_Event_June2022_META_PW_SOURCE_DateTime.rds")
 
-pwsite_key <- readxl::read_excel("../tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx") %>%
+pwsite_key <- readxl::read_excel("../../../tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx") %>%
   select(Plot, Grid) %>%
   unique()
 
 inventory_directory <- "https://docs.google.com/spreadsheets/d/1sFWq-WKhemPzbOFInqhCu_Lx0lsO6a_Z/edit#gid=496164093"
 
-drive_download(inventory_directory, path="./data_do_not_commit/porewaterinventory.xlsx", overwrite = TRUE)
+drive_download(inventory_directory, path="../../data_do_not_commit/porewaterinventory.xlsx", overwrite = TRUE)
 
-non_event_sample_key <- readxl::read_excel("./data_do_not_commit/porewaterinventory.xlsx", skip=3, sheet="Individual") %>%
+non_event_sample_key <- readxl::read_excel("../../data_do_not_commit/porewaterinventory.xlsx", skip=3, sheet="Individual") %>%
   select(Sample_ID, Evacuation_date_YYYMMDD, Collection_Date_YYYYMMDD, Collection_End_Time_24hrs, EST_EDT) %>%
   filter(str_detect(Sample_ID, "DOC")) %>%
   rename(sample_name = Sample_ID,
@@ -245,7 +245,7 @@ readmes_all <- ReadMes %>%
 
 curvepts <-files %>% 
   map_df(read_data) %>% 
-  filter(grepl("STD_", sample_name)) %>% # filter to curves only
+  filter(grepl("ppm|std", sample_name, ignore.case = TRUE) & !grepl("CK", sample_name, ignore.case = TRUE)) %>% # filter to curves only
 #  filter(rundate %in% files_dates) %>% # filter to just run dates you need 
   filter(!grepl("10/25/2022 7:24:33 PM|9/22/2022 9:03:23 PM", run_datetime)) %>% # filter out curve points you don't want
   rename(standard_high_C = npoc_raw,
@@ -479,7 +479,7 @@ npoc_wflags_metadata.1 <-  npoc_flags %>%
   select(-time.fill) %>%
   mutate(date = lubridate::as_date(date, format = "%Y%m%d"))
 
-pwsite_key_all <- pwsite_key %>% expand(Plot, Grid, date = unique(npoc_wflags_metadata$date)) %>% drop_na()
+pwsite_key_all <- pwsite_key %>% expand(Plot, Grid, date = unique(npoc_wflags_metadata.1$date)) %>% drop_na()
 
 npoc_wflags_metadata <- npoc_wflags_metadata.1 %>%
    full_join(pwsite_key_all, by=c("Plot","Grid", "date")) %>%  #gap fill with NAs when lysimeters were dry for that sampling timepoint
@@ -605,9 +605,9 @@ PW_npoc_wflags_metadata_summarized_noevents <- PW_npoc_wflags_metadata  %>%
 
 ```{r manuscript specific write out}
 
-saveRDS(source_npoc_wflags_metadata, "../TEMPEST-1-porewater/processed data/TMP_SOURCE_NPOC_TDN_L1_TMP1TMP2.rds")
+saveRDS(source_npoc_wflags_metadata, "../../processed data/TMP_SOURCE_NPOC_TDN_L1_TMP1TMP2.rds")
 
-saveRDS(PW_npoc_wflags_metadata_pooled_only, "../TEMPEST-1-porewater/processed data/TMP_PW_POOL_NPOC_TDN_L1_May2022-Dec2023.rds")
+saveRDS(PW_npoc_wflags_metadata_pooled_only, "../../processed data/TMP_PW_POOL_NPOC_TDN_L1_May2022-Dec2023.rds")
 
 ```
 
@@ -623,6 +623,7 @@ for_fluxes <- PW_npoc_wflags_metadata_grids_only %>%
   mutate(evacuation_date = case_when(
     is.na(evacuation_date) & str_detect(collection_datetime, "2022-05-18") ~ as.Date("2022-05-12"),
     is.na(evacuation_date) & str_detect(collection_datetime, "2022-05-20")  ~ as.Date("2022-05-12"), 
+    is.na(evacuation_date) & str_detect(collection_datetime, "2022-06-13")  ~ as.Date("2022-06-09"),
     is.na(evacuation_date) & str_detect(collection_datetime, "2022-06-15")  ~ as.Date("2022-06-09"),
     is.na(evacuation_date) & str_detect(collection_datetime, "2022-06-20") ~ as.Date("2022-06-18"),
     is.na(evacuation_date) & str_detect(collection_datetime, "2022-06-22") ~ as.Date("2022-06-22"),
@@ -633,7 +634,7 @@ for_fluxes <- PW_npoc_wflags_metadata_grids_only %>%
     TRUE ~ evacuation_date)) %>%
   filter(collection_datetime != "2022-05-23 11:59:00")
 
-write_csv(for_fluxes, "../TEMPEST-1-porewater/processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.csv")
+write_csv(for_fluxes, "../../processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.csv")
 
-saveRDS(for_fluxes, "../TEMPEST-1-porewater/processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.rds")
+saveRDS(for_fluxes, "../../processed data/TMP_PW_GRIDSONLY_NPOC_TDN_L1_May2022-Dec2023.rds")
 ```
