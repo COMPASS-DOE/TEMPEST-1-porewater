@@ -5,6 +5,18 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
+plot <- pw_plotting_H6 %>%
+    ggplot() +
+    geom_point(aes(x= collection_datetime, y= doc_mg_l, color = plot), size = 2)+
+    labs(x = "Date", y = "DOC mgC/L", color = "Plot") +
+    # ylim(0,100)+
+    scale_color_manual(values=Anyas_colors_alpha_order) +
+    theme_classic() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          axis.text.x= element_text(size=12, color= "black",angle = 45, hjust = 1),
+          axis.text =  element_text(size = 14, color= "black"),
+          axis.title = element_text(size = 14, color= "black")) 
+
 # Prep 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -56,9 +68,12 @@ Anyas_colors_alpha_order = c("springgreen2", "violetred2", "cyan2")
 pw_plotting <- pw_grids %>%
   filter(!is.na(doc_mg_l)) %>%
   filter(sample_name != "Lysimeter Empty") %>%
-  select(doc_mg_l, tdn_mg_l, plot, Grid, date, time, datetime, Group) %>%
-  dplyr::group_by(plot, Group) %>% 
-    arrange(plot, date, time) 
+  select(doc_mg_l, tdn_mg_l, plot, grid, collection_datetime) %>%
+  dplyr::group_by(plot) %>% 
+    arrange(plot, collection_datetime) 
+
+pw_plotting_H6 <- pw_plotting %>%
+  filter(grid == "H6")
   
 ```
 
