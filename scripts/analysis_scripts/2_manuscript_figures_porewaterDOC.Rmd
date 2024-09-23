@@ -90,11 +90,9 @@ Figure1 <- pw_doc %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot)) +
     geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = WaterDeliveryStop2022,linetype="dashed",color="grey")+
     geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = WaterDeliveryStop2,linetype="dashed",color="grey")+
-    geom_point(shape=17,size=5) +
-   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd))+
+    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
+   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd), shape=17, size=1)+
     ylab("DOC mgC/L")+
     xlab("Date")+
     ylim(0,100)+
@@ -124,37 +122,38 @@ Figure2a <- pw_doc %>%
          Timepoint = cur_group_id(),
          year= as.character(year))%>%
   ungroup() %>%
-    ggplot(aes(x = adj_month, y = doc_mg_l, color = plot)) +
+    ggplot(aes(x = adj_month, y = doc_mg_l, color = plot, shape = year)) +
    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-    geom_point(aes(shape = year), size=5) +
-   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd))+
+   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd), size = 1)+
     ylab("DOC mgC/L")+
-    xlab("Sampling Month Relative to Event")+
+    xlab("Sampling Month Post-Event")+
+   # title("Field Manipulation") +
     ylim(0,100)+
     xlim(0,12)+
     scale_color_manual(values=Anyas_colors) +
-   scale_x_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "bottom") +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a)"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
 
 print(Figure2a)
 
 Figure2b <- exp_doc %>%
   mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
     ggplot(aes(x = Wash, y = doc_mg_l_mean, color = Treatment)) +
-  geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-    geom_point(shape=17,size=5) +
-   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd))+
+    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
     ylab("DOC mgC/L")+
     xlab("Experimental Wash")+
+   # title("Laboratory Simulation")+
     ylim(0,100)+
     xlim(0,12)+
     scale_color_manual(values=Anyas_colors) +
     scale_x_continuous(breaks = pretty_breaks()) +
     theme_classic() +
     theme(legend.position = "bottom") +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b)"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
 
 print(Figure2b)
 
@@ -162,6 +161,6 @@ Figure2 <- ggarrange(Figure2a, Figure2b)
 
 Figure2
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure2_pw_exp_doc.png",Figure2, dpi=300, base_asp = 3)
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure2_pw_exp_doc.png",Figure2, dpi=300, base_asp = 3.1)
 
 ```
