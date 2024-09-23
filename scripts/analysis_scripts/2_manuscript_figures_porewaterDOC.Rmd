@@ -25,29 +25,143 @@ Anyas_theme =
         legend.title = element_blank(),
         strip.text = element_text(size=16)))
 
+plot_order <- c('Control', 'Freshwater','Estuarine-water')
+time_order <- c('Pre', 'Mid','Post')
+
 Anyas_colors = c("springgreen2", "cyan2", "violetred2")
-plot_order = c("Control Plot","Freshwater Plot","Estuarine-water Plot")
+
+Treatment_order <- c('Control', 'Artificial Freshwater','Artificial Estuarine-water')
 
 #double check your wd
 getwd()
 ```
 
-## R Markdown
+### Set the study dates
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r event and study dates}
+endstudydate = lubridate::as_date("2024-01-31")
+startstudydate = lubridate::as_date("2022-05-01")
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+endstudydate_yr1 = lubridate::as_date("2023-05-31")
+startstudydate_yr1 = lubridate::as_date("2022-05-01")
 
-```{r cars}
-summary(cars)
+year1_start = lubridate::as_date("2022-01-01")
+year1_stop = lubridate::as_date("2022-12-31")
+
+year2_start = lubridate::as_date("2023-01-01")
+year2_stop = lubridate::as_date("2023-12-31")
+
+year3_start = lubridate::as_date("2024-01-01")
+year3_stop = lubridate::as_date("2024-12-31")
+
+WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
+WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
+
+WaterDeliveryStart1 = as.POSIXct("2023-06-06 05:30:00", tz = "EST")
+WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
+
+WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
+WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 ```
 
-## Including Plots
+```{r import data}
 
-You can also embed plots, for example:
+pw_doc <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds")
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
+  mutate(Wash = case_when(is.na(Wash) ~ 0,
+                          TRUE ~ Wash),
+    Treatment = case_when(Treatment == "AS" ~ "Artificial Estuarine-water",
+                               Treatment == "FW" ~ "Artificial Freshwater",
+                               Treatment == "DI" ~ "Control",
+                               Treatment == "SWE" ~ "Artificial Estuarine-water",
+                               Treatment == "CL" ~ "Artificial Freshwater",
+                          TRUE ~ Treatment))
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Figure 1: Year 1 DOC 
+
+```{r plot DOC}
+
+Figure1 <- pw_doc %>%
+  filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1)) %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot)) +
+    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStop2022,linetype="dashed",color="grey")+
+    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStop2,linetype="dashed",color="grey")+
+    geom_point(shape=17,size=5) +
+   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd))+
+    ylab("DOC mgC/L")+
+    xlab("Date")+
+    ylim(0,100)+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+
+print(Figure1)
+
+plotly::ggplotly(Figure1)
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pwdoc.png",Figure1, dpi=300)
+
+```
+
+# Figure 2: Year 1 & 2 DOC 
+
+```{r plot DOC}
+
+Figure2a <- pw_doc %>%
+  filter(between(evacuation_date, startstudydate_yr1, endstudydate)) %>%
+  mutate(year = lubridate::year(evacuation_date), 
+         month = lubridate::month(evacuation_date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(evacuation_date) - 5) %% 12 ) %>%
+  group_by(month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year))%>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = doc_mg_l, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+    geom_point(aes(shape = year), size=5) +
+   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd))+
+    ylab("DOC mgC/L")+
+    xlab("Sampling Month Relative to Event")+
+    ylim(0,100)+
+    xlim(0,12)+
+    scale_color_manual(values=Anyas_colors) +
+   scale_x_continuous(breaks = pretty_breaks()) +
+    theme_classic() +
+    theme(legend.position = "bottom") +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a)"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
+
+print(Figure2a)
+
+Figure2b <- exp_doc %>%
+  mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
+    ggplot(aes(x = Wash, y = doc_mg_l_mean, color = Treatment)) +
+  geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+    geom_point(shape=17,size=5) +
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd))+
+    ylab("DOC mgC/L")+
+    xlab("Experimental Wash")+
+    ylim(0,100)+
+    xlim(0,12)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks()) +
+    theme_classic() +
+    theme(legend.position = "bottom") +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b)"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
+
+print(Figure2b)
+
+Figure2 <- ggarrange(Figure2a, Figure2b)
+
+Figure2
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure2_pw_exp_doc.png",Figure2, dpi=300, base_asp = 3)
+
+```

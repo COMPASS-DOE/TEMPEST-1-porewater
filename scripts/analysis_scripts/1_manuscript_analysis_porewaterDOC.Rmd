@@ -19,6 +19,7 @@ getwd()
 #clean out your environment 
 rm(list = ls())
 ```
+
 ### Set the study dates
 
 ```{r event and study dates}
@@ -225,36 +226,9 @@ merging_dfs <- list(means_doc_l1_pw_grids, sds_doc_l1_pw_grids, c_gapfill, sw_ga
 
 pw_doc <- purrr::reduce(merging_dfs, full_join)
 
+# write out for plotting:
+saveRDS(pw_doc, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds")
 ```
-### Plot and run stats for DOC: 
+### run stats for DOC: 
 
-```{r plot DOC}
-plot_order <- c('Control', 'Freshwater','Estuarine-water')
-time_order <- c('Pre', 'Mid','Post')
-
-Anyas_colors = c("springgreen2", "cyan2", "violetred2")
-
-
-Figure1 <- pw_doc %>%
-  filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1)) %>%
-  mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot)) +
-    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = WaterDeliveryStop2022,linetype="dashed",color="grey")+
-    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = WaterDeliveryStop2,linetype="dashed",color="grey")+
-    geom_point(shape=17,size=5) +
-   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd))+
-    ylab("DOC mgC/L")+
-    xlab("Date")+
-    ylim(0,100)+
-   # stat_summary(aes(y = doc_mg_l,group=1), fun=median, colour="grey", geom="smooth",group=1)+
-    scale_color_manual(values=Anyas_colors) +
-    theme_classic()
- #   facet_grid(.~plot)
-
-print(Figure1)
-
-plotly::ggplotly(Figure1)
-```
 
