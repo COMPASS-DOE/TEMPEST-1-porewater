@@ -19,6 +19,33 @@ getwd()
 #clean out your environment 
 rm(list = ls())
 ```
+### Set the study dates
+
+```{r event and study dates}
+endstudydate = lubridate::as_date("2024-01-31")
+startstudydate = lubridate::as_date("2022-05-01")
+
+endstudydate_yr1 = lubridate::as_date("2023-05-31")
+startstudydate_yr1 = lubridate::as_date("2022-05-01")
+
+year1_start = lubridate::as_date("2022-01-01")
+year1_stop = lubridate::as_date("2022-12-31")
+
+year2_start = lubridate::as_date("2023-01-01")
+year2_stop = lubridate::as_date("2023-12-31")
+
+year3_start = lubridate::as_date("2024-01-01")
+year3_stop = lubridate::as_date("2024-12-31")
+
+WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
+WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
+
+WaterDeliveryStart1 = as.POSIXct("2023-06-06 05:30:00", tz = "EST")
+WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
+
+WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
+WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
+```
 
 ## DOC
 
@@ -33,7 +60,7 @@ doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_
 doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOC_TDN_L1_2023.csv")
 ```
 
-```{r doc analysis}
+```{r doc avg stds}
 doc_l1_pw_grids <- doc_l1_2022 %>%
   full_join(doc_l1_2023) %>%
   select(plot, evacuation_date, collection_datetime, doc_mg_l, tdn_mg_l) %>%
@@ -47,13 +74,14 @@ doc_l1_pw_grids <- doc_l1_2022 %>%
 #Control: 
 mean_doc_l1_c_to_gapfill <- doc_l1_pw_grids %>%
   filter(plot == "Control") %>%
-  filter(evacuation_date %in% c("2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")) %>%
+  filter(evacuation_date %in% c("2022-09-09", "2022-09-12", "2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")) %>%
   mutate(gapfill_group = case_when( 
-    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "A",
-    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "B",
-    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "C",
-    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "D",
-    TRUE ~ "E")) %>%
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "A",
+    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "B",
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "C",
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "D",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E",
+    TRUE ~ "no")) %>%
    group_by(plot, gapfill_group) %>%
     dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
   mutate(collection_datetime = as.POSIXct(collection_datetime, origin = "1970-01-01"),
@@ -63,13 +91,14 @@ mean_doc_l1_c_to_gapfill <- doc_l1_pw_grids %>%
 sd_doc_l1_c_to_gapfill <- doc_l1_pw_grids %>%
   select(-collection_datetime) %>%
   filter(plot == "Control") %>%
-  filter(evacuation_date %in% c("2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")) %>%
+  filter(evacuation_date %in% c("2022-09-09", "2022-09-12", "2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")) %>%
   mutate(gapfill_group = case_when( 
-    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "A",
-    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "B",
-    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "C",
-    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "D",
-    TRUE ~ "E")) %>%
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "A",
+    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "B",
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "C",
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "D",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E",
+    TRUE ~ "no")) %>%
    group_by(plot, gapfill_group) %>%
     select(-evacuation_date) %>%
     dplyr::summarise(across(everything(), sd), .groups = "keep") %>%
@@ -84,10 +113,14 @@ c_gapfill <- mean_doc_l1_c_to_gapfill %>%
 #Estuarine Water
 mean_doc_l1_sw_to_gapfill <- doc_l1_pw_grids %>%
   filter(plot == "Estuarine-water") %>%
-  filter(evacuation_date %in% c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05"))%>%
+  filter(evacuation_date %in% c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05","2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-12-05", "2023-12-08", "2023-01-30", "2023-02-02")) %>%
   mutate(gapfill_group = case_when( 
     str_detect(evacuation_date,"2022-07-18") | str_detect(evacuation_date,"2022-07-14") ~ "A",
     str_detect(evacuation_date,"2022-08-08") | str_detect(evacuation_date,"2022-08-05") ~ "B",
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "C",
+    str_detect(evacuation_date,"2022-11-25") | str_detect(evacuation_date,"2022-11-28") ~ "D",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E",
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "F",
     TRUE ~ "no")) %>%
    group_by(plot, gapfill_group) %>%
     dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
@@ -96,10 +129,14 @@ mean_doc_l1_sw_to_gapfill <- doc_l1_pw_grids %>%
 sd_doc_l1_sw_to_gapfill <- doc_l1_pw_grids %>%
   select(-collection_datetime) %>%
   filter(plot == "Estuarine-water") %>%
-  filter(evacuation_date %in% c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05"))%>%
+   filter(evacuation_date %in% c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05","2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-12-05", "2023-12-08", "2023-01-30", "2023-02-02")) %>%
   mutate(gapfill_group = case_when( 
     str_detect(evacuation_date,"2022-07-18") | str_detect(evacuation_date,"2022-07-14") ~ "A",
     str_detect(evacuation_date,"2022-08-08") | str_detect(evacuation_date,"2022-08-05") ~ "B",
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "C",
+    str_detect(evacuation_date,"2022-11-25") | str_detect(evacuation_date,"2022-11-28") ~ "D",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E",
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "F",
     TRUE ~ "no")) %>%
    group_by(plot, gapfill_group) %>%
     select(-evacuation_date) %>%
@@ -115,13 +152,14 @@ sw_gapfill <- mean_doc_l1_sw_to_gapfill %>%
 #Freshwater: 
 mean_doc_l1_fw_to_gapfill <- doc_l1_pw_grids %>%
   filter(plot == "Freshwater") %>%
-  filter(evacuation_date %in% c("2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")) %>%
+  filter(evacuation_date %in% c("2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")) %>%
   mutate(gapfill_group = case_when( 
-    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "A",
-    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "B",
-    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "C",
-    str_detect(evacuation_date,"2023-09-29") | str_detect(evacuation_date,"2023-10-02") ~ "D",
-    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E",
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "A",
+    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "B",
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "C",
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "D",
+    str_detect(evacuation_date,"2023-09-29") | str_detect(evacuation_date,"2023-10-02") ~ "E",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "F",
     TRUE ~ "no")) %>%
    group_by(plot, gapfill_group) %>%
     dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
@@ -130,13 +168,14 @@ mean_doc_l1_fw_to_gapfill <- doc_l1_pw_grids %>%
 sd_doc_l1_fw_to_gapfill <- doc_l1_pw_grids %>%
   select(-collection_datetime) %>%
   filter(plot == "Freshwater") %>%
-  filter(evacuation_date %in% c("2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")) %>%
+  filter(evacuation_date %in% c("2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")) %>%
   mutate(gapfill_group = case_when( 
-    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "A",
-    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "B",
-    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "C",
-    str_detect(evacuation_date,"2023-09-29") | str_detect(evacuation_date,"2023-10-02") ~ "D",
-    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E",
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "A",
+    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "B",
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "C",
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "D",
+    str_detect(evacuation_date,"2023-09-29") | str_detect(evacuation_date,"2023-10-02") ~ "E",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "F",
     TRUE ~ "no")) %>%
    group_by(plot, gapfill_group) %>%
   select(-evacuation_date) %>%
@@ -154,11 +193,11 @@ fw_gapfill <- mean_doc_l1_fw_to_gapfill %>%
 #All the rest: 
 means_doc_l1_pw_grids <- doc_l1_pw_grids %>%
 filter(plot != "Control" | 
-    (plot == "Control" & !evacuation_date %in% as.Date(c("2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")))) %>%
+    (plot == "Control" & !evacuation_date %in% as.Date(c("2022-09-09", "2022-09-12", "2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")))) %>%
   filter(plot != "Estuarine-water" | 
-    (plot == "Estuarine-water" & !evacuation_date %in% as.Date(c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05")))) %>%
+    (plot == "Estuarine-water" & !evacuation_date %in% as.Date(c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05","2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-12-05", "2023-12-08", "2023-01-30", "2023-02-02")))) %>%
     filter(plot != "Freshwater" | 
-    (plot == "Freshwater" & !evacuation_date %in% as.Date(c("2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")))) %>%
+    (plot == "Freshwater" & !evacuation_date %in% as.Date(c("2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")))) %>%
   mutate(evacuation_date = as.numeric(evacuation_date),
          collection_datetime= as.numeric(collection_datetime)) %>%
   group_by(plot, evacuation_date) %>%
@@ -169,12 +208,12 @@ filter(plot != "Control" |
 
 sds_doc_l1_pw_grids <- doc_l1_pw_grids %>%
   select(-collection_datetime) %>%
-  filter(plot != "Control" | 
-    (plot == "Control" & !evacuation_date %in% as.Date(c("2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")))) %>%
+ filter(plot != "Control" | 
+    (plot == "Control" & !evacuation_date %in% as.Date(c("2022-09-09", "2022-09-12", "2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")))) %>%
   filter(plot != "Estuarine-water" | 
-    (plot == "Estuarine-water" & !evacuation_date %in% as.Date(c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05")))) %>%
+    (plot == "Estuarine-water" & !evacuation_date %in% as.Date(c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05","2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-12-05", "2023-12-08", "2023-01-30", "2023-02-02"))))  %>%
     filter(plot != "Freshwater" | 
-    (plot == "Freshwater" & !evacuation_date %in% as.Date(c("2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")))) %>%
+    (plot == "Freshwater" & !evacuation_date %in% as.Date(c("2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")))) %>%
   mutate(evacuation_date = as.numeric(evacuation_date)) %>%
   group_by(plot, evacuation_date) %>%
   dplyr::summarise(across(everything(), sd), .groups = "keep") %>%
@@ -187,3 +226,35 @@ merging_dfs <- list(means_doc_l1_pw_grids, sds_doc_l1_pw_grids, c_gapfill, sw_ga
 pw_doc <- purrr::reduce(merging_dfs, full_join)
 
 ```
+### Plot and run stats for DOC: 
+
+```{r plot DOC}
+plot_order <- c('Control', 'Freshwater','Estuarine-water')
+time_order <- c('Pre', 'Mid','Post')
+
+Anyas_colors = c("springgreen2", "cyan2", "violetred2")
+
+
+Figure1 <- pw_doc %>%
+  filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1)) %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot)) +
+    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStop2022,linetype="dashed",color="grey")+
+    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStop2,linetype="dashed",color="grey")+
+    geom_point(shape=17,size=5) +
+   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd))+
+    ylab("DOC mgC/L")+
+    xlab("Date")+
+    ylim(0,100)+
+   # stat_summary(aes(y = doc_mg_l,group=1), fun=median, colour="grey", geom="smooth",group=1)+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+ #   facet_grid(.~plot)
+
+print(Figure1)
+
+plotly::ggplotly(Figure1)
+```
+
