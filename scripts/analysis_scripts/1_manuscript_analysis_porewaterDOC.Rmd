@@ -240,7 +240,7 @@ First source the functions from TSLA:
 ```{r tsla functions}
 
 # set event window to use for all data frame function calls
-flood_event_datetime <- c(as_datetime("2022-06-22 5:30:00", tz = "EST"), as_datetime("2022-06-22 14:30:00", tz = "EST"))
+flood_event_datetime <- c(as_date("2022-06-22"))
 
 EVENT_START <- as_datetime("2022-06-22 05:30:00", tz = "EST")
 EVENT_STOP <- as_datetime("2022-06-22 14:30:00", tz = "EST")
@@ -258,25 +258,24 @@ calc_dist_metrics
 ```{r load fticrms}
 # load npoc/tdn data
 pw_ft <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_FTICRMS_L1_May2022-May2023.rds") %>%
-  mutate(datetime_est = with_tz(collection_datetime, tzone = "EST")) %>% 
-   group_by(Event, plot, grid, datetime_est, sample_name, Class_detailed) %>%
+  mutate(datetime_est = force_tz(collection_datetime, tzone = "EST")) %>% 
+   group_by(Event, plot, grid, date, sample_name, Class_detailed) %>%
     dplyr::summarise(abund = sum(presence))  %>%
     ungroup() %>% 
     # create a new column for total counts per core assignment
     # and then calculate relative abundance  
-    group_by(Event, plot, grid, datetime_est, sample_name) %>% 
+    group_by(Event, plot, grid, date, sample_name) %>% 
     dplyr::mutate(total = sum(abund),
                   relabund  = round((abund/total)*100,2)) %>%
   ungroup() %>%
-  dplyr::select(datetime_est, plot, Class_detailed, relabund) %>% 
-  group_by(datetime_est, plot, Class_detailed) %>%
+  dplyr::select(date, plot, Class_detailed, relabund) %>% 
+  group_by(date, plot, Class_detailed) %>%
   zscore_standard(vars = "relabund") %>% ungroup()
 
 pw_ft %>% summary()
 ```
 
 ```{r tsla metrics}
-sum_fticrms <- calc_dist_metrics(pw_ft, flood_event_datetime,
-                                                c("relabund"))
+sum_fticrms <- divide_data(pw_ft, datetime_name = "date", flood_event_datetime)
 ```
 
