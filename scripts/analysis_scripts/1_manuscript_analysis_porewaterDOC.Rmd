@@ -276,6 +276,6 @@ pw_ft %>% summary()
 ```
 
 ```{r tsla metrics}
-sum_fticrms <- divide_data(pw_ft, datetime_name = "date", flood_event_datetime)
+sum_fticrms <- divide_data(pw_ft, date, flood_event_datetime)
 ```
 
