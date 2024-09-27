@@ -82,6 +82,7 @@ exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEM
 
 
 # Figure 1: Year 1 DOC 
+Main Message 1 (Hypothesis rejected): There is a prolonged and sustained increase in dissolved carbon following initial drop in DOC after exposure to salinity.
 
 ```{r plot DOC}
 
@@ -108,6 +109,7 @@ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figu
 ```
 
 # Figure 2: Year 1 & 2 DOC 
+Supporting Main Message: This phenomenon can be replicated in the laboratory; AND we can repeat it in the field the second year “reset” 
 
 ```{r plot DOC}
 
@@ -164,3 +166,55 @@ Figure2
 cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure2_pw_exp_doc.png",Figure2, dpi=300, base_asp = 3.1)
 
 ```
+
+#Figure 4 OM chemistry shifts
+The changes in concentration observed are coupled with a dramatic shift in the organic matter chemistry (both during and after the event). 
+```{r load om chem}
+
+fticrms_relabund_avg <- read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_relativeabundance_premidpost_fticrms_porewater.rds")
+
+fticrms_relabund_dates <-read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_relabund_dates_fticrms_porewater.rds")
+
+```
+
+```{r om chemistry plot}
+colorblind_friendly_custom <- c("#66C2A5", "#FC8D62", "#FFD92F", "#E78AC3", "#A6D854", "#8DA0CB")
+flood_event_datetime <- c(as_date("2022-06-22"))
+
+figure3 <- fticrms_relabund_avg %>%
+  mutate(timedate_bin = factor(timedate_bin, levels = c("Pre", "Mid", "Post"))) %>%
+  arrange(timedate_bin) %>%
+  group_by(plot, timedate_bin) %>%
+  ggplot() +
+  geom_bar(aes(x = timedate_bin, y = relabund_mean, fill = Class_detailed), stat= "identity") +
+    labs(x = "Event Timepoint", y = "Relative Abundance (%)", fill = "Assigned FTICR-MS groupings", title = "a)")+
+    scale_fill_manual(values = colorblind_friendly_custom)  + 
+  facet_wrap(~factor(plot, level=plot_order), nrow = 1, 
+             labeller = label_wrap_gen(10)) +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        text = element_text(size = 14),          # Global text size
+        axis.title = element_text(size=16),      # Axis title size
+        axis.text = element_text(size=14),       # Axis text size
+        legend.title = element_text(size=14),    # Legend title size
+        legend.text = element_text(size=12),     # Legend text size
+        strip.text = element_text(size=14),      # Facet title size
+        plot.title = element_text(size=18))      # Plot title size
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/figure3_pw_FTICRMS.png",figure3, dpi=300, base_asp = 1.5, base_height = 8, base_width = 14)
+
+##
+fticrms_relabund_dates %>%
+  filter(Class_detailed == "highly aromatic") %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = date, y = relabund_mean, color = plot)) +
+    geom_vline(xintercept = flood_event_datetime,linetype="dashed",color="grey")+ 
+   geom_pointrange(aes(ymin=relabund_mean-relabund_sd, ymax=relabund_mean+relabund_sd), shape=17, size=1)+
+    ylab("Relative abundance of highly aromatic group (%)")+
+    xlab("Date")+
+    ylim(0,40)+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+```
+
+

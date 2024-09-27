@@ -9,9 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(dplyr)
-library(ggplot2)
 library(lubridate)
 library(tidyverse)
+library(car)
+library(emmeans)
+library(lme4)
+library(lmerTest)  
+library(ggplot2)    # For diagnostic plots
+library(broom)      # For tidy model outputs
 
 #double check your wd
 getwd()
@@ -46,6 +51,9 @@ WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
 
 WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
+
+plot_order <- c('Control', 'Freshwater','Estuarine-water')
+time_order <- c('Pre', 'Mid','Post')
 ```
 
 ## DOC
@@ -231,6 +239,21 @@ saveRDS(pw_doc, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds")
 ```
 ### run stats for DOC: 
 
+```{r baci functions}
+source("~/GitHub/TEMPEST-1-porewater/scripts/analysis_scripts/BACI_stats_function_fromDivideData.R")
+
+source("~/GitHub/tempest-system-level-analysis/scripts/tmp_test_functions.R")
+```
+
+```{r doc baci stats}
+doc_baci_sw_2022 <- doc_l1_pw_grids %>%
+    filter(collection_datetime < endstudydate & collection_datetime > startstudydate) %>%
+    divide_data(collection_datetime,flood_event_datetime)
+#  baci_stats(var = doc_mg_l, plot = "Estuarine-water",  p_value_threshold = 0.05)
+
+```
+
+
 [insert some version of BACI stats here]
 
 ## OM Chemistry
@@ -240,7 +263,10 @@ First source the functions from TSLA:
 ```{r tsla functions}
 
 # set event window to use for all data frame function calls
-flood_event_datetime <- c(as_date("2022-06-22"))
+flood_event_date <- c(as_date("2022-06-22"))
+
+# set event window to use for all data frame function calls
+flood_event_datetime <- c(as_datetime("2022-06-22 5:30:00", tz = "EST"), as_datetime("2022-06-22 14:30:00", tz = "EST"))
 
 EVENT_START <- as_datetime("2022-06-22 05:30:00", tz = "EST")
 EVENT_STOP <- as_datetime("2022-06-22 14:30:00", tz = "EST")
@@ -256,7 +282,7 @@ calc_dist_metrics
 
 ```
 ```{r load fticrms}
-# load npoc/tdn data
+# load data
 pw_ft <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_FTICRMS_L1_May2022-May2023.rds") %>%
   mutate(datetime_est = force_tz(collection_datetime, tzone = "EST")) %>% 
    group_by(Event, plot, grid, date, sample_name, Class_detailed) %>%
@@ -273,9 +299,51 @@ pw_ft <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_FTICRMS_L1
   zscore_standard(vars = "relabund") %>% ungroup()
 
 pw_ft %>% summary()
+
 ```
 
 ```{r tsla metrics}
-sum_fticrms <- divide_data(pw_ft, date, flood_event_datetime)
+#assign timepoints and write out for various plotting efforts
+timepoints_fticrms <- divide_data(pw_ft, date, flood_event_date)   
+
+dates_fticrms_avg <- timepoints_fticrms %>%
+  group_by(plot, Class_detailed, date, timedate_bin) %>%
+  summarize(relabund_mean = mean(relabund), relabund_sd = sd(relabund)) %>%
+  mutate(plot = case_when(plot == "FW" ~ "Freshwater",
+                          plot == "SW" ~ "Estuarine-water",
+                          plot == "C" ~ "Control",
+                          TRUE ~ plot))
+
+# write out for plotting:
+saveRDS(dates_fticrms_avg, "~/GitHub/TEMPEST-1-porewater/data/avg_relabund_dates_fticrms_porewater.rds")
+
+
+sum_fticrms <- timepoints_fticrms%>%
+  group_by(plot, Class_detailed, timedate_bin) %>%
+  summarize(relabund_mean = mean(relabund), relabund_sd = sd(relabund)) %>%
+  mutate(plot = case_when(plot == "FW" ~ "Freshwater",
+                          plot == "SW" ~ "Estuarine-water",
+                          plot == "C" ~ "Control",
+                          TRUE ~ plot))
+
+# write out for plotting:
+saveRDS(sum_fticrms, "~/GitHub/TEMPEST-1-porewater/data/avg_relativeabundance_premidpost_fticrms_porewater.rds")
 ```
+
+# OM chemistry stats
+
+Stats for aromatic content in FTICRMS signal:
+Trying a simple repeated measures anova first: 
+```{r anova aromatic fticrms}
+
+dates_fticrms_avg_stats <- dates_fticrms_avg %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         timedate_bin = factor(timedate_bin, levels = time_order)) %>%
+filter(Class_detailed == "highly aromatic")
+
+lmm_res <- lmer(relabund_mean ~ plot + (1|timedate_bin), data = dates_fticrms_avg_stats )
+summary(lmm_res)
+  
+```
+
 
