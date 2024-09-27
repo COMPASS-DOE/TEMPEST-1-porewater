@@ -239,25 +239,6 @@ saveRDS(pw_doc, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds")
 ```
 ### run stats for DOC: 
 
-```{r baci functions}
-source("~/GitHub/TEMPEST-1-porewater/scripts/analysis_scripts/BACI_stats_function_fromDivideData.R")
-
-source("~/GitHub/tempest-system-level-analysis/scripts/tmp_test_functions.R")
-```
-
-```{r doc baci stats}
-doc_baci_sw_2022 <- doc_l1_pw_grids %>%
-    filter(collection_datetime < endstudydate & collection_datetime > startstudydate) %>%
-    divide_data(collection_datetime,flood_event_datetime)
-#  baci_stats(var = doc_mg_l, plot = "Estuarine-water",  p_value_threshold = 0.05)
-
-```
-
-
-[insert some version of BACI stats here]
-
-## OM Chemistry
-
 First source the functions from TSLA:
 
 ```{r tsla functions}
@@ -281,6 +262,25 @@ source("~/GitHub/tempest-system-level-analysis/scripts/tmp_test_functions.R")
 calc_dist_metrics
 
 ```
+
+```{r baci functions}
+source("~/GitHub/TEMPEST-1-porewater/scripts/analysis_scripts/BACI_stats_function_fromDivideData.R")
+
+```
+
+```{r doc baci stats}
+doc_baci_sw_2022 <- doc_l1_pw_grids %>%
+    filter(collection_datetime < endstudydate & collection_datetime > startstudydate) %>%
+    divide_data(collection_datetime,flood_event_datetime)
+#  baci_stats(var = doc_mg_l, plot = "Estuarine-water",  p_value_threshold = 0.05)
+
+```
+
+
+[insert some version of BACI stats here]
+
+## OM Chemistry
+
 ```{r load fticrms}
 # load data
 pw_ft <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_FTICRMS_L1_May2022-May2023.rds") %>%
