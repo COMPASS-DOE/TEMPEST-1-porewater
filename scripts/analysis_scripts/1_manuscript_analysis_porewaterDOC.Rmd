@@ -336,13 +336,19 @@ Stats for aromatic content in FTICRMS signal:
 Trying a simple repeated measures anova first: 
 ```{r anova aromatic fticrms}
 
-dates_fticrms_avg_stats <- dates_fticrms_avg %>%
+dates_fticrms_avg_stats <- timepoints_fticrms %>%
+  mutate(plot = case_when(plot == "FW" ~ "Freshwater",
+                          plot == "SW" ~ "Estuarine-water",
+                          plot == "C" ~ "Control",
+                          TRUE ~ plot)) %>%
   mutate(plot = factor(plot, levels = plot_order),
          timedate_bin = factor(timedate_bin, levels = time_order)) %>%
 filter(Class_detailed == "highly aromatic")
 
-lmm_res <- lmer(relabund_mean ~ plot + (1|timedate_bin), data = dates_fticrms_avg_stats )
+lmm_res <- lmer(relabund ~ plot + (1|timedate_bin), data = dates_fticrms_avg_stats )
 summary(lmm_res)
+
+baci_stats(dates_fticrms_avg_stats, var = relabund, plot = "Estuarine-water",  p_value_threshold = 0.05)
   
 ```
 

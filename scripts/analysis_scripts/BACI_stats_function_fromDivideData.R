@@ -17,7 +17,7 @@
 source("~/GitHub/tempest-system-level-analysis/scripts/tmp_test_functions.R")
 
 baci_stats <- function(data_stats, var, plot, p_value_threshold) {
-browser()
+  browser()
   library(dplyr)
   library(rlang)
   library(car)
@@ -111,8 +111,7 @@ browser()
       list(success = shapiro_test$p.value >= 0.05, aov_model = aov_model, p_value = shapiro_test$p.value)
     }
     
-    # Original variable
-    var_name <- quo_name(var)
+    var_name <- as.character(var_name)
     
     transformations <- list(
       "Original" = data[[var_name]],
@@ -127,7 +126,13 @@ browser()
     )
     
     for (trans_name in names(transformations)) {
-      data[[var_name]] <- transformations[[trans_name]]
+      transformed <- transformations[[trans_name]]
+      # Check for NaNs
+      if (any(is.nan(transformed))) {
+        cat(paste("Transformation with", trans_name, "produced NaNs. Skipping.\n"))
+        next
+      }
+      data[[var_name]] <- transformed
       result <- transform_success(data, var_name)
       if (result$success) {
         cat(paste("Transformation with", trans_name, "achieved normality.\n"))
@@ -138,8 +143,9 @@ browser()
     }
     
     cat("No transformation achieved normality.\n")
-    return(aov_model)
+    return(NULL)
   }
+  
   
   # Step 3: Perform ANOVA
   formula <- as.formula(paste(quo_name(var), "~ timedate_bin * plot"))
