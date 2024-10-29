@@ -1,0 +1,105 @@
+---
+title: "TEMPEST2023_Fe_Graph"
+author: "Ashleigh Montgomery"
+date: "2024-10-21"
+output: html_document
+---
+
+*Data has been processed and QA/QC'ed in separate RMD file ("TEMPEST2023_Fe_Processing.Rmd")*
+*This script uses an output file of the processing script and is designed to plot porewater Fe data* 
+
+
+
+#SET UP
+```{r}
+#Set working directory
+setwd("~/R Code/TEMPEST/Porewater/Fe")
+
+library(tidyverse)
+library(scales)
+```
+
+
+```{r}
+#load data file
+dat<-read.csv("TEMPEST2023_Fe.csv")%>%
+  mutate(Collection_Time=case_when(
+    Collection_Time=="PM" ~ "1600",
+    Collection_Time=="AM" ~ "0700",
+    Collection_Time=="1200" ~ "1200"
+  ))%>%
+  mutate(DateTime=paste(collection_date,Collection_Time))%>%
+  mutate(DateTime=as.POSIXct(DateTime,c("%Y-%m-%d %H%M"),tz="EST"))%>%
+  filter(!Fe_3_info=="Out of Range")%>%
+  select(DateTime,IDs,Treatment,Grid,Fe_2_uM,Fe_3_uM,Fe_Total_uM)%>%
+  pivot_longer(
+    cols = starts_with("Fe"),
+    names_to = "Fe.Type",
+    values_to = "Fe_uM",
+    values_drop_na = TRUE
+  )%>%
+  filter(!Fe.Type=="Fe_Total_uM")%>%
+  group_by(DateTime,Treatment,Fe.Type)%>%
+  summarise(Fe_uM_mean=mean(Fe_uM),Fe_sd=sd(Fe_uM))%>%
+  mutate(Fe.Type=ifelse(str_detect(Fe.Type,"_2_"),"Fe (II)","Fe (III)"))
+  
+
+head(dat)
+
+```
+
+
+
+```{r}
+treat.labs<-c("Control","Freshwater","Saltwater")
+names(treat.labs)<-c("C","FW","SW")
+
+
+
+
+p<-ggplot(dat,aes(x=DateTime,y=Fe_uM_mean,group=Fe.Type))+
+  geom_vline(xintercept = dat$DateTime[19],linetype="dashed",size=0.6)+
+  geom_vline(xintercept = dat$DateTime[28],linetype="dashed",size=0.6)+
+  geom_rect(aes(xmin=dat$DateTime[19],xmax=dat$DateTime[28],ymin=Inf,ymax=Inf))+
+  geom_point(aes(color=Treatment))+
+  geom_line(aes(color=Treatment,linetype = Fe.Type))+
+  geom_errorbar(aes(ymin=Fe_uM_mean-Fe_sd,ymax=Fe_uM_mean+Fe_sd,color=Treatment))+
+  facet_wrap(~Treatment,ncol=1,labeller = labeller(Treatment=treat.labs))+
+  labs(y="Porewater Fe (uM)",x="",linetype="Fe Oxidation\nState")+
+  scale_color_manual(values = c("#00AC52",
+                               '#00EEEE',
+                               "#BC105E"),
+                      labels=c("Control",
+                               "Freshwater",
+                               "Saltwater"),
+                      guide="none")+
+  scale_fill_manual(values = c("#00AC52",
+                               '#00EEEE',
+                               "#BC105E"),
+                    labels=c("Control",
+                             "Freshwater",
+                             "Saltwater"),
+                    guide='none')+
+  theme_bw()+
+  theme(axis.text.x = element_text(angle=45,hjust=1,size=8,color="black"),
+        plot.title=element_text(hjust=0.5,face = "bold",size = 12),
+        axis.title.y = element_text(size=10),
+        legend.title = element_text(face="bold",size=10),
+        axis.text.y = element_text(colour = "black",size=8),
+        strip.background = element_blank(),
+        strip.text.x = element_text(face='bold'),
+        legend.background = element_rect(fill=NA,size=0.5,colour = "Grey27"))+
+  scale_x_datetime(date_breaks="month",date_labels = "%b-%d")
+
+
+
+p
+
+
+```
+
+
+
+
+
+

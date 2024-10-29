@@ -1,0 +1,570 @@
+---
+title: "TEMPEST2023_Fe"
+author: "Ashleigh Montgomery"
+date: "2024-06-30"
+output: html_document
+---
+
+#SET UP
+```{r}
+#Set working directory
+setwd("~/R Code/TEMPEST/Porewater/Fe")
+
+library(googlesheets4)
+library(googledrive)
+library(tidyverse)
+library(data.table)
+library(plater)
+library(readxl)
+library(lubridate)
+```
+
+##Helpful functions
+```{r}
+#Function to calculate slope, intercept, and R-squared and return in data frame
+#Fe 2 
+cal_curve<-function(Conc_uM,ABS){
+    model<-lm(ABS~Conc_uM)
+    slope<-coef(model)[[2]]
+    intercept<-coef(model)[[1]]
+     R2<-summary(model)$adj.r.squared
+  return(data.frame(slope=slope,intercept=intercept,R2=R2))
+}
+
+
+#function to calculate percent difference
+calc_percent_diff<-function(dup,original){
+  avg<-(dup+original)/2
+  percent_diff<-((abs(original-dup))/avg)*100
+  return(percent_diff=percent_diff)
+}
+
+#function to calculate percent error
+calc_percent_error<-function(chk,expected){
+  percent_error<-(abs((chk-expected))/expected)*100
+  return(percent_error=percent_error)
+}
+```
+
+
+
+##Needed values
+```{r}
+#set absorbance threshold (if surpassed, use high standard curve)
+#May need to be adjusted between runs 
+Fe2_threshold<-0.2 
+Fe3_threshold<-0.2
+```
+
+
+
+#UPLOAD DATA
+##Sample sheet and inventory
+```{r}
+#google sheet file with porewater inventory
+#needed to get sample volumes to appropriately calculate dilutions
+
+#Link to inventory on google drive
+inventory_directory <- "https://docs.google.com/spreadsheets/d/1sFWq-WKhemPzbOFInqhCu_Lx0lsO6a_Z/edit#gid=496164093"
+
+#downloads current version of file and creates xlsx file in working directory
+drive_download(inventory_directory, path="./porewaterinventory.xlsx", overwrite = TRUE)
+
+#saves sheet of interest, filters for Fe 
+inventory<-read_excel("porewaterinventory.xlsx",sheet = "Individual",skip = 3)%>%
+  select(Sample_ID, Volume_mL,  Evacuation_date_YYYMMDD,Collection_Date_YYYYMMDD, Collection_End_Time_24hrs, EST_EDT)%>%
+  filter(str_detect(Sample_ID, "FE")) %>%
+  rename(sample_name = Sample_ID,
+         evacuation_date = Evacuation_date_YYYMMDD,
+         collection_date = Collection_Date_YYYYMMDD,
+         time = Collection_End_Time_24hrs,
+         tz = EST_EDT) %>%
+  mutate(evacuation_date = lubridate::as_date(as.character(evacuation_date), format = "%Y%m%d"),
+         collection_date = lubridate::as_date(as.character(collection_date), format = "%Y%m%d"),
+         elapsed_time = lubridate::days(collection_date - evacuation_date)) %>%
+  select(sample_name, evacuation_date, collection_date, time, tz, elapsed_time,Volume_mL)
+head(inventory)
+```
+
+##Fe plates
+```{r}
+#Standards
+std_plates<-read_plates(files = c("TEMPEST_FE_20230607_Stds1.csv",
+                            "TEMPEST_FE_20230530_Stds1.csv",
+                            "TEMPEST_FE_20230606_Stds1.csv",
+                            "TEMPEST_FE_20230608_Stds.csv",
+                            "TEMPEST_FE_20230609_Stds1.csv",
+                            "TEMPEST_FE_20230808_Stds1.csv",
+                            "TEMPEST_FE_20230908_Stds1.csv",
+                            "TEMPEST_FE_20231208_Stds1.csv",
+                            "TEMPEST_FE_20240510_Stds1.csv"),
+                  plate_names = c("20230607",
+                                  "20230530",
+                                  "20230606",
+                                  "20230608",
+                                  "20230609",
+                                  "20230808",
+                                  "20230908",
+                                  "20231208",
+                                  "20240510"),
+                  well_ids_column = "Wells",
+                  sep=",")
+
+head(std_plates)
+
+sample_plates<-read_plates(files = c("TEMPEST_FE_20230607_Samples1.csv",
+                               "TEMPEST_FE_20230607_Samples2.csv",
+                            "TEMPEST_FE_20230530_Samples1.csv",
+                            "TEMPEST_FE_20230606_Samples1.csv",
+                            "TEMPEST_FE_20230608_Samples1.csv",
+                            "TEMPEST_FE_20230608_Samples2.csv",
+                            "TEMPEST_FE_20230609_Samples1.csv",
+                            "TEMPEST_FE_20230808_Samples1.csv",
+                            "TEMPEST_FE_20230808_Samples2.csv",
+                            "TEMPEST_FE_20230808_Samples3.csv",
+                            "TEMPEST_FE_20230808_Samples4.csv",
+                            "TEMPEST_FE_20230908_Samples1.csv",
+                            "TEMPEST_FE_20230908_Samples2.csv",
+                            "TEMPEST_FE_20231208_Samples1.csv",
+                            "TEMPEST_FE_20240510_Samples1.csv"),
+                  plate_names = c("20230607",
+                                  "20230607",
+                                  "20230530",
+                                  "20230606",
+                                  "20230608",
+                                  "20230608",
+                                  "20230609",
+                                  "20230808",
+                                  "20230808",
+                                  "20230808",
+                                  "20230808",
+                                  "20230908",
+                                  "20230908",
+                                  "20231208",
+                                  "20240510"),
+                  well_ids_column = "Wells",
+                  sep=",")%>%
+  select(!Conc_uM)%>%
+  mutate(Fe_2_Curve=if_else(Abs1>Fe2_threshold,"High","Low"), #flags cal curve
+         Fe_3_Curve=if_else(Abs2>Fe3_threshold,"High","Low"))
+  
+head(sample_plates)
+```
+
+#PLOT STANDARDS
+##FE 2
+```{r}
+#plot curve
+std_plates%>%
+  filter(str_detect(std_plates$IDs,"Fe_2_|HCl"))%>% #Filters out Fe 2 standards
+  mutate(Curve=ifelse(Abs1>Fe2_threshold,"High","Low"))%>% #separates into low and high curves
+  na.omit()%>%
+  ggplot(aes(Conc_uM,Abs1))+
+  facet_grid(Curve~Plate)+
+  geom_point()+
+  geom_smooth(method="lm",se=FALSE)+
+  ggtitle("Fe 2 Standards")
+
+#calculate R2, slope, and intercept
+Fe2_stds<-std_plates%>%
+  filter(str_detect(std_plates$IDs,"Fe_2_|HCl"))%>%
+  mutate(Curve=ifelse(Abs1>Fe2_threshold,"High","Low"))%>%
+  na.omit()%>%
+  group_by(Plate,Curve)%>%
+  mutate(cal_curve(Conc_uM,Abs1))%>%
+  filter(row_number()==1)%>%
+  select(Plate,Curve,slope,intercept,R2)%>%
+  rename(Fe_2_Curve=Curve,Fe_2_slope=slope,Fe_2_intercept=intercept,Fe_2_R2=R2)
+
+Fe2_stds
+
+```
+
+##FE 3 
+```{r}
+#plot curve
+std_plates%>%
+  filter(str_detect(std_plates$IDs,"Fe_3_|HCl"))%>% #Filters out Fe 3 standards
+  mutate(Curve=ifelse(Abs2>Fe3_threshold,"High","Low"))%>% #separates into low and high curves
+  na.omit()%>%
+  ggplot(aes(Conc_uM,Abs2))+
+  facet_grid(Curve~Plate)+
+  geom_point()+
+  geom_smooth(method="lm",se=FALSE)+
+  ggtitle("Fe 3 standards")
+
+#calculate R2, slope, and intercept
+Fe3_stds<-std_plates%>%
+  filter(str_detect(std_plates$IDs,"Fe_3_|HCl"))%>%
+  mutate(Curve=ifelse(Abs2>Fe3_threshold,"High","Low"))%>%
+  na.omit()%>%
+  group_by(Plate,Curve)%>%
+  mutate(cal_curve(Conc_uM,Abs2))%>%
+  filter(row_number()==1)%>%
+  select(Plate,Curve,slope,intercept,R2)%>%
+  rename(Fe_3_Curve=Curve,Fe_3_slope=slope,Fe_3_intercept=intercept,Fe_3_R2=R2)
+
+Fe3_stds #highs look terrible. Anything that falls into this range should be diluted and rerun 
+
+```
+
+#Calculations of sample concentrations 
+```{r}
+#add calibration curve information and convert abs to concentrations (uM)
+
+head(Fe2_stds) #Fe 2 standard R2, intercept, and slope data frame
+head(Fe3_stds) #Fe 3 standard R2, intercept, and slope data frame
+head(sample_plates) #samples
+
+dat<-left_join(sample_plates,Fe2_stds,by=c("Plate","Fe_2_Curve"))%>% #add cal curve info
+  left_join(Fe3_stds,by=c("Plate","Fe_3_Curve"))%>%
+  mutate(Fe_2=((Abs1-Fe_2_intercept)/Fe_2_slope)*Dilutions, #calculate concentrations
+         Fe_Total=((Abs2-Fe_3_intercept)/Fe_3_slope)*Dilutions,
+         Fe_3=Fe_Total-Fe_2)%>%
+  mutate(Fe_2=if_else(Fe_2<0,0,Fe_2), #change negative values to zero
+         Fe_Total=if_else(Fe_Total<0,0,Fe_Total),
+         Fe_3=if_else(Fe_3<0,0,Fe_3))%>%
+  mutate(Fe_2_info=if_else(Fe_2<0,"bdl","within range"), #add info about sample
+         Fe_3_info=if_else(Fe_3<0,"bdl","within range"))%>%
+  filter(!is.na(IDs), #remove NAs
+         !is.na(Abs1),
+         !is.na(Abs2))
+head(dat)
+```
+
+```{r}
+#Average concentrations across wells and calculate standard deviation
+dat.mean<-dat%>%
+  group_by(Plate,IDs)%>%
+  summarise(Fe_2_uM=mean(Fe_2),
+            Fe_2_sd=sd(Fe_2),
+            Fe_Total_uM=mean(Fe_Total),
+            Fe_Total_sd=sd(Fe_Total),
+            Fe_3_uM=mean(Fe_3),
+            Fe_3_sd=sd(Fe_3),
+            Abs1=mean(Abs1),
+            Abs2=mean(Abs2))%>%
+  mutate(Fe_3_info=case_when(
+    Abs2 > Fe3_threshold ~ "Out of Range",
+    Abs2 < Fe3_threshold ~ "In Range"))
+
+head(dat.mean)
+
+#samples with high standard deviation
+dat.mean%>%
+  filter(Fe_2_sd>5|Fe_3_sd>5)
+```
+
+
+#combine samples with inventory info, important to correct for dilution by HCl due to different volumes of sample collected
+```{r}
+hcl.vol<-0.075 #mL of HCl in prepped vial
+
+head(inventory)
+#separate into event and non-event samples
+
+event_inventory<-inventory%>%
+  filter(str_detect(sample_name,"_2023"))%>%
+  filter(str_detect(sample_name,"PM|AM"))%>%
+  separate_wider_delim(sample_name,delim="_",names=c("Project","Treatment","Sample Type","Grid","Depth","Analyte","Collection_Date","Collection_Time"))
+
+nonevent_inventory<-inventory%>%
+   filter(str_detect(sample_name,"_2023"))%>%
+  filter(!str_detect(sample_name,"PM|AM"))%>%
+  separate_wider_delim(sample_name,delim="_",names=c("Project","Treatment","Sample Type","Grid","Depth","Analyte","Collection_Date"))%>%
+  mutate(Collection_Time="1200")
+
+#put back together
+Tempest2.0_inventory<-rbind(event_inventory,nonevent_inventory)
+
+
+head(dat.mean)
+#separate into event and non-event samples
+event_samples<-dat.mean%>%
+  filter(!str_detect(IDs,"Fe|HCl|ESTUARY|SOURCE|spk|dup"))%>%
+  filter(str_detect(IDs,"_0800|1600"))%>%
+  separate_wider_delim(IDs,delim = "_",names = c("Treatment","Grid","Collection_Date","Collection_Time"))%>%
+  mutate(Collection_Time=if_else(Collection_Time=="0800","AM","PM"))
+
+nonevent_samples<-dat.mean%>%
+  filter(!str_detect(IDs,"Fe|HCl|ESTUARY|SOURCE|spk|dup|_0800|1600|AQUIFER"))%>%
+  separate_wider_delim(IDs,delim = "_",names = c("Treatment","Grid","Collection_Date"))%>%
+  mutate(Collection_Time="1200")
+
+TEMPEST2.0_samples<-rbind(event_samples,nonevent_samples)
+
+#combine inventory to sample data 
+dat.final<-left_join(Tempest2.0_inventory,TEMPEST2.0_samples,by=c("Treatment","Grid","Collection_Date","Collection_Time"))%>%
+  mutate(DF=(Volume_mL+hcl.vol)/(Volume_mL),
+         Fe_2_uM=Fe_2_uM*DF,
+         Fe_Total_uM=Fe_Total_uM*DF,
+         Fe_3_uM=Fe_3_uM*DF)%>%
+  mutate(IDs=paste(Treatment,Grid,Collection_Date,sep = "_"))%>%
+    mutate(time=format(strptime(substr(as.POSIXct(sprintf("%04.0f",time),format="%H%M"),12,16),"%H:%M"),"%I:%M %p"))%>%
+  mutate(DateTime=paste(collection_date,time))
+
+head(dat.final)
+
+```
+
+```{r}
+#quick first look at data (just samples)
+Fe2<-dat.final%>%
+  filter(!Plate=="NA")%>%
+  ggplot(aes(x=IDs,y=Fe_2_uM))+
+  geom_point(aes(group=Plate),size=4)+
+  facet_wrap(~Plate,scales = "free_x")+
+  labs(y="Fe (II) uM",x="Sample ID")+
+  geom_errorbar(aes(ymin=Fe_2_uM-Fe_2_sd,
+                    ymax=Fe_2_uM+Fe_2_sd),
+                width=0.3,
+                position=position_dodge(.1))+
+  theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1))+
+  ggtitle("Fe 2")
+
+Fe2
+
+Fe3<-dat.final%>%
+  filter(!Plate=="NA")%>%
+  ggplot(aes(x=IDs,y=Fe_3_uM))+
+  geom_point(aes(group=Plate),size=4)+
+  facet_wrap(~Plate,scales="free_x")+
+  labs(y="Fe (III) uM",x="Sample ID")+
+  geom_errorbar(aes(ymin=Fe_3_uM-Fe_3_sd,
+                    ymax=Fe_3_uM+Fe_3_sd),
+                width=0.3,
+                position=position_dodge(.1))+
+  theme(axis.text.x = element_text(angle=45,vjust=1,hjust=1))+
+  ggtitle("Fe 3")
+
+Fe3
+
+```
+
+```{r}
+#export data 
+write.csv(dat.final,file="TEMPEST2023_Fe.csv")
+```
+
+
+
+#QA/QC
+#Reduction Efficiency
+```{r}
+#pull out 60 uM Fe II and Fe III standards
+Fe_2_60uM<-std_plates%>%
+  filter(str_detect(std_plates$IDs,"Fe_2"))%>%
+  filter(Conc_uM==60)%>%
+  na.omit()%>%
+  group_by(Plate)%>%
+  summarise(Abs1=mean(Abs1),Abs2=mean(Abs2))
+
+Fe_2_60uM
+
+Fe_3_60uM<-std_plates%>%
+  filter(str_detect(std_plates$IDs,"Fe_3"))%>%
+  filter(Conc_uM==60)%>%
+  na.omit()%>%
+  group_by(Plate)%>%
+  summarise(Abs1=mean(Abs1),Abs2=mean(Abs2))
+
+Fe_3_60uM
+```
+
+
+
+
+```{r}
+#calculate reduction effeciency
+red_eff<-data.frame(matrix(ncol = 0, nrow = nrow(Fe_3_60uM)))
+
+red_eff$Plate <- Fe_2_60uM$Plate
+red_eff$FE2 <- Fe_2_60uM$Abs1
+red_eff$FE3 <- Fe_3_60uM$Abs2
+
+Fe_red_eff<-red_eff%>%
+  group_by(Plate)%>%
+  mutate(Eff=(FE3/FE2)*100, 
+         Eff2=((FE3/0.8)/FE2)*100)%>% ## accounts for dilution by reagents
+  mutate(Red_eff=case_when(
+    Eff < 80 | Eff > 120 ~ "BAD",
+    Eff > 80 & Eff < 90 ~ "OK",
+    Eff <= 120 & Eff > 110 ~ "OK",
+    Eff >= 90 & Eff <=110 ~ "GOOD"
+  ))
+
+Fe_red_eff
+```
+
+
+
+#Duplicates
+```{r}
+#pull out dups
+dups<-dat.mean%>%
+  filter(str_detect(IDs,"_dup"))
+head(dups)
+
+#remove these from dat.mean
+dat2<-dat.mean%>%
+  filter(!str_detect(IDs,"_dup|_spk"))
+head(dat2)
+
+
+#remove the dup from these IDs so we will have duplicates 
+dups$IDs<-gsub("_dup","",as.character(dups$IDs))
+dups <- dups[ ,c(1,2,3,7)]
+colnames(dups) <- c("Plate",'IDs', 'Fe_2_mean_dup', "Fe_3_mean_dup")
+head(dups)
+
+#add dups back to data set
+QAdup<-merge(dat2,dups)
+head(QAdup)
+
+#calculate percent difference between dups
+QAdup<-QAdup%>%
+  mutate(Fe_2_pdiff=calc_percent_diff(Fe_2_mean_dup,Fe_2_uM),
+            Fe_3_pdiff=calc_percent_diff(Fe_3_mean_dup,Fe_3_uM))%>%
+  #ADD QAQC FLAGS
+  mutate(dup2=case_when(
+    Fe_2_pdiff <= 10 ~ "GOOD",
+    Fe_2_pdiff >10 & Fe_2_pdiff <=15 ~ "OK",
+    Fe_2_pdiff >15 ~ "BAD"
+  ),
+  dup3=case_when(
+    Fe_3_pdiff <= 10 ~ "GOOD",
+    Fe_3_pdiff >10 & Fe_2_pdiff <=15 ~ "OK",
+    Fe_3_pdiff >15 ~ "BAD",
+  ))%>%
+  select(Plate,IDs,Fe_2_uM,Fe_2_mean_dup,Fe_2_pdiff,dup2,
+         Fe_3_uM,Fe_3_mean_dup,Fe_3_pdiff,dup3)
+QAdup
+```
+
+
+#Spikes
+```{r}
+#calculate DF of spiked sample
+sample_vol<-160 #uL
+spike_vol<-55 #uL
+DF<-(sample_vol+spike_vol)/sample_vol
+
+#spike concentration
+spk_uM<-60
+
+#pull out spikes
+spks<-dat.mean%>%
+  filter(str_detect(IDs,"_spk"))%>%
+  mutate(Fe_2_uM=Fe_2_uM*DF)
+head(spks)
+
+#remove spikes from dat.mean
+dat2<-dat.mean%>%
+  filter(!str_detect(IDs,"_spk"),
+         !str_detect(IDs,"_dup"))
+head(dat2)
+
+#remove _spk from names 
+spks$IDs<-gsub("_spk","",as.character(spks$IDs))
+spks<-spks[ ,c(1,2,3)]
+colnames(spks)<-c("Plate","IDs","Fe_2_mean_spk")
+
+#combine spks with original data set 
+QAspks<-merge(dat2,spks)
+head(QAspks)
+
+#Calculate % recovery
+QAspks<-QAspks%>%
+  mutate(percent_recovery=((Fe_2_mean_spk-Fe_2_uM)/spk_uM)*100)%>%
+  mutate(spks=case_when(
+    percent_recovery < 80 | percent_recovery > 120 ~ "BAD",
+    percent_recovery > 80 & percent_recovery < 90 ~ "OK",
+    percent_recovery <= 120 & percent_recovery > 110 ~ "OK",
+    percent_recovery >= 90 & percent_recovery <=110 ~ "GOOD"
+  ))
+
+head(QAspks)
+
+
+```
+
+
+#check standards 
+```{r}
+#calculate standard concentrations from cal curve
+stds<-std_plates%>%
+  mutate(Fe_2_Curve=if_else(Abs1>Fe2_threshold,"High","Low"), #flags cal curve
+         Fe_3_Curve=if_else(Abs2>Fe3_threshold,"High","Low"))%>%
+  left_join(Fe2_stds,by=c("Plate","Fe_2_Curve"))%>%
+  left_join(Fe3_stds,by=c("Plate","Fe_3_Curve"))%>%
+  mutate(Fe_2_uM_std=ifelse(str_detect(IDs,"_2_|HCl"),
+         ((Abs1-Fe_2_intercept)/Fe_2_slope)*Dilutions,
+         NA),
+         Fe_3_uM_std=ifelse(str_detect(IDs,"_3_|HCl"),
+                                       ((Abs2-Fe_3_intercept)/Fe_3_slope)*Dilutions,
+                                       NA))%>%
+  group_by(Plate,IDs)%>%
+  summarise(Fe_2_uM_std=mean(Fe_2_uM_std),
+            Fe_3_uM_std=mean(Fe_3_uM_std))
+
+head(stds)
+
+```
+
+
+
+
+```{r}
+#pull out check standards
+chk<-dat.mean%>%
+  filter(str_detect(IDs,"uM|HCl"))%>%
+  mutate(Concentration=case_when(
+    str_detect(IDs,"0.6") ~ 0.6,
+    str_detect(IDs,"250") ~ 250,
+    str_detect(IDs,"3 uM") ~ 3,
+    str_detect(IDs,"60") ~ 60,
+    str_detect(IDs,"18") ~ 18,
+    str_detect(IDs,"9") ~ 9,
+    str_detect(IDs,"HCl") ~ 0
+  ))%>%
+  select(Plate,IDs,Fe_2_uM,Fe_3_uM,Concentration)
+
+head(chk)
+```
+
+```{r}
+#put together with standards
+QAchks<-left_join(stds,chk,by=c("Plate","IDs"))
+head(QAchks)
+
+#calculate % difference
+QAchks<-QAchks%>%
+  filter(!str_detect(IDs,"HCl"))%>%
+  mutate(pdiff=if_else(str_detect(IDs,"Fe_2_"),
+                       calc_percent_diff(Fe_2_uM,Fe_2_uM_std),
+                       calc_percent_diff(Fe_3_uM,Fe_3_uM_std)),
+         perror=if_else(str_detect(IDs,"Fe_2_"),
+                        calc_percent_error(Fe_2_uM,Concentration),
+                        calc_percent_error(Fe_3_uM,Concentration)))%>%
+  mutate(QA_pdiff=case_when(
+        pdiff <= 10 ~ "GOOD",
+    pdiff >10 & pdiff <=15 ~ "OK",
+    pdiff >15 ~ "BAD"
+  ),
+  QA_perror=case_when(
+    perror <= 10 ~ "GOOD",
+    perror>10 & perror <=15 ~ "OK",
+    perror >15 ~ "BAD"
+  ))%>%
+  drop_na(QA_pdiff)
+
+head(QAchks)
+```
+
+*Figure out a way to summarize QA/QC in one table
+
+
+
+
+
+
