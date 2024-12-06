@@ -1,5 +1,5 @@
 ---
-title: "Sapflow data prep"
+title: "TEROS data prep"
 author: "PR Modified by AMP"
 date: "`r Sys.Date()`"
 output: html_document
@@ -82,7 +82,8 @@ for(i in 1:nrow(l1_2023_file_list)){
 read_data <- function(name){
   read_csv(paste0(raw_data_path, name)) %>% 
   clean_names() %>% 
-  filter(str_detect(research_name, "soil_vwc") | str_detect(research_name, "soil_EC") | str_detect(research_name, "wx_rain24")) %>% #pull the teros vwc, EC, and the rain data
+  filter(str_detect(research_name, "soil_vwc") | str_detect(research_name, "soil_EC") | str_detect(research_name, "wx_rain")) %>% #pull the teros vwc, EC, and the rain data
+    #Rain data isn't getting pulled in this way for some reason...
   mutate(datetime_est = force_tz(timestamp, tzone = common_tz), 
          depth = str_extract(research_name, "\\d+(?=cm)"),
          plot = case_when(plot == "C" ~ "Control", 
@@ -122,7 +123,7 @@ grids <- pwsite_key %>%
 
 ```
 
-Rain actuall only lives in GCW-W: https://github.com/COMPASS-DOE/data-workflows/issues/158
+Rain only lives in GCW-W: https://github.com/COMPASS-DOE/data-workflows/issues/158
 
 ```{r rain}
 
@@ -158,11 +159,11 @@ Everybody else is following roughly the same trend.
 
 ```{r scrub the sketch}
 teros_qc2 <- teros_qc1 %>% 
-  mutate(value = case_when(research_name == "soil_EC_15cm" & location == "I5" & between(datetime_est, as.POSIXct("2023-01-04 13:00", tz = common_tz), as.POSIXct("2023-05-31 13:00", tz = common_tz)) ~ NA,
+  mutate(value = case_when(research_name == "soil_vwc_15cm" & location == "I5" & between(datetime_est, as.POSIXct("2023-01-04 13:00", tz = common_tz), as.POSIXct("2023-05-31 13:00", tz = common_tz)) ~ NA,
                            TRUE ~ value))
 ```
 
-Write out for flux calcuations:
+Write out VWC for flux calculations:
 
 ```{r vwc for fluxes}
 
@@ -183,4 +184,54 @@ saveRDS(vwc_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.r
   
 ```
 
+EC for ionic strength:
 
+```{r ec}
+## Plotly plot to look at individual sensors
+p <- teros_qc1 %>%
+  filter(variable == "EC") %>%
+  ggplot(aes(datetime_est, value, linetype= location, color = depth)) + 
+  geom_line() + 
+  facet_wrap(~plot, ncol = 1)
+
+ ggplotly(p)
+```
+there are some crazy things happening in the control plot H6:
+peaks with one data point really high SPC in the 5cm sensor at H6
+"2022-02-20 22:30"
+"2022-02-21 09:00"
+"2022-12-03 13:45"
+"2023-02-25 02:00"
+"2023-02-27 04:15"
+"2023-03-01 01:30"
+"2023-03-01 08:00"
+"2023-12-09 05:45"
+"2023-12-13 02:30"
+"2023-12-13 21:15"
+
+
+
+```{r scrub the sketch 2}
+teros_qc2 <- teros_qc1 %>% 
+  mutate(value = case_when(research_name == "soil_EC_5cm" & location == "H6" & between(datetime_est, as.POSIXct("2023-01-04 13:00", tz = common_tz), as.POSIXct("2023-05-31 13:00", tz = common_tz)) ~ NA,
+                           TRUE ~ value))
+```
+
+```{r EC for fluxes}
+
+EC_L2 <- teros_qc2 %>%
+  filter(depth != "30") %>%
+  filter(variable == "EC") %>%
+  rename(EC_uScm = value,
+         grid = location) %>%
+  select(datetime_est, plot, grid, depth, research_name, EC_uScm) %>%
+  mutate(plot = case_when(plot == "Estuarine" ~ "Estuarine-water",
+                          TRUE ~ plot))
+  
+print(EC_L2)
+
+write_csv(EC_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_EC_2022-2023.csv")
+
+saveRDS(EC_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_EC_2022-2023.rds")
+  
+```

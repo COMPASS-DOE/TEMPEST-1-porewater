@@ -64,7 +64,7 @@ WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 ```
 
-```{r import data}
+```{r import doc data}
 
 pw_doc <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds")
 
@@ -169,13 +169,15 @@ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figu
 
 #Figure 4 OM chemistry shifts
 The changes in concentration observed are coupled with a dramatic shift in the organic matter chemistry (both during and after the event). 
-```{r load om chem}
+```{r load om chem data}
 
 fticrms_relabund_avg <- read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_relativeabundance_premidpost_fticrms_porewater.rds")
 
 fticrms_relabund_dates <-read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_relabund_dates_fticrms_porewater.rds")
 
 ```
+
+## Figure 4 A
 
 ```{r om chemistry plot}
 colorblind_friendly_custom <- c("#66C2A5", "#FC8D62", "#FFD92F", "#E78AC3", "#A6D854", "#8DA0CB")
@@ -216,5 +218,55 @@ fticrms_relabund_dates %>%
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
 ```
+
+## Figure 4 B 
+- Slope Ratio (proxy for HMW/LMW) through year (FW & SW plots, TMP 1 & 2) https://aslopubs.onlinelibrary.wiley.com/doi/abs/10.4319/lo.2008.53.3.0955
+- SUVA (using average DOC for the plots?) (FW & SW plots, TMP 1 & 2)
+
+# Supplemental Figures
+1. SPC through year (SW plot, TMP 1 & 2)
+2. pH through year (FW and SW plot, TMP 2)
+3. DO before/during/after event (FW and SW plot, TMP 1 & 2? Discuss with Peter)
+
+# Supplemental Figure 1: SPC timeseries 
+
+```{r spc timeseries}
+
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = date, y = relabund_mean, color = plot)) +
+    geom_vline(xintercept = flood_event_datetime,linetype="dashed",color="grey")+ 
+   geom_pointrange(aes(ymin=relabund_mean-relabund_sd, ymax=relabund_mean+relabund_sd), shape=17, size=1)+
+    ylab("Relative abundance of highly aromatic group (%)")+
+    xlab("Date")+
+    ylim(0,40)+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+```
+
+
+# Supplmental Figure 2: pH timeseries 
+
+```{r load pH data}
+
+ph <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_L1_2023.csv") %>%
+  group_by()
+```
+
+```{r pH timeseries}
+ph %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = datetime, y = pH, color = plot)) +
+      geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
+  geom_point()+
+   #geom_pointrange(aes(ymin=pH_mean-pH_sd, ymax=pH_mean+pH_sd), shape=17, size=1)+
+    ylab("porewater pH")+
+    xlab("Date")+
+    ylim(0,10)+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+```
+
 
 
