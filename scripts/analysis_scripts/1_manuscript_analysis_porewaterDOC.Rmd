@@ -351,5 +351,176 @@ summary(lmm_res)
 baci_stats(dates_fticrms_avg_stats, var = relabund, plot = "Estuarine-water",  p_value_threshold = 0.05)
   
 ```
+# pH
+```{r load pH data}
 
+ph <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_L1_2023.csv") 
+
+```
+
+```{r ph avg stds}
+ph_l1_pw_grids <- ph %>%
+  dplyr::select(plot, datetime, evacuation_date, pH) %>%
+  drop_na() %>%
+  mutate(date = lubridate::date(datetime)) %>%
+  group_by(plot, evacuation_date)
+  
+# Some dates not enough water was collected to have multiple samples to get averages and sds for that evacuation period. Most of the time, those can be combined with sampling dates just before or just after as we go out over several multi-day periods. This, however isn't consistent across the FW, EW, or C plots, so it will be a bit tricky to do the gap filling. To make the gap filling more accurate, we'll take the average of those dates, so for example if the dates we're merging is 2022-11-25 and 2022-11-28 we'll have the date be the 26th (but we'll let R do that math).
+
+#First, isolate the trouble dates/times: 
+
+#Control: 
+mean_ph_l1_c_to_gapfill <- ph_l1_pw_grids %>%
+  filter(plot == "Control") %>%
+  filter(evacuation_date %in% c("2023-06-12", "2023-06-14", "2023-07-05", "2023-07-07", "2023-08-04", "2023-08-07","2023-12-05", "2023-12-08")) %>%
+  mutate(gapfill_group = case_when( 
+    str_detect(evacuation_date,"2023-06-12") | str_detect(evacuation_date,"2023-06-14") ~ "A",
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "B",
+    str_detect(evacuation_date,"2023-08-04") | str_detect(evacuation_date,"2023-08-07") ~ "C",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "D",
+    TRUE ~ "no")) %>%
+   group_by(plot, gapfill_group) %>%
+    dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
+  mutate(datetime = as.POSIXct(datetime, origin = "1970-01-01"),
+         evacuation_date = as_date(evacuation_date)) %>%
+  ungroup()%>%
+  dplyr::select(-date)
+
+sd_ph_l1_c_to_gapfill <- ph_l1_pw_grids %>%
+  select(-datetime) %>%
+  filter(plot == "Control") %>%
+ filter(evacuation_date %in% c("2023-06-12", "2023-06-14", "2023-07-05", "2023-07-07", "2023-08-04", "2023-08-07","2023-12-05", "2023-12-08")) %>%
+  mutate(gapfill_group = case_when( 
+    str_detect(evacuation_date,"2023-06-12") | str_detect(evacuation_date,"2023-06-14") ~ "A",
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "B",
+    str_detect(evacuation_date,"2023-08-04") | str_detect(evacuation_date,"2023-08-07") ~ "C",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "D",
+    TRUE ~ "no")) %>%
+   group_by(plot, gapfill_group) %>%
+    select(-evacuation_date) %>%
+    dplyr::summarise(across(everything(), sd), .groups = "keep") %>%
+  rename(pH_sd = pH) %>%
+    ungroup() %>%
+  dplyr::select(-date)
+
+ph_c_gapfill <- mean_ph_l1_c_to_gapfill %>%
+  full_join(sd_ph_l1_c_to_gapfill, by = c("plot", "gapfill_group")) %>%
+  select(-gapfill_group)
+
+#Freshwater: 
+mean_ph_l1_fw_to_gapfill <- ph_l1_pw_grids %>%
+  filter(plot == "Freshwater") %>%
+  filter(evacuation_date %in% c("2023-06-12", "2023-06-14", "2023-08-04", "2023-08-07","2023-12-05", "2023-12-08")) %>%
+  mutate(gapfill_group = case_when( 
+    str_detect(evacuation_date,"2023-06-12") | str_detect(evacuation_date,"2023-06-14") ~ "A",
+    str_detect(evacuation_date,"2023-08-04") | str_detect(evacuation_date,"2023-08-07") ~ "B",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "C",
+    TRUE ~ "no")) %>%
+   group_by(plot, gapfill_group) %>%
+    dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
+  mutate(datetime = as.POSIXct(datetime, origin = "1970-01-01"),
+         evacuation_date = as_date(evacuation_date)) %>%
+  ungroup()%>%
+  dplyr::select(-date)
+
+sd_ph_l1_fw_to_gapfill <- ph_l1_pw_grids %>%
+  select(-datetime) %>%
+  filter(plot == "Freshwater") %>%
+  filter(evacuation_date %in% c("2023-06-12", "2023-06-14", "2023-08-04", "2023-08-07","2023-12-05", "2023-12-08")) %>%
+  mutate(gapfill_group = case_when( 
+    str_detect(evacuation_date,"2023-06-12") | str_detect(evacuation_date,"2023-06-14") ~ "A",
+    str_detect(evacuation_date,"2023-08-04") | str_detect(evacuation_date,"2023-08-07") ~ "B",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "C",
+    TRUE ~ "no")) %>%
+   group_by(plot, gapfill_group) %>%
+    select(-evacuation_date) %>%
+    dplyr::summarise(across(everything(), sd), .groups = "keep") %>%
+  rename(pH_sd = pH) %>%
+    ungroup() %>%
+  dplyr::select(-date)
+
+ph_fw_gapfill <- mean_ph_l1_fw_to_gapfill %>%
+  full_join(sd_ph_l1_fw_to_gapfill, by = c("plot", "gapfill_group")) %>%
+  select(-gapfill_group)
+
+#Seawater: 
+mean_ph_l1_sw_to_gapfill <- ph_l1_pw_grids %>%
+  filter(plot == "Estuarine-water") %>%
+  filter(evacuation_date %in% c("2023-06-12", "2023-06-14", "2023-07-05", "2023-07-07", "2023-08-04", "2023-08-07","2023-09-29", "2023-10-02", "2023-12-05", "2023-12-08")) %>%
+  mutate(gapfill_group = case_when( 
+    str_detect(evacuation_date,"2023-06-12") | str_detect(evacuation_date,"2023-06-14") ~ "A",
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "B",
+    str_detect(evacuation_date,"2023-08-04") | str_detect(evacuation_date,"2023-08-07") ~ "C",
+    str_detect(evacuation_date,"2023-09-29") | str_detect(evacuation_date,"2023-10-02") ~ "D",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E",
+    TRUE ~ "no")) %>%
+   group_by(plot, gapfill_group) %>%
+    dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
+  mutate(datetime = as.POSIXct(datetime, origin = "1970-01-01"),
+         evacuation_date = as_date(evacuation_date)) %>%
+  ungroup()%>%
+  dplyr::select(-date)
+
+sd_ph_l1_sw_to_gapfill <- ph_l1_pw_grids %>%
+  select(-datetime) %>%
+  filter(plot == "Estuarine-water") %>%
+  filter(evacuation_date %in% c("2023-06-12", "2023-06-14", "2023-07-05", "2023-07-07", "2023-08-04", "2023-08-07","2023-09-29", "2023-10-02", "2023-12-05", "2023-12-08")) %>%
+  mutate(gapfill_group = case_when( 
+    str_detect(evacuation_date,"2023-06-12") | str_detect(evacuation_date,"2023-06-14") ~ "A",
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "B",
+    str_detect(evacuation_date,"2023-08-04") | str_detect(evacuation_date,"2023-08-07") ~ "C",
+    str_detect(evacuation_date,"2023-09-29") | str_detect(evacuation_date,"2023-10-02") ~ "D",
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E",
+    TRUE ~ "no")) %>%
+   group_by(plot, gapfill_group) %>%
+    select(-evacuation_date) %>%
+    dplyr::summarise(across(everything(), sd), .groups = "keep") %>%
+  rename(pH_sd = pH) %>%
+    ungroup() %>%
+  dplyr::select(-date)
+
+ph_sw_gapfill <- mean_ph_l1_sw_to_gapfill %>%
+  full_join(sd_ph_l1_sw_to_gapfill, by = c("plot", "gapfill_group")) %>%
+  select(-gapfill_group)
+
+##
+#All the rest: 
+means_ph_l1_pw_grids <- ph_l1_pw_grids %>%
+filter(plot != "Control" | 
+    (plot == "Control" & !evacuation_date %in% as.Date(c("2023-06-12", "2023-06-14", "2023-07-05", "2023-07-07", "2023-08-04", "2023-08-07","2023-12-05", "2023-12-08")))) %>%
+  filter(plot != "Estuarine-water" | 
+    (plot == "Estuarine-water" & !evacuation_date %in% as.Date(c("2023-06-12", "2023-06-14", "2023-07-05", "2023-07-07", "2023-08-04", "2023-08-07","2023-09-29", "2023-10-02", "2023-12-05", "2023-12-08")))) %>%
+    filter(plot != "Freshwater" | 
+    (plot == "Freshwater" & !evacuation_date %in% as.Date(c("2023-06-12", "2023-06-14", "2023-08-04", "2023-08-07","2023-12-05", "2023-12-08")))) %>%
+  mutate(evacuation_date = as.numeric(evacuation_date),
+         datetime= as.numeric(datetime)) %>%
+  group_by(plot, evacuation_date) %>%
+  dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
+  mutate(datetime = as.POSIXct(datetime, origin = "1970-01-01"),
+         evacuation_date = as_date(evacuation_date))
+
+
+sds_ph_l1_pw_grids <- ph_l1_pw_grids %>%
+  select(-datetime) %>%
+ filter(plot != "Control" | 
+    (plot == "Control" & !evacuation_date %in% as.Date(c("2023-06-12", "2023-06-14", "2023-07-05", "2023-07-07", "2023-08-04", "2023-08-07","2023-12-05", "2023-12-08")))) %>%
+  filter(plot != "Estuarine-water" | 
+    (plot == "Estuarine-water" & !evacuation_date %in% as.Date(c("2023-06-12", "2023-06-14", "2023-07-05", "2023-07-07", "2023-08-04", "2023-08-07","2023-09-29", "2023-10-02", "2023-12-05", "2023-12-08"))))  %>%
+    filter(plot != "Freshwater" | 
+    (plot == "Freshwater" & !evacuation_date %in% as.Date(c("2023-06-12", "2023-06-14", "2023-08-04", "2023-08-07","2023-12-05", "2023-12-08")))) %>%
+  mutate(evacuation_date = as.numeric(evacuation_date)) %>%
+  group_by(plot, evacuation_date) %>%
+  dplyr::summarise(across(everything(), sd), .groups = "keep") %>%
+  mutate(evacuation_date = as_date(evacuation_date)) %>%
+  rename(pH_sd = pH) %>%
+  dplyr::select(-date)
+
+merging_dfs <- list(means_ph_l1_pw_grids, sds_ph_l1_pw_grids, ph_c_gapfill, ph_sw_gapfill, ph_fw_gapfill)
+
+pw_ph <- purrr::reduce(merging_dfs, full_join) %>%
+   dplyr::select(-date)
+
+# write out for plotting:
+saveRDS(pw_ph, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater.rds")
+```
 

@@ -54,3 +54,4 @@ rsconnect/
 /data_do_not_commit/
 processed data/TMP_PW_L2_VWC_2022-2023.csv
 scripts/processing_scripts/teros_prep.html
+scripts/archive/teros_prep.html

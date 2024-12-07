@@ -248,19 +248,17 @@ fticrms_relabund_dates %>%
 
 ```{r load pH data}
 
-ph <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_L1_2023.csv") %>%
-  group_by()
+ph <-  read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater.rds") 
+
 ```
 
 ```{r pH timeseries}
 ph %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = datetime, y = pH, color = plot)) +
-      geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
     geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
     geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
-  geom_point()+
-   #geom_pointrange(aes(ymin=pH_mean-pH_sd, ymax=pH_mean+pH_sd), shape=17, size=1)+
+   geom_pointrange(aes(ymin=pH-pH_sd, ymax=pH+pH_sd), shape=17, size=1)+
     ylab("porewater pH")+
     xlab("Date")+
     ylim(0,10)+
