@@ -45,10 +45,19 @@ pacman::p_load(tidyverse,
 ```{r data setup}
 raw_data_path <- "./data_do_not_commit/teros/"
 
-l1_2022_file_list <- drive_ls("https://drive.google.com/drive/folders/1z-ecWwa7Xa2pbGOl6rZEW6p8RbLL8QdX", 
+#TMP
+l1_2022_file_list <- drive_ls("https://drive.google.com/drive/u/0/folders/1su94GOgAeP0fo3Xb3X3DHzxx3PDSJct7", 
                       pattern = ".csv")
 
-l1_2023_file_list <- drive_ls("https://drive.google.com/drive/folders/1-ebNwEWViTIo2fb6fmPryfXJmD_VmHsK", 
+#TMP 
+l1_2023_file_list <- drive_ls("https://drive.google.com/drive/u/0/folders/1zwdiXX7f_wv6WS2sG4vg_OE8ELhNKSdo", 
+                      pattern = ".csv")
+
+#GCW
+l1_2022_weather_file_list <- drive_ls("https://drive.google.com/drive/u/0/folders/1PXTn8vIDn5IQiAjYtpubZKnt8svVkLVR", 
+                      pattern = ".csv")
+#GCW
+l1_2023_weather_file_list <- drive_ls("https://drive.google.com/drive/u/0/folders/1p4RL7JStJmlPU1x2MXgcayU2rp2XtFGr", 
                       pattern = ".csv")
 
 getwd()
@@ -72,6 +81,14 @@ for(i in 1:nrow(l1_2022_file_list)){
 
 for(i in 1:nrow(l1_2023_file_list)){
   drive_download_(l1_2023_file_list %>% slice(i))
+}
+
+for(i in 1:nrow(l1_2022_weather_file_list)){
+  drive_download_(l1_2022_weather_file_list %>% slice(i))
+}
+
+for(i in 1:nrow(l1_2023_weather_file_list)){
+  drive_download_(l1_2023_weather_file_list %>% slice(i))
 }
 ```
 
@@ -106,12 +123,29 @@ teros_all_raw <- teros_2022_raw %>%
   full_join(teros_2023_raw)
 
 write_rds(teros_all_raw, "~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2022-2023_teros_raw.rds")
+
+#READ IN RAIN SEPERATELY HERE: 
+weather_2022_raw <- l1_2022_weather_file_list$name %>% 
+  map(read_data) %>% 
+  bind_rows() 
+
+weather_2023_raw <- l1_2023_weather_file_list$name %>% 
+  map(read_data) %>% 
+  bind_rows() 
+
+weather_all_raw <- weather_2022_raw %>%
+  full_join(weather_2023_raw)
+
+write_rds(weather_all_raw, "~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2022-2023_teros_raw.rds")
 ```
 
 having issues rendering the markdown when reading in all the raw data, so start with the combined raw file for the markdown writeout:
 ```{r raw}
 
 teros_all_raw <- readRDS("~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2022-2023_teros_raw.rds")
+
+weather_all_raw <- readRDS("~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2022-2023_weather_raw.rds")
+
 ```
 ### Raw data
 
@@ -134,8 +168,11 @@ Rain only lives in GCW-W: https://github.com/COMPASS-DOE/data-workflows/issues/1
 
 ```{r rain}
 
-rain_qc1 <- teros_all_raw %>% 
+rain_qc1 <- weather_all_raw %>% 
   filter(research_name == "wx_rain24")
+
+write_csv(rain_qc1, "../TEMPEST-1-porewater/processed data/TMP_rain_2022-2023.csv")
+
 ```
 
 Remove the teros where we don't have lysimeters
