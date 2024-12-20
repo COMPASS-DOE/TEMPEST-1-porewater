@@ -94,13 +94,11 @@ for(i in 1:nrow(l1_2023_weather_file_list)){
 
 #### QC Step 1: Remove flagged values
 
-```{r Read in L1 data, message=FALSE, warning=FALSE, eval= F}
-
+```{r functions read in}
 read_data <- function(name){
   read_csv(paste0(raw_data_path, name)) %>% 
   clean_names() %>% 
-  filter(str_detect(research_name, "soil_vwc") | str_detect(research_name, "soil_EC") | str_detect(research_name, "wx_rain")) %>% #pull the teros vwc, EC, and the rain data
-    #Rain data isn't getting pulled in this way for some reason...
+  filter(str_detect(research_name, "soil_vwc") | str_detect(research_name, "soil_EC")) %>% #pull the teros vwc, EC data
   mutate(datetime_est = force_tz(timestamp, tzone = common_tz), 
          depth = str_extract(research_name, "\\d+(?=cm)"),
          plot = case_when(plot == "C" ~ "Control", 
@@ -109,6 +107,21 @@ read_data <- function(name){
     filter(f_oob == 0) %>% #filters out flag, Flag: out of instrumental bounds (logical; 1=TRUE)
   dplyr::select(datetime_est, research_name, plot, location, depth, sensor_id, value, contains("f_")) 
 }
+
+read_data_weather <- function(name){
+  read_csv(paste0(raw_data_path, name)) %>% 
+  clean_names() %>% 
+  filter(str_detect(research_name, "wx_gcrew_rain15")) %>% 
+  mutate(datetime_est = force_tz(timestamp, tzone = common_tz) 
+         ) %>%
+    #for some reason some files are coming in as logical 
+    filter(f_oob == 0) %>% #filters out flag, Flag: out of instrumental bounds (logical; 1=TRUE)
+  dplyr::select(datetime_est, research_name, value, contains("f_")) 
+}
+
+```
+
+```{r Read in L1 data, message=FALSE, warning=FALSE, eval= F}
 
 ##Bind data together and filter out the data we definitely won't need.
 teros_2022_raw <- l1_2022_file_list$name %>% 
@@ -123,20 +136,22 @@ teros_all_raw <- teros_2022_raw %>%
   full_join(teros_2023_raw)
 
 write_rds(teros_all_raw, "~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2022-2023_teros_raw.rds")
+```
 
+```{r rain read in, eval=FALSE}
 #READ IN RAIN SEPERATELY HERE: 
 weather_2022_raw <- l1_2022_weather_file_list$name %>% 
-  map(read_data) %>% 
+  map(read_data_weather) %>% 
   bind_rows() 
 
 weather_2023_raw <- l1_2023_weather_file_list$name %>% 
-  map(read_data) %>% 
+  map(read_data_weather) %>% 
   bind_rows() 
 
 weather_all_raw <- weather_2022_raw %>%
   full_join(weather_2023_raw)
 
-write_rds(weather_all_raw, "~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2022-2023_teros_raw.rds")
+write_rds(weather_all_raw, "~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2022-2023_weather_raw.rds")
 ```
 
 having issues rendering the markdown when reading in all the raw data, so start with the combined raw file for the markdown writeout:
@@ -169,10 +184,28 @@ Rain only lives in GCW-W: https://github.com/COMPASS-DOE/data-workflows/issues/1
 ```{r rain}
 
 rain_qc1 <- weather_all_raw %>% 
-  filter(research_name == "wx_rain24")
+  filter(f_oos == 0) %>%  #filters out flag, Flag: sensor listed as out of service (logical; 1=TRUE)
+  rename(rain_15min_cm = value)
+
+rain_qc2 <- rain_qc1 %>% 
+  mutate(date = lubridate::date(datetime_est)) %>%
+  select(rain_15min_cm, date) %>%
+  group_by(date) %>%
+  summarize(daily_average_rain_cm = sum(rain_15min_cm))
 
 write_csv(rain_qc1, "../TEMPEST-1-porewater/processed data/TMP_rain_2022-2023.csv")
 
+write_csv(rain_qc2, "../TEMPEST-1-porewater/processed data/TMP_rain_daily_2022-2023.csv")
+
+```
+
+```{r rain plot}
+## Plotly plot to look at individual sensors
+p <- rain_qc1 %>%
+  ggplot(aes(datetime_est, rain_15min_cm)) + 
+  geom_line() 
+
+ ggplotly(p)
 ```
 
 Remove the teros where we don't have lysimeters
