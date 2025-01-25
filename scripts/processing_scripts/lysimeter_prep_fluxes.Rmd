@@ -256,7 +256,8 @@ doc_l1_pw_grids <- doc_l1_2022 %>%
 vwc_lys_vol_doc = vwc_lys_vols %>%
   mutate(date = as_date(evacuation_datetime)) %>%
   full_join(doc_l1_pw_grids, by = c("plot", "grid", "date")) %>%
-  drop_na() #TEMPORARY FIX. This is an issue with the merging date column not matching the evacuation dates between the two data frames. still trying to figure out WHY
+  drop_na() %>% #TEMPORARY FIX. This is an issue with the merging date column not matching the evacuation dates between the two data frames. still trying to figure out WHY
+  select(-date)
 
 write_csv(vwc_lys_vol_doc, "~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/prelim_Lysimeter_Vols_VWC_DOC_forfluxes.csv")
 ```
