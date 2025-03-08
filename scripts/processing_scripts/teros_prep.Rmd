@@ -2,7 +2,10 @@
 title: "TEROS data prep"
 author: "PR Modified by AMP"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document:
+    keep_md: true
+knit: "rmarkdown::render"
 ---
 
 ```{r setup, include=FALSE}
@@ -165,7 +168,7 @@ weather_all_raw <- readRDS("~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2022
 ### Raw data
 
 ```{r filter to pw grids}
-pwsite_key <- readxl::read_excel("../tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx") %>%
+pwsite_key <- readxl::read_excel("~/GitHub/tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx") %>%
   select(Plot, Grid) %>%
   unique() %>%
   rename(plot = Plot,
@@ -193,9 +196,9 @@ rain_qc2 <- rain_qc1 %>%
   group_by(date) %>%
   summarize(daily_average_rain_cm = sum(rain_15min_cm))
 
-write_csv(rain_qc1, "../TEMPEST-1-porewater/processed data/TMP_rain_2022-2023.csv")
+write_csv(rain_qc1, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_2022-2023.csv")
 
-write_csv(rain_qc2, "../TEMPEST-1-porewater/processed data/TMP_rain_daily_2022-2023.csv")
+write_csv(rain_qc2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_daily_2022-2023.csv")
 
 ```
 
@@ -231,13 +234,12 @@ p <- teros_qc1 %>%
 
  ggplotly(p)
 ```
-Notes from the ggplotly, *I5 at 15cm deep* in SW plot looks funky 2023-01-04 13:00 to 2023-05-31 13:00 - ie. reading the same value all winter: 0.3
+Notes from the ggplotly, *I5 at 15cm deep* in *SW plot ONLY* looks funky 2023-01-04 13:00 to 2023-05-31 13:00 - ie. reading the same value all winter: 0.3
 Everybody else is following roughly the same trend.
 
 ```{r scrub the sketch}
 teros_qc2 <- teros_qc1 %>% 
-  mutate(value = case_when(research_name == "soil_vwc_15cm" & location == "I5" & between(datetime_est, as.POSIXct("2023-01-04 13:00", tz = common_tz), as.POSIXct("2023-05-31 13:00", tz = common_tz)) ~ NA,
-                           TRUE ~ value))
+  mutate(value = case_when(research_name == "soil_vwc_15cm" & location == "I5" & plot == "SW" & between(datetime_est, as.POSIXct("2023-01-04 13:00", tz = common_tz), as.POSIXct("2023-05-31 13:00", tz = common_tz)) ~ NA, TRUE ~ value))
 ```
 
 Write out VWC for flux calculations:
@@ -255,9 +257,9 @@ vwc_L2 <- teros_qc2 %>%
   
 print(vwc_L2)
 
-write_csv(vwc_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.csv")
+write_csv(vwc_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.csv")
 
-saveRDS(vwc_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.rds")
+saveRDS(vwc_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.rds")
   
 ```
 
@@ -311,8 +313,8 @@ EC_L2 <- teros_qc2_EC %>%
   
 print(EC_L2)
 
-write_csv(EC_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.csv")
+write_csv(EC_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.csv")
 
-saveRDS(EC_L2, "../TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.rds")
+saveRDS(EC_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.rds")
   
 ```
