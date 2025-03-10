@@ -1,0 +1,130 @@
+---
+title: "Conductivity"
+author: "AMP"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+This script brings together the teros conductivity and the lysimeter DOC data to enable calculation of relationships between the two for manuscript. 
+
+NOTE: make sure your computer is in EST, because R does what it wants with time zones: 
+
+# 1) Set up environment
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+require(pacman)
+pacman::p_load(tidyverse, # keep things tidy
+               googlesheets4, # read_sheet 
+               googledrive, # drive_ functions
+               here, #helps with file pathing 
+               lubridate) #those pesky dates
+
+#double check your wd
+getwd()
+
+#clean out your environment 
+rm(list = ls())
+
+#Authenticate Google Drive Access:
+drive_auth()
+
+Sys.setenv(TZ = "America/New_York")
+```
+
+### Set the study dates
+
+```{r event and study dates}
+endstudydate = lubridate::as_date("2024-01-31")
+startstudydate = lubridate::as_date("2022-05-01")
+
+endstudydate_yr1 = lubridate::as_date("2023-05-31")
+startstudydate_yr1 = lubridate::as_date("2022-05-01")
+
+year1_start = lubridate::as_date("2022-01-01")
+year1_stop = lubridate::as_date("2022-12-31")
+
+year2_start = lubridate::as_date("2023-01-01")
+year2_stop = lubridate::as_date("2023-12-31")
+
+year3_start = lubridate::as_date("2024-01-01")
+year3_stop = lubridate::as_date("2024-12-31")
+
+WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
+WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
+
+WaterDeliveryStart1 = as.POSIXct("2023-06-06 05:30:00", tz = "EST")
+WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
+
+WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
+WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
+
+plot_order <- c('Control', 'Freshwater','Estuarine-water')
+time_order <- c('Pre', 'Mid','Post')
+```
+
+
+
+# 2) bring in soil conductivity
+
+```{r load ec}
+ec_l2_15cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.rds") %>%
+  filter(depth == "15") %>%
+  mutate(date = as_date(datetime_est)) %>%
+  group_by(plot, grid) %>%
+   filter(datetime_est < year2_stop & datetime_est > year1_start)
+
+```
+
+# 4) Load DOC data 
+
+note these will be on google drive eventually but for now just in github:
+
+```{r import doc}
+#Porewater DOC data, from L1 google drive: 
+
+doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2022_L1.csv")
+  
+doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2023_L1.csv")
+
+doc_l1_pw_grids <- doc_l1_2022 %>%
+  full_join(doc_l1_2023) %>%
+  select(plot, grid, evacuation_datetime, collection_datetime, doc_mg_l, tdn_mg_l) %>%
+ # mutate(date = as_date(collection_datetime)) %>%
+  drop_na() %>%
+  distinct()#This is dropping the EMPTY lysimeters: and don't need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+```
+
+# 5) filter and summarize cond by date time lysimeter was collecting FOR DOC data:
+
+```{r filter and summarize, message= FALSE}
+filter_and_summarize <- function(df, start_date, end_date) {
+  df %>%
+    filter(datetime_est >= start_date, datetime_est <= end_date) %>%
+    summarise(mean_EC_uScm = mean(EC_uScm),
+              min_EC_uScm = min(EC_uScm),
+              max_EC_uScm = max(EC_uScm),
+              .groups = "drop") 
+}
+
+ec_during_collection_15cm = doc_l1_pw_grids %>%
+  group_by(plot, grid, evacuation_datetime, collection_datetime) %>%
+  summarize(mean_EC_uScm_15cm = mean(ec_l2_15cm$EC_uScm[ec_l2_15cm$datetime_est >= first(evacuation_datetime) & ec_l2_15cm$datetime_est <= first(collection_datetime)]),
+            min_EC_uScm_15cm = min(ec_l2_15cm$EC_uScm[ec_l2_15cm$datetime_est >= first(evacuation_datetime) & ec_l2_15cm$datetime_est <= first(collection_datetime)]),
+            max_EC_uScm_15cm = max(ec_l2_15cm$EC_uScm[ec_l2_15cm$datetime_est >= first(evacuation_datetime) & ec_l2_15cm$datetime_est <= first(collection_datetime)])) %>%
+  ungroup()
+
+ec_lys_doc = ec_during_collection_15cm  %>%
+  right_join(doc_l1_pw_grids, by=c("plot", "grid", "evacuation_datetime", "collection_datetime")) %>%
+  distinct() %>%
+  mutate(collection_date= as_date(collection_datetime)) 
+```
+
+
+```{r writeout}
+
+write_csv(ec_lys_doc, "~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations.csv")
+```
+
+
