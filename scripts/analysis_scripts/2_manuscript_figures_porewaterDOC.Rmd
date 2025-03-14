@@ -93,6 +93,10 @@ exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEM
 # Figure 1: Year 1 DOC 
 Main Message 1 (Hypothesis rejected): There is a prolonged and sustained increase in dissolved carbon following initial drop in DOC after exposure to salinity.
 
+EDIT to make the fw and c plots as bands. Then show the spatial variability in the sw plot by plotting the individual lysimeters (numbers inside circles for the points?)
+straight range stripe for FW and C plots
+95 and 5 (25 /75) quartile lines
+
 ```{r plot DOC}
 
 Figure1 <- pw_doc %>%
@@ -234,6 +238,8 @@ fticrms_relabund_dates %>%
 - Slope Ratio (proxy for HMW/LMW) through year (FW & SW plots, TMP 1 & 2) https://aslopubs.onlinelibrary.wiley.com/doi/abs/10.4319/lo.2008.53.3.0955
 - SUVA (using average DOC for the plots?) (FW & SW plots, TMP 1 & 2)
 
+EDITS:spatial variability in conductivity is small, but spatial characteristics of DOM chemistry/character may be important/driving trends; and or spatial distribution of aggregates
+- plot year 2 as a function of DOC vs chemistry metrics (SUVA/ SR)
 ## Figure 5 Mechanisms
 ```{r cond vs doc load data}
 cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations.csv")
@@ -271,7 +277,7 @@ new_data$upper <- new_data$pred + 1.96 * se_fit
 
 cond_doc_graphing %>%
   ggplot() +
-  geom_point(aes(x = max_EC_uScm_15cm, y = doc_mg_l), shape=17, size=1) +
+  geom_point(aes(x = max_EC_uScm_15cm, y = doc_mg_l, color = collection_date), shape=17, size=5) +
   stat_smooth(aes(x = max_EC_uScm_15cm, y = doc_mg_l),
     method="nls",
     formula = y ~ a * exp(b * x),
