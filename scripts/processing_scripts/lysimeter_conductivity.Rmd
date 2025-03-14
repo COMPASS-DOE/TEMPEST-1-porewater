@@ -135,7 +135,18 @@ ec_lys_doc = ec_during_collection_15cm  %>%
   distinct() %>%
   mutate(collection_date= as_date(collection_datetime)) 
 ```
-
+```{r quick plot of S cond during lysimeter time}
+ec_during_collection_15cm %>%
+  filter(plot == "Estuarine-water") %>%
+    ggplot(aes(x = collection_datetime, y = mean_EC_uScm_15cm, color = grid)) +
+    geom_point()+
+    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
+    ylab("porewater EC uS/cm")+
+    xlab("Date")+
+    theme_classic()
+```
 
 ```{r writeout}
 

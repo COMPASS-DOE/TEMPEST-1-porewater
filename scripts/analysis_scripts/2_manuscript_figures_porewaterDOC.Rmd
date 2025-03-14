@@ -239,14 +239,48 @@ fticrms_relabund_dates %>%
 cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations.csv")
 
 ```
-```{r make figure 5}
-cond_doc %>%
-  filter(plot == "Estuarine-water") %>%    
-  ggplot(aes(x = mean_EC_uScm_15cm, y = doc_mg_l)) +
-   geom_point(shape=17, size=1)+
-    ylab("DOC (mg/L)")+
-    xlab("Mean Soil Conductivity")+
-    theme_classic()
+```{r make line for fig 5}
+cond_doc_graphing = cond_doc %>%
+  ungroup() %>%
+  filter(plot == "Estuarine-water") 
+
+start_a <- max(cond_doc_graphing$doc_mg_l) 
+start_b <- -0.001
+
+# Fit the model using nls
+fit_nls <- nls(doc_mg_l ~ a * exp(b * max_EC_uScm_15cm), data = cond_doc_graphing, start = list(a = start_a, b = start_b))
+
+# Summary of the model
+summary(fit_nls)
+# Extract fitted values
+coefficients <- coef(fit_nls)
+a <- coefficients["a"]
+b <- coefficients["b"]
+
+# Create a prediction data frame
+new_data <- data.frame(max_EC_uScm_15cm = seq(min(cond_doc_graphing$max_EC_uScm_15cm), max(cond_doc_graphing$max_EC_uScm_15cm), length.out = 100))
+new_data$pred <- predict(fit_nls, newdata = new_data)
+
+# Compute standard error of the fit
+se_fit <- sqrt(sum(residuals(fit_nls)^2) / df.residual(fit_nls))
+new_data$lower <- new_data$pred - 1.96 * se_fit
+new_data$upper <- new_data$pred + 1.96 * se_fit
+
+```
+```{r figure 5}
+
+cond_doc_graphing %>%
+  ggplot() +
+  geom_point(aes(x = max_EC_uScm_15cm, y = doc_mg_l), shape=17, size=1) +
+  stat_smooth(aes(x = max_EC_uScm_15cm, y = doc_mg_l),
+    method="nls",
+    formula = y ~ a * exp(b * x),
+    method.args = list(start = list(a = a, b = b)),    # Starting values for a and b
+    se=FALSE) +
+ # geom_ribbon(data = new_data, aes(x= max_EC_uScm_15cm, ymin = lower, ymax = upper), fill = "blue", alpha = 0.2) +
+  ylab("DOC (mg/L)") +
+  xlab("Mean Soil Conductivity") +
+  theme_classic()
 ```
 
 
