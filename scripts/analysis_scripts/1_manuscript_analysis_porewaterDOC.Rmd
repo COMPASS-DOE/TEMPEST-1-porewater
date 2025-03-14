@@ -64,14 +64,15 @@ time_order <- c('Pre', 'Mid','Post')
 
 #Porewater DOC data, from L1 google drive: 
 
-doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOC_TDN_L1_2022.csv")
+doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2022_L1.csv")
   
-doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOC_TDN_L1_2023.csv")
+doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2023_L1.csv")
 ```
 
 ```{r doc avg stds}
 doc_l1_pw_grids <- doc_l1_2022 %>%
   full_join(doc_l1_2023) %>%
+  mutate(evacuation_date = as_date(evacuation_datetime)) %>%
   select(plot, evacuation_date, collection_datetime, doc_mg_l, tdn_mg_l) %>%
   drop_na() #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
 

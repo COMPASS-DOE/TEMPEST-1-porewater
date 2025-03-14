@@ -71,11 +71,26 @@ time_order <- c('Pre', 'Mid','Post')
 ```{r load ec}
 ec_l2_15cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.rds") %>%
   filter(depth == "15") %>%
-  mutate(date = as_date(datetime_est)) %>%
+  mutate(date = as_date(datetime_est),
+         datetime_est = as.POSIXct(datetime_est)) %>%
   group_by(plot, grid) %>%
    filter(datetime_est < year2_stop & datetime_est > year1_start)
 
 ```
+
+```{r quick plot of S cond}
+ec_l2_15cm %>%
+  filter(plot == "Estuarine-water") %>%
+    ggplot(aes(x = datetime_est, y = EC_uScm, color = grid)) +
+    geom_point()+
+    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
+    ylab("porewater EC uS/cm")+
+    xlab("Date")+
+    theme_classic()
+```
+
 
 # 4) Load DOC data 
 

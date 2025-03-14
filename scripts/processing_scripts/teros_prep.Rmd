@@ -180,6 +180,7 @@ pwsite_key <- readxl::read_excel("~/GitHub/tempest-system-level-analysis/data/fo
 grids <- pwsite_key %>%
   dplyr::distinct(location)
 
+grids
 ```
 
 Rain only lives in GCW-W: https://github.com/COMPASS-DOE/data-workflows/issues/158
