@@ -259,6 +259,7 @@ q <- teros_qc1 %>%
   geom_line() + 
   facet_wrap(~plot, ncol = 1)
 
+
  ggplotly(q)
 ```
 Notes from the ggplotly, *I5 at 15cm deep* in *SW plot ONLY* looks funky 2023-01-04 13:00 to 2023-05-31 13:00 - ie. reading the same value all winter: 0.3
@@ -284,9 +285,9 @@ vwc_L2 <- teros_qc2 %>%
   
 print(vwc_L2)
 
-write_csv(vwc_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.csv")
+write_csv(vwc_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_VWC_2022-2023_L2.csv")
 
-saveRDS(vwc_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.rds")
+saveRDS(vwc_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_VWC_2022-2023_L2.rds")
   
 ```
 
@@ -294,11 +295,12 @@ EC for ionic strength:
 
 ```{r ec}
 ## Plotly plot to look at individual sensors
-p <- teros_qc1%>%
+p <- teros_qc1 %>%
   filter(variable == "EC") %>%
   ggplot(aes(datetime_est, value, linetype= Location_Inventory, color = depth)) + 
   geom_line() + 
   facet_wrap(~plot, ncol = 1)
+
 
  ggplotly(p)
 ```
@@ -320,11 +322,16 @@ peaks with one data point really high SPC in the 5cm sensor at H6
 
 ```{r scrub the sketch 2}
 teros_qc2_EC <- teros_qc1 %>% 
-  mutate(value = case_when(research_name == "soil_EC_5cm" & Location_Inventory == "H6" & datetime_est %in% as.POSIXct(c("2022-02-20 22:30", "2022-02-21 09:00", "2022-12-03 13:45", 
+  mutate(value = case_when(research_name == "soil_EC_5cm" & plot =="Control" & Location_Inventory == "H6" & datetime_est %in% as.POSIXct(c("2022-02-20 22:30", "2022-02-21 09:00", "2022-12-03 13:45", 
                                    "2023-02-25 02:00", "2023-02-27 04:15", "2023-03-01 01:30", 
                                    "2023-03-01 08:00", "2023-12-09 05:45", "2023-12-13 02:30",
                                    "2023-12-13 03:30", "2023-12-13 21:15"), tz = common_tz)  ~ NA,
+                           TRUE ~ value)) %>%
+    mutate(value = case_when(research_name == "soil_EC_30cm" & plot =="Estuarine-water" & Location_Inventory == "F4" & datetime_est %in% as.POSIXct(c("2023-01-17 03:35"), tz = common_tz)  ~ NA,
+                           TRUE ~ value)) %>%
+  mutate(value = case_when(research_name == "soil_EC_5cm" & plot =="Estuarine-water" & Location_Inventory == "C3" & datetime_est %in% as.POSIXct(c("2023-07-03 05:10"), tz = common_tz)  ~ NA,
                            TRUE ~ value))
+  
 ```
 
 ```{r EC for fluxes}
@@ -340,8 +347,8 @@ EC_L2 <- teros_qc2_EC %>%
   
 print(EC_L2)
 
-write_csv(EC_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.csv")
+write_csv(EC_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.csv")
 
-saveRDS(EC_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.rds")
+saveRDS(EC_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.rds")
   
 ```

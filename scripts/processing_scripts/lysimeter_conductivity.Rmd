@@ -69,7 +69,7 @@ time_order <- c('Pre', 'Mid','Post')
 # 2) bring in soil conductivity
 
 ```{r load ec}
-ec_l2_15cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_EC15cm_2022-2023.rds") %>%
+ec_l2_15cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.rds") %>%
   filter(depth == "15") %>%
   mutate(date = as_date(datetime_est),
          datetime_est = as.POSIXct(datetime_est)) %>%

@@ -81,13 +81,13 @@ volumes_grids_pooled <- volumes_grids_pooled %>%
 # 3) bring in moisture content
 
 ```{r load vwc}
-vwc_l2_15cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.rds") %>%
+vwc_l2_15cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_VWC_2022-2023_L2.rds") %>%
   filter(depth == "15") %>%
   mutate(date = as_date(datetime_est)) %>%
   group_by(plot, grid) %>%
    filter(datetime_est < year2_stop & datetime_est > year1_start)
 
-vwc_l2_5cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_L2_VWC_2022-2023.rds") %>%
+vwc_l2_5cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_VWC_2022-2023_L2.rds") %>%
   filter(depth == "5") %>%
   mutate(date = as_date(datetime_est)) %>%
   group_by(plot, grid) %>%
