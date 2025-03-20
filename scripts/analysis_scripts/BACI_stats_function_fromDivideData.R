@@ -17,7 +17,7 @@
 source("~/GitHub/tempest-system-level-analysis/scripts/tmp_test_functions.R")
 
 baci_stats <- function(data_stats, var, plot, p_value_threshold) {
-  browser()
+  #browser()
   library(dplyr)
   library(rlang)
   library(car)

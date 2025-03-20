@@ -60,7 +60,7 @@ WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
 WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 
-plot_order <- c('Control', 'Freshwater','Estuarine-water')
+plot_order <- c('Control', 'Freshwater','Saltwater')
 time_order <- c('Pre', 'Mid','Post')
 ```
 
@@ -80,7 +80,7 @@ ec_l2_15cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm
 
 ```{r quick plot of S cond}
 ec_l2_15cm %>%
-  filter(plot == "Estuarine-water") %>%
+  filter(plot == "Saltwater") %>%
     ggplot(aes(x = datetime_est, y = EC_uScm, color = grid)) +
     geom_point()+
     geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
@@ -137,7 +137,7 @@ ec_lys_doc = ec_during_collection_15cm  %>%
 ```
 ```{r quick plot of S cond during lysimeter time}
 ec_during_collection_15cm %>%
-  filter(plot == "Estuarine-water") %>%
+  filter(plot == "Saltwater") %>%
     ggplot(aes(x = collection_datetime, y = mean_EC_uScm_15cm, color = grid)) +
     geom_point()+
     geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 

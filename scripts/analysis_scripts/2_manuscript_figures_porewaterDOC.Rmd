@@ -18,7 +18,7 @@ library(scales)
 library(tidyverse)
 
 #clean out your environment 
-#rm(list = ls())
+rm(list = ls())
 
 Anyas_theme = 
         theme_set(theme_bw() +
@@ -30,12 +30,12 @@ Anyas_theme =
         legend.title = element_blank(),
         strip.text = element_text(size=16)))
 
-plot_order <- c('Control', 'Freshwater','Estuarine-water')
+plot_order <- c('Control', 'Freshwater','Saltwater')
 time_order <- c('Pre', 'Mid','Post')
 
 Anyas_colors = c("springgreen2", "cyan2", "violetred2")
 
-Treatment_order <- c('Control', 'Artificial Freshwater','Artificial Estuarine-water')
+Treatment_order <- c('Control', 'Artificial Freshwater','Artificial Saltwater')
 
 #double check your wd
 getwd()
@@ -80,10 +80,10 @@ pw_doc <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds"
 exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
   mutate(Wash = case_when(is.na(Wash) ~ 0,
                           TRUE ~ Wash),
-    Treatment = case_when(Treatment == "AS" ~ "Artificial Estuarine-water",
+    Treatment = case_when(Treatment == "AS" ~ "Artificial Saltwater",
                                Treatment == "FW" ~ "Artificial Freshwater",
                                Treatment == "DI" ~ "Control",
-                               Treatment == "SWE" ~ "Artificial Estuarine-water",
+                               Treatment == "SWE" ~ "Artificial Saltwater",
                                Treatment == "CL" ~ "Artificial Freshwater",
                           TRUE ~ Treatment))
 
@@ -248,7 +248,7 @@ cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Ly
 ```{r make line for fig 5}
 cond_doc_graphing = cond_doc %>%
   ungroup() %>%
-  filter(plot == "Estuarine-water") 
+  filter(plot == "Saltwater") 
 
 start_a <- max(cond_doc_graphing$doc_mg_l) 
 start_b <- -0.001
@@ -302,7 +302,7 @@ cond_doc_graphing %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = date, y = relabund_mean, color = plot)) +
     geom_vline(xintercept = flood_event_datetime,linetype="dashed",color="grey")+ 
-   geom_pointrange(aes(ymin=relabund_mean-relabund_sd, ymax=relabund_mean+relabund_sd), shape=17, size=1)+
+    geom_pointrange(aes(ymin=relabund_mean-relabund_sd, ymax=relabund_mean+relabund_sd), shape=17, size=1)+
     ylab("Relative abundance of highly aromatic group (%)")+
     xlab("Date")+
     ylim(0,40)+
