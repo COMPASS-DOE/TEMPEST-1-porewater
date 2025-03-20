@@ -63,7 +63,7 @@ teros_inv <- readxl::read_excel(file_path, sheet="Sheet1") %>%
            depth = Depth) %>% 
   mutate(depth = as.character(depth),
          plot = case_when(plot == "Control" ~ "Control", 
-                          plot == "Seawater" ~ "Estuarine-water", 
+                          plot == "Seawater" ~ "Saltwater", 
                           plot == "Freshwater" ~ "Freshwater")) %>%
   drop_na()
 ```
@@ -130,7 +130,7 @@ read_data <- function(name){
   mutate(datetime_est = force_tz(timestamp, tzone = common_tz), 
          depth = str_extract(research_name, "\\d+(?=cm)"),
          plot = case_when(plot == "C" ~ "Control", 
-                          plot == "S" ~ "Estuarine-water", 
+                          plot == "S" ~ "Saltwater", 
                           plot == "FALSE" ~ "Freshwater")) %>% #for some reason the FW files are coming in with FALSE not F
     filter(f_oob == 0) %>% #filters out flag, Flag: out of instrumental bounds (logical; 1=TRUE)
   dplyr::select(datetime_est, research_name, plot, depth, sensor_id, value, contains("f_")) %>%
@@ -200,7 +200,7 @@ pwsite_key <- readxl::read_excel("~/GitHub/tempest-system-level-analysis/data/fo
   rename(plot = Plot,
          Location_Inventory = Grid) %>%
   mutate( plot = case_when(plot == "C" ~ "Control", 
-                          plot == "SW" ~ "Estuarine-water", 
+                          plot == "SW" ~ "Saltwater", 
                           plot == "FW" ~ "Freshwater"))
 
 grids <- pwsite_key %>%
@@ -251,7 +251,7 @@ teros_qc1 <- teros_all_raw %>%
 
 Let's first take a look at all the raw data. 
 
-```{r}
+```{r, eval=FALSE}
 ## Plotly plot to look at individual sensors
 q <- teros_qc1 %>%
   filter(variable == "vwc") %>%
@@ -280,7 +280,7 @@ vwc_L2 <- teros_qc2 %>%
   rename(vwc_m3m3 = value,
          grid = Location_Inventory) %>%
   select(datetime_est, plot, grid, depth, research_name, vwc_m3m3) %>%
-  mutate(plot = case_when(plot == "Estuarine" ~ "Estuarine-water",
+  mutate(plot = case_when(plot == "Estuarine-water" ~ "Saltwater",
                           TRUE ~ plot))
   
 print(vwc_L2)
@@ -293,7 +293,7 @@ saveRDS(vwc_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_VWC_2022-202
 
 EC for ionic strength:
 
-```{r ec}
+```{r ec, eval=FALSE}
 ## Plotly plot to look at individual sensors
 p <- teros_qc1 %>%
   filter(variable == "EC") %>%
@@ -327,9 +327,9 @@ teros_qc2_EC <- teros_qc1 %>%
                                    "2023-03-01 08:00", "2023-12-09 05:45", "2023-12-13 02:30",
                                    "2023-12-13 03:30", "2023-12-13 21:15"), tz = common_tz)  ~ NA,
                            TRUE ~ value)) %>%
-    mutate(value = case_when(research_name == "soil_EC_30cm" & plot =="Estuarine-water" & Location_Inventory == "F4" & datetime_est %in% as.POSIXct(c("2023-01-17 03:35"), tz = common_tz)  ~ NA,
+    mutate(value = case_when(research_name == "soil_EC_30cm" & plot =="Saltwater" & Location_Inventory == "F4" & datetime_est %in% as.POSIXct(c("2023-01-17 03:35"), tz = common_tz)  ~ NA,
                            TRUE ~ value)) %>%
-  mutate(value = case_when(research_name == "soil_EC_5cm" & plot =="Estuarine-water" & Location_Inventory == "C3" & datetime_est %in% as.POSIXct(c("2023-07-03 05:10"), tz = common_tz)  ~ NA,
+  mutate(value = case_when(research_name == "soil_EC_5cm" & plot =="Saltwater" & Location_Inventory == "C3" & datetime_est %in% as.POSIXct(c("2023-07-03 05:10"), tz = common_tz)  ~ NA,
                            TRUE ~ value))
   
 ```
@@ -342,7 +342,7 @@ EC_L2 <- teros_qc2_EC %>%
   rename(EC_uScm = value,
          grid = Location_Inventory) %>%
   select(datetime_est, plot, grid, depth, research_name, EC_uScm) %>%
-  mutate(plot = case_when(plot == "Estuarine" ~ "Estuarine-water",
+  mutate(plot = case_when(plot == "Estuarine-water" ~ "Saltwater",
                           TRUE ~ plot))
   
 print(EC_L2)

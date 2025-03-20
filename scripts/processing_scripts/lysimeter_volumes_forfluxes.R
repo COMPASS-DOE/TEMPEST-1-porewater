@@ -45,9 +45,9 @@ pooled_vols <- readxl::read_excel(file_path, skip=4, sheet="Porewater - Pooled")
                names_to = "grid",
                values_to = "Volume_mL") %>%
   mutate(plot = case_when(Plot == "C" ~ "Control",
-                          Plot == "SW" ~ "Estuarine-water",
+                          Plot == "SW" ~ "Saltwater",
                           Plot == "FW" ~ "Freshwater",
-                          Plot == "Saltwater" ~ "Estuarine-water",
+                          Plot == "Saltwater" ~ "Saltwater",
                           TRUE ~ Plot),
          grid = str_remove(grid, "Grid_")) %>%
   rename(evacuation_date = Evacuation_date_YYYMMDD,
@@ -107,7 +107,7 @@ vols_2022event <- read_csv("~/GitHub/tempest-system-level-analysis/data/raw/DOC 
   drop_na() %>%
   select(plot, grid, evacuation_date, collection_date, Total_Volume_mL) %>%
   mutate(plot = case_when(plot == "C" ~ "Control",
-                          plot == "SW" ~ "Estuarine-water",
+                          plot == "SW" ~ "Saltwater",
                           plot == "FW" ~ "Freshwater",
                           TRUE ~ plot))
   

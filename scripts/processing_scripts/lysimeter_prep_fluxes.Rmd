@@ -60,7 +60,7 @@ WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
 WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 
-plot_order <- c('Control', 'Freshwater','Estuarine-water')
+plot_order <- c('Control', 'Freshwater','Saltwater')
 time_order <- c('Pre', 'Mid','Post')
 ```
 
