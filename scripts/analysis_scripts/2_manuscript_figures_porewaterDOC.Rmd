@@ -35,6 +35,8 @@ time_order <- c('Pre', 'Mid','Post')
 
 Anyas_colors = c("springgreen2", "cyan2", "violetred2")
 
+Anyas_colors_figure1 =  c("violetred2", "cyan2","springgreen2")
+
 Treatment_order <- c('Control', 'Artificial Freshwater','Artificial Saltwater')
 
 #double check your wd
@@ -77,6 +79,12 @@ pw_doc <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds"
   mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
                           TRUE ~ doc_mg_l_sd))
 
+pw_tmp1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds")
+
+doc_iqr <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") %>%
+  mutate(collection_datetime = as.POSIXct("2022-05-18 15:59:00", tz= "EST" ),
+         doc_mg_l = NA)
+
 exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
   mutate(Wash = case_when(is.na(Wash) ~ 0,
                           TRUE ~ Wash),
@@ -99,25 +107,39 @@ straight range stripe for FW and C plots
 
 ```{r plot DOC}
 
-Figure1 <- pw_doc %>%
+figure_legend_plot <- pw_tmp1 %>%
+  ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot)) +
+  geom_point()+
+  scale_color_manual(values=Anyas_colors) +
+  theme(legend.position = "right")
+
+legend <- get_legend(figure_legend_plot)
+
+Figure1_content <- pw_tmp1 %>%
+  filter(plot == "Saltwater") %>%
   filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1)) %>%
-  mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot)) +
+    mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot, label= grid)) +
     geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
-   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd), shape=17, size=1)+
+    #geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+   # geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
+    annotate("rect", xmin = min(pw_tmp1$collection_datetime), xmax = max(WaterDeliveryStop2), ymin = doc_iqr$q1_doc_mg_l, ymax = doc_iqr$q3_doc_mg_l, fill= c("cyan2", "springgreen2"), alpha = 0.2)+
+    geom_point(size = 5, shape = 21, fill = "violetred2", color = "black") +
+    geom_text(size = 2, color = "white") +
     ylab("DOC mgC/L")+
     xlab("Date")+
-    ylim(-10,100)+
-    scale_color_manual(values=Anyas_colors) +
-    theme_classic()
+    theme_classic() +
+    theme(legend.position="none")
+
+Figure1 <- cowplot::plot_grid(Figure1_content, legend, nrow= 1, rel_widths=c(1, 0.2))
 
 print(Figure1)
 
-plotly::ggplotly(Figure1)
+plotly::ggplotly(Figure1_content)
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pwdoc.png",Figure1, dpi=300)
+
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pwdoc.png",Figure1, dpi=600)
 
 ```
 
