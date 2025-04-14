@@ -1,0 +1,86 @@
+---
+title: "archive plots"
+author: "AMP"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Figure 1: Year 1 DOC 
+Main Message 1 (Hypothesis rejected): There is a prolonged and sustained increase in dissolved carbon following initial drop in DOC after exposure to salinity.
+
+EDIT to make the fw and c plots as bands. Then show the spatial variability in the sw plot by plotting the individual lysimeters (numbers inside circles for the points?)
+straight range stripe for FW and C plots
+95 and 5 (25 /75) quartile lines
+
+```{r plot DOC}
+
+figure_legend_plot <- pw_tmp1 %>%
+  ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot)) +
+  geom_point()+
+  scale_color_manual(values=Anyas_colors) +
+  theme(legend.position = "right")
+
+legend <- get_legend(figure_legend_plot)
+
+Figure1_content <- pw_tmp1 %>%
+  filter(plot == "Saltwater") %>%
+  filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1)) %>%
+    mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = collection_datetime, y = doc_mg_l, color = plot, label= grid)) +
+    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    #geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+   # geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
+    annotate("rect", xmin = min(pw_tmp1$collection_datetime), xmax = max(WaterDeliveryStop2), ymin = doc_iqr$q1_doc_mg_l, ymax = doc_iqr$q3_doc_mg_l, fill= c("cyan2", "springgreen2"), alpha = 0.2)+
+    geom_point(size = 5, shape = 21, fill = "violetred2", color = "black") +
+    geom_text(size = 2, color = "white") +
+    ylab("DOC mgC/L")+
+    xlab("Date")+
+    theme_classic() +
+    theme(legend.position="none")
+
+Figure1 <- cowplot::plot_grid(Figure1_content, legend, nrow= 1, rel_widths=c(1, 0.2))
+
+print(Figure1)
+
+plotly::ggplotly(Figure1_content)
+
+
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pwdoc.png",Figure1, dpi=600)
+
+```
+
+```{r}
+Figure2a <- pw_doc %>%
+  filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1)) %>%
+  mutate(year = lubridate::year(evacuation_date), 
+         month = lubridate::month(evacuation_date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(evacuation_date) - 5) %% 12 ) %>%
+  group_by(month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = doc_mg_l, color = plot, shape = year)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd), size = 1)+
+    ylab("DOC mgC/L")+
+    xlab("Sampling Month Post-Event")+
+   # title("Field Manipulation") +
+    ylim(-10,100)+
+    xlim(0,12)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom") +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field Year 1"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
+
+print(Figure2a)
+```
