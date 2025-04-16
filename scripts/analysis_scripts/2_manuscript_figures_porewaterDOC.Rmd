@@ -77,15 +77,19 @@ WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 
 ```{r import doc data}
 
-pw_doc <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds") %>%
+pw_doc_1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP1_Figure1.rds") %>%
   mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
                           TRUE ~ doc_mg_l_sd))
 
-pw_tmp1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds")
+pw_doc_2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP2_Figure1.rds") %>%
+  mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
+                          TRUE ~ doc_mg_l_sd))
 
-doc_iqr <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") %>%
-  mutate(collection_datetime = as.POSIXct("2022-05-18 15:59:00", tz= "EST" ),
-         doc_mg_l = NA)
+#pw_tmp1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds")
+
+#doc_iqr <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") %>%
+#  mutate(collection_datetime = as.POSIXct("2022-05-18 15:59:00", tz= "EST" ),
+#         doc_mg_l = NA)
 
 exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
   mutate(Wash = case_when(is.na(Wash) ~ 0,
@@ -104,22 +108,15 @@ Supporting Main Message: This phenomenon can be replicated in the laboratory; AN
 
 ```{r plot DOC}
 
-Figure2a <- pw_doc %>%
-  filter(between(evacuation_date, startstudydate_yr1, endplotdate_yr1)) %>%
-  mutate(year = lubridate::year(evacuation_date), 
-         month = lubridate::month(evacuation_date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(evacuation_date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(evacuation_date < WaterDeliveryStart2022 ~ 0,
-                               TRUE ~ adj_month)) %>%
+Figure1a <- pw_doc_1 %>%
   group_by(month) %>%
   mutate(plot = factor(plot, levels = plot_order),
          Timepoint = cur_group_id(),
          year= as.character(year)) %>%
   ungroup() %>%
-    ggplot(aes(x = adj_month, y = doc_mg_l, color = plot)) +
+   ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd), shape=17, size = 1)+
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
     ylab("DOC mgC/L")+
     xlab("Sampling Month Post-Event")+
    # title("Field Manipulation") +
@@ -130,26 +127,20 @@ Figure2a <- pw_doc %>%
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "none") +
+    theme(legend.position = "bottom") +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field Year 1"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
 
-print(Figure2a)
+print(Figure1a)
 
-Figure2b <- pw_doc %>%
-  filter(between(evacuation_date, endstudydate_yr1, endstudydate)) %>%
-  mutate(year = lubridate::year(evacuation_date), 
-         month = lubridate::month(evacuation_date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(evacuation_date) - 5) %% 12 ) %>%
-    mutate(adj_month = case_when(evacuation_date < WaterDeliveryStart1 ~ 0,
-                               TRUE ~ adj_month)) %>%
+Figure1b <- pw_doc_2 %>%
   group_by(month) %>%
   mutate(plot = factor(plot, levels = plot_order),
          Timepoint = cur_group_id(),
          year= as.character(year)) %>%
   ungroup() %>%
-    ggplot(aes(x = adj_month, y = doc_mg_l, color = plot)) +
+    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l-doc_mg_l_sd, ymax=doc_mg_l+doc_mg_l_sd), shape=17, size = 1)+
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
     ylab("DOC mgC/L")+
     xlab("Sampling Month Post-Event")+
    # title("Field Manipulation") +
@@ -162,9 +153,9 @@ Figure2b <- pw_doc %>%
     theme(legend.position = "bottom") +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
 
-print(Figure2b)
+print(Figure1b)
 
-Figure2c <- exp_doc %>%
+Figure1c <- exp_doc %>%
   mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
     mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
                           TRUE ~ doc_mg_l_sd)) %>%
@@ -180,15 +171,24 @@ Figure2c <- exp_doc %>%
     scale_x_continuous(breaks = pretty_breaks()) +
     theme_classic() +
     theme(legend.position = "bottom") +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
 
-print(Figure2c)
+print(Figure1c)
 
-Figure2 <- ggarrange(Figure2a, Figure2b, Figure2c, ncol =1)
+Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, ncol =1)
 
-Figure2
+Figure1 <- ggarrange(Figure1a, Figure1c, ncol =1)
 
-#cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure2_pw_exp_doc.png",Figure2, dpi=300, base_asp = 3.1)
+Figure1_ed <- ggarrange(Figure1a, Figure1c, ncol = 2)
+
+Figure1
+
+Figure1_ed
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pw_exp_doc.png",Figure1, dpi=600, base_asp = 3.1)
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/ED_pw_exp_doc.png",Figure1_ed, dpi=600,
+                   base_asp = 3)
 
 ```
 

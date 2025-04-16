@@ -34,6 +34,8 @@ startstudydate = lubridate::as_date("2022-05-01")
 endstudydate_yr1 = lubridate::as_date("2023-05-31")
 startstudydate_yr1 = lubridate::as_date("2022-05-01")
 
+startstudydate_yr2 = lubridate::as_date("2023-05-01")
+
 year1_start = lubridate::as_date("2022-01-01")
 year1_stop = lubridate::as_date("2022-12-31")
 
@@ -107,19 +109,63 @@ Generate for  comparison with laboratory data sets.
 Can simplify this from previous iterations because we just want a monthly timeframe. 
 ```{r doc avg std by month}
 
-pw_doc <- doc_l1_pw_grids %>%
+pw_doc_yr1 <- doc_l1_2022 %>%
+  mutate(evacuation_date = as_date(evacuation_datetime)) %>%
+  select(plot, grid, evacuation_date, collection_datetime, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(evacuation_date, startstudydate_yr1, endstudydate)) %>%
   mutate(year = lubridate::year(evacuation_date), 
          month = lubridate::month(evacuation_date),
            # Adjust months: May = 0, June = 1, ..., April = 11
          adj_month = (month(evacuation_date) - 5) %% 12 ) %>%
-  group_by(month, year, plot) %>%
-  dplyr::summarise(across(everything(), sd), .groups = "keep") %>% 
-    rename(doc_mg_l_sd = doc_mg_l,
-           tdn_mg_l_sd = tdn_mg_l) %>% 
-    ungroup()
+  group_by(adj_month, year, plot, month) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year, month) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+pw_doc_yr1_2023 <- doc_l1_2023 %>%
+  mutate(evacuation_date = as_date(evacuation_datetime)) %>%
+  select(plot, grid, evacuation_date, collection_datetime, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1)) %>%
+  mutate(year = lubridate::year(evacuation_date), 
+         month = lubridate::month(evacuation_date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(evacuation_date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               TRUE ~ adj_month )) %>%
+  group_by(adj_month, year, plot, month) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year, month) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+pw_doc_y1_all <- pw_doc_yr1 %>%
+  full_join(pw_doc_yr1_2023)
   
 
-#saveRDS(pw_doc, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater.rds")
+saveRDS(pw_doc_y1_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP1_Figure1.rds")
+```
+
+```{r doc avg std by month}
+
+
+pw_doc_yr2 <- doc_l1_2023 %>%
+  mutate(evacuation_date = as_date(evacuation_datetime)) %>%
+  select(plot, grid, evacuation_date, collection_datetime, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(evacuation_date, startstudydate_yr2, endstudydate)) %>%
+  mutate(year = lubridate::year(evacuation_date), 
+         month = lubridate::month(evacuation_date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(evacuation_date) - 5) %% 12 ) %>%
+  group_by(adj_month, year, plot, month) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year, month) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+  
+
+saveRDS(pw_doc_yr2, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP2_Figure1.rds")
 ```
 
 <!-- # ```{r doc avg stds} -->
