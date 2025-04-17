@@ -109,7 +109,7 @@ Supporting Main Message: This phenomenon can be replicated in the laboratory; AN
 ```{r plot DOC}
 
 Figure1a <- pw_doc_1 %>%
-  group_by(month) %>%
+  group_by(adj_month) %>%
   mutate(plot = factor(plot, levels = plot_order),
          Timepoint = cur_group_id(),
          year= as.character(year)) %>%
@@ -121,9 +121,8 @@ Figure1a <- pw_doc_1 %>%
     xlab("Sampling Month Post-Event")+
    # title("Field Manipulation") +
     ylim(-10,100)+
-    xlim(0,12)+
     scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "none") +
@@ -133,7 +132,7 @@ Figure1a <- pw_doc_1 %>%
 print(Figure1a)
 
 Figure1b <- pw_doc_2 %>%
-  group_by(month) %>%
+  group_by(adj_month) %>%
   mutate(plot = factor(plot, levels = plot_order),
          Timepoint = cur_group_id(),
          year= as.character(year)) %>%
@@ -145,9 +144,8 @@ Figure1b <- pw_doc_2 %>%
     xlab("Sampling Month Post-Event")+
    # title("Field Manipulation") +
     ylim(-10,100)+
-    xlim(0,12)+
     scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "bottom") +
@@ -166,18 +164,15 @@ Figure1c <- exp_doc %>%
     xlab("Experimental Wash")+
    # title("Laboratory Simulation")+
     ylim(-10,100)+
-    xlim(0,12)+
     scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks()) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     theme_classic() +
     theme(legend.position = "bottom") +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 1.1, inherit.aes = FALSE)
 
 print(Figure1c)
 
 Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, ncol =1)
-
-Figure1 <- ggarrange(Figure1a, Figure1c, ncol =1)
 
 Figure1_ed <- ggarrange(Figure1a, Figure1c, ncol = 2)
 
@@ -185,10 +180,11 @@ Figure1
 
 Figure1_ed
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pw_exp_doc.png",Figure1, dpi=600, base_asp = 3.1)
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pw_exp_doc.png",Figure1, dpi=600,
+                   ncol = 1, base_height = 11, base_width = 6)
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/ED_pw_exp_doc.png",Figure1_ed, dpi=600,
-                   base_asp = 3)
+#cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/ED_pw_exp_doc.png",Figure1_ed, dpi=600,
+#                   base_asp = 3)
 
 ```
 
@@ -251,20 +247,19 @@ fticrms_relabund_dates %>%
 EDITS:spatial variability in conductivity is small, but spatial characteristics of DOM chemistry/character may be important/driving trends; and or spatial distribution of aggregates
 - plot year 2 as a function of DOC vs chemistry metrics (SUVA/ SR)
 ## Figure 5 Mechanisms
-```{r cond vs doc load data}
-cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations.csv")
+
+```{r load cond doc data}
+cond_doc <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships.rds")
 
 ```
-```{r make line for fig 5}
-cond_doc_graphing = cond_doc %>%
-  ungroup() %>%
-  filter(plot == "Saltwater") 
 
-start_a <- max(cond_doc_graphing$doc_mg_l) 
+```{r make line for fig 5}
+
+start_a <- max(cond_doc$doc_mg_l) 
 start_b <- -0.001
 
 # Fit the model using nls
-fit_nls <- nls(doc_mg_l ~ a * exp(b * max_EC_uScm_15cm), data = cond_doc_graphing, start = list(a = start_a, b = start_b))
+fit_nls <- nls(doc_mg_l ~ a * exp(b * mean_EC_uScm_15cm), data = cond_doc, start = list(a = start_a, b = start_b))
 
 # Summary of the model
 summary(fit_nls)
@@ -274,7 +269,7 @@ a <- coefficients["a"]
 b <- coefficients["b"]
 
 # Create a prediction data frame
-new_data <- data.frame(max_EC_uScm_15cm = seq(min(cond_doc_graphing$max_EC_uScm_15cm), max(cond_doc_graphing$max_EC_uScm_15cm), length.out = 100))
+new_data <- data.frame(mean_EC_uScm_15cm = seq(min(cond_doc$mean_EC_uScm_15cm), max(cond_doc$mean_EC_uScm_15cm), length.out = 100))
 new_data$pred <- predict(fit_nls, newdata = new_data)
 
 # Compute standard error of the fit
@@ -283,20 +278,27 @@ new_data$lower <- new_data$pred - 1.96 * se_fit
 new_data$upper <- new_data$pred + 1.96 * se_fit
 
 ```
-```{r figure 5}
 
-cond_doc_graphing %>%
+```{r figure 5}
+pal= wesanderson::wes_palette("Zissou1", 21, type = "continuous")
+
+condFig <- cond_doc %>%
   ggplot() +
-  geom_point(aes(x = max_EC_uScm_15cm, y = doc_mg_l, color = collection_date), shape=17, size=5) +
-  stat_smooth(aes(x = max_EC_uScm_15cm, y = doc_mg_l),
+  geom_point(aes(x = mean_EC_uScm_15cm, y = doc_mg_l, color = adj_month, shape = as.factor(year)), size=5) +
+  stat_smooth(aes(x = mean_EC_uScm_15cm, y = doc_mg_l),
     method="nls",
     formula = y ~ a * exp(b * x),
     method.args = list(start = list(a = a, b = b)),    # Starting values for a and b
     se=FALSE) +
+  scale_color_gradientn(colors = pal)+
  # geom_ribbon(data = new_data, aes(x= max_EC_uScm_15cm, ymin = lower, ymax = upper), fill = "blue", alpha = 0.2) +
   ylab("DOC (mg/L)") +
-  xlab("Mean Soil Conductivity") +
+  xlab("Mean Soil Conductivity during lysimeter collection") +
   theme_classic()
+
+condFig
+
+plotly::ggplotly(condFig)
 ```
 
 
