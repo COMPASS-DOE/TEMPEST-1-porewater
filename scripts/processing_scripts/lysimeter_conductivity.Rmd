@@ -76,11 +76,32 @@ ec_l2_15cm = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm
   group_by(plot, grid) %>%
    filter(datetime_est < year2_stop & datetime_est > year1_start)
 
+ec_l2_15cm_salt <- ec_l2_15cm %>%
+  filter(plot == "Saltwater")
+
+ec_l2_15cm_control <- ec_l2_15cm %>%
+  filter(plot == "Control")
+
+ec_l2_15cm_fresh <- ec_l2_15cm %>%
+  filter(plot == "Freshwater")
+
+ec_l2_15cm_dailyplotmeans = readRDS("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.rds") %>%
+  filter(depth == "15") %>%
+  mutate(date = as_date(datetime_est),
+         datetime_est = as.POSIXct(datetime_est)) %>%
+  group_by(plot, yday(datetime_est)) %>%
+   filter(datetime_est < year2_stop & datetime_est > year1_start) %>%
+   summarise(datetime_est = mean(datetime_est),
+                  EC_uScm_mean = mean(EC_uScm, na.rm = TRUE),
+                  EC_uScm_sd = sd(EC_uScm, na.rm = TRUE),
+                  .groups = "drop") %>%
+  select(plot, datetime_est, EC_uScm_mean, EC_uScm_sd)
+  
 ```
 
 ```{r quick plot of S cond}
 ec_l2_15cm %>%
-  filter(plot == "Saltwater") %>%
+  filter(plot == "Control") %>%
     ggplot(aes(x = datetime_est, y = EC_uScm, color = grid)) +
     geom_point()+
     geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
@@ -89,6 +110,7 @@ ec_l2_15cm %>%
     ylab("porewater EC uS/cm")+
     xlab("Date")+
     theme_classic()
+
 ```
 
 
@@ -123,20 +145,43 @@ filter_and_summarize <- function(df, start_date, end_date) {
               .groups = "drop") 
 }
 
-ec_during_collection_15cm = doc_l1_pw_grids %>%
+ec_during_collection_15cm_salt = doc_l1_pw_grids %>%
+  filter(plot == "Saltwater") %>%
   group_by(plot, grid, evacuation_datetime, collection_datetime) %>%
-  summarize(mean_EC_uScm_15cm = mean(ec_l2_15cm$EC_uScm[ec_l2_15cm$datetime_est >= first(evacuation_datetime) & ec_l2_15cm$datetime_est <= first(collection_datetime)]),
-            min_EC_uScm_15cm = min(ec_l2_15cm$EC_uScm[ec_l2_15cm$datetime_est >= first(evacuation_datetime) & ec_l2_15cm$datetime_est <= first(collection_datetime)]),
-            max_EC_uScm_15cm = max(ec_l2_15cm$EC_uScm[ec_l2_15cm$datetime_est >= first(evacuation_datetime) & ec_l2_15cm$datetime_est <= first(collection_datetime)])) %>%
+  summarize(mean_EC_uScm_15cm = mean(ec_l2_15cm_salt$EC_uScm[ec_l2_15cm_salt$datetime_est >= first(evacuation_datetime) & ec_l2_15cm_salt$datetime_est <= first(collection_datetime)]),
+            min_EC_uScm_15cm = min(ec_l2_15cm_salt$EC_uScm[ec_l2_15cm_salt$datetime_est >= first(evacuation_datetime) & ec_l2_15cm_salt$datetime_est <= first(collection_datetime)]),
+            max_EC_uScm_15cm = max(ec_l2_15cm_salt$EC_uScm[ec_l2_15cm_salt$datetime_est >= first(evacuation_datetime) & ec_l2_15cm_salt$datetime_est <= first(collection_datetime)])) %>%
   ungroup()
 
-ec_lys_doc = ec_during_collection_15cm  %>%
-  right_join(doc_l1_pw_grids, by=c("plot", "grid", "evacuation_datetime", "collection_datetime")) %>%
+doc_l1_pw_grids_salt <- doc_l1_pw_grids %>%
+  filter(plot == "Saltwater")
+  
+ec_lys_doc_salt = ec_during_collection_15cm_salt  %>%
+  right_join(doc_l1_pw_grids_salt, by=c("plot", "grid", "evacuation_datetime", "collection_datetime")) %>%
+  distinct() %>%
+  mutate(collection_date= as_date(collection_datetime)) 
+
+
+#control
+
+ec_during_collection_15cm_control = doc_l1_pw_grids %>%
+  filter(plot == "Control") %>%
+  group_by(plot, grid, evacuation_datetime, collection_datetime) %>%
+  summarize(mean_EC_uScm_15cm = mean(ec_l2_15cm_control$EC_uScm[ec_l2_15cm_control$datetime_est >= first(evacuation_datetime) & ec_l2_15cm_control$datetime_est <= first(collection_datetime)]),
+            min_EC_uScm_15cm = min(ec_l2_15cm_control$EC_uScm[ec_l2_15cm_control$datetime_est >= first(evacuation_datetime) & ec_l2_15cm_control$datetime_est <= first(collection_datetime)]),
+            max_EC_uScm_15cm = max(ec_l2_15cm_control$EC_uScm[ec_l2_15cm_control$datetime_est >= first(evacuation_datetime) & ec_l2_15cm_control$datetime_est <= first(collection_datetime)])) %>%
+  ungroup()
+
+doc_l1_pw_grids_control <- doc_l1_pw_grids %>%
+  filter(plot == "Control")
+  
+ec_lys_doc_control = ec_during_collection_15cm_control  %>%
+  right_join(doc_l1_pw_grids_control, by=c("plot", "grid", "evacuation_datetime", "collection_datetime")) %>%
   distinct() %>%
   mutate(collection_date= as_date(collection_datetime)) 
 ```
 ```{r quick plot of S cond during lysimeter time}
-ec_during_collection_15cm %>%
+ec_during_collection_15cm_salt %>%
   filter(plot == "Saltwater") %>%
     ggplot(aes(x = collection_datetime, y = mean_EC_uScm_15cm, color = grid)) +
     geom_point()+
@@ -146,11 +191,26 @@ ec_during_collection_15cm %>%
     ylab("porewater EC uS/cm")+
     xlab("Date")+
     theme_classic()
+
+ec_during_collection_15cm_control %>%
+  filter(plot == "Control") %>%
+    ggplot(aes(x = collection_datetime, y = max_EC_uScm_15cm, color = grid)) +
+    geom_jitter(width = 15, height = 15) +
+    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
+    ylab("max porewater EC uS/cm")+
+    xlab("Date")+
+    theme_classic()
 ```
 
 ```{r writeout}
 
-write_csv(ec_lys_doc, "~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations.csv")
+write_csv(ec_lys_doc_salt, "~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations_SALTWATER.csv")
+
+write_csv(ec_lys_doc_control, "~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations_CONTROL.csv")
+
+write_csv(ec_l2_15cm_dailyplotmeans, "~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_daily_plot_means.csv")
 ```
 
 

@@ -180,12 +180,12 @@ saveRDS(pw_doc_yr2, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TM
 # Relationship between conductivity and DOC
 
 ```{r cond vs doc load data}
-cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations.csv") %>%
+cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations_SALTWATER.csv") %>%
   dplyr::filter(collection_datetime > WaterDeliveryStart2022) %>%
   ungroup() %>%
   filter(plot == "Saltwater") %>%
   group_by(collection_date) %>%
-  dplyr::select(collection_date, mean_EC_uScm_15cm, doc_mg_l) %>%
+  dplyr::select(collection_date, mean_EC_uScm_15cm, max_EC_uScm_15cm, doc_mg_l) %>%
  #  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
    ungroup() %>%
   mutate(date = as_date(collection_date)) %>%
@@ -198,7 +198,31 @@ cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Ly
                                TRUE ~ adj_month)) 
  # dplyr::filter(adj_month != 1)
 
-saveRDS(cond_doc, "~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships.rds")
+saveRDS(cond_doc, "~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships_SALT.rds")
+```
+
+do this for the control plot, for comparison
+
+```{r cond vs doc load data Control}
+cond_doc_C <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations_CONTROL.csv") %>%
+  dplyr::filter(collection_datetime > WaterDeliveryStart2022) %>%
+  ungroup() %>%
+  filter(plot == "Control") %>%
+  group_by(collection_date) %>%
+  dplyr::select(collection_date, mean_EC_uScm_15cm, max_EC_uScm_15cm, doc_mg_l) %>%
+ #  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup() %>%
+  mutate(date = as_date(collection_date)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               adj_month == 1 & collection_date == "2023-06-03" ~ 12,
+                               TRUE ~ adj_month)) 
+ # dplyr::filter(adj_month != 1)
+
+saveRDS(cond_doc_C, "~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships_CONTROLPLOT.rds")
 ```
 
 ```{r make line for fig 5}

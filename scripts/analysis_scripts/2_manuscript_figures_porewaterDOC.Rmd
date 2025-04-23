@@ -343,7 +343,9 @@ EDITS:spatial variability in conductivity is small, but spatial characteristics 
 ## Figure 5 Mechanisms
 
 ```{r load cond doc data}
-cond_doc <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships.rds")
+cond_doc <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships_SALT.rds")
+
+cond_doc_control <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships_CONTROLPLOT.rds")
 
 ```
 
@@ -378,7 +380,7 @@ pal= wesanderson::wes_palette("Zissou1", 21, type = "continuous")
 
 condFig <- cond_doc %>%
   ggplot() +
-  geom_point(aes(x = mean_EC_uScm_15cm, y = doc_mg_l, color = adj_month, shape = as.factor(year)), size=5) +
+  geom_point(data= , aes(x = max_EC_uScm_15cm, y = doc_mg_l, color = adj_month), shape = 16, size=5) +
   stat_smooth(aes(x = mean_EC_uScm_15cm, y = doc_mg_l),
     method="nls",
     formula = y ~ a * exp(b * x),
