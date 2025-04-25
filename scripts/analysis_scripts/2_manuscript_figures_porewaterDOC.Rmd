@@ -73,6 +73,8 @@ WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
 
 WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
+
+flood_event_datetime <- c(as_date("2022-06-22"))
 ```
 
 ```{r import doc data}
@@ -251,7 +253,6 @@ cdom_metrics_avg <- read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_metrics_prem
 
 ```{r om chemistry plot}
 colorblind_friendly_custom <- c("#66C2A5", "#FC8D62", "#FFD92F", "#E78AC3", "#A6D854", "#8DA0CB")
-flood_event_datetime <- c(as_date("2022-06-22"))
 
 figure3a <- fticrms_relabund_avg %>%
   mutate(timedate_bin = factor(timedate_bin, levels = c("Pre", "Mid", "Post"))) %>%
@@ -404,18 +405,41 @@ plotly::ggplotly(condFig)
 3. DO before/during/after event (FW and SW plot, TMP 1 & 2? Discuss with Peter)
 
 # Supplemental Figure 1: SPC timeseries 
+```{r bring in SPC}
+
+pw_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
+
+pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.rds")
+
+```
 
 ```{r spc timeseries}
 
+pw_ec %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = date, y = relabund_mean, color = plot)) +
-    geom_vline(xintercept = flood_event_datetime,linetype="dashed",color="grey")+ 
-    geom_pointrange(aes(ymin=relabund_mean-relabund_sd, ymax=relabund_mean+relabund_sd), shape=17, size=1)+
-    ylab("Relative abundance of highly aromatic group (%)")+
+    ggplot(aes(x = datetime_est, y = EC_uScm, color = plot)) +
+    geom_point()+
+    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    ylab("mean Porewater Conductivity (uS/cm)")+
     xlab("Date")+
-    ylim(0,40)+
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
+
+pw_ec_all %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = datetime_est, y = EC_uScm, color = plot)) +
+    geom_point()+
+    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    ylab("mean Porewater Conductivity (uS/cm)")+
+    xlab("Date")+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+
+
 ```
 
 
@@ -440,6 +464,32 @@ ph %>%
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
 ```
+```{r load ICP data}
 
+icp <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_POOL_ICP_2022_L1.csv") 
+
+```
+
+```{r icp timeseries}
+icp %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = date, y = Ca_mgL_Porewater_average, color = plot)) +
+    geom_point(shape=17, size=4)+
+    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
+    ylab("Porewater Ca2+ mg/L")+
+    xlab("Date")+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+
+icp %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = date, y = Mg_mgL_Porewater_average, color = plot)) +
+    geom_point(shape=17, size=4)+
+    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
+    ylab("Porewater Mg2+ mg/L")+
+    xlab("Date")+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+```
 
 

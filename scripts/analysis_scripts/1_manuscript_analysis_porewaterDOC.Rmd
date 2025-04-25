@@ -250,7 +250,7 @@ new_data$lower <- new_data$pred - 1.96 * se_fit
 new_data$upper <- new_data$pred + 1.96 * se_fit
 
 ```
-# plot level DOC averages and Stds
+# Plot level DOC averages and stds
 ```{r doc avg stds} 
 #can't get both mean and sd to work across everything for some reason, so calculate separate then recombine.  
 # Some dates not enough water was collected to have multiple samples to get averages and sds for that evacuation period. Most of the time, those can be combined with sampling dates just before or just after as we go out over several multi-day periods. This, however isn't consistent across the FW, EW, or C plots, so it will be a bit tricky to do the gap filling. To make the gap filling more accurate, we'll take the average of those dates, so for example if the dates we're merging is 2022-11-25 and 2022-11-28 we'll have the date be the 26th (but we'll let R do that math).
@@ -656,7 +656,8 @@ summary(lmm_res)
 #baci_stats(dates_fticrms_avg_stats, var = relabund, plot = "Saltwater",  p_value_threshold = 0.05)
   
 ```
-# pH
+
+# Plot level pH averages and stds
 ```{r load pH data}
 
 ph <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_2023_L1.csv") 
@@ -829,3 +830,19 @@ pw_ph <- purrr::reduce(merging_dfs, full_join) %>%
 saveRDS(pw_ph, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater.rds")
 ```
 
+# teros conductivity plot averages
+
+```{r teros EC}
+
+pw_grids_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.rds")
+
+pw_plot_ec <- pw_grids_ec %>%
+  group_by(plot, depth, research_name, datetime_est, yday(datetime_est)) %>%
+        summarise(datetime_est = mean(datetime_est),
+                  EC_uScm = mean(EC_uScm, na.rm = TRUE),
+                  .groups = "drop")
+
+# write out for plotting:
+saveRDS(pw_plot_ec, "~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
+
+```
