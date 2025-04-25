@@ -70,10 +70,10 @@ time_order <- c('Pre', 'Mid','Post')
 
 source("~/GitHub/TEMPEST-1-porewater/scripts/processing_scripts/lysimeter_volumes_forfluxes.R")
 
-#filter these to reasonable range, i.e. you need at least 7 mL for DOC:
+#filter these to reasonable range, i.e. you need at least 20 mL to have gotten DOC on the triage list:
 
 volumes_grids_pooled <- volumes_grids_pooled %>%
-  filter(Total_Volume_mL > 7) %>%
+  filter(Total_Volume_mL > 20) %>%
   distinct(plot, grid, collection_date, evacuation_date, .keep_all = TRUE) 
 
 ```
@@ -117,33 +117,86 @@ doc_l1_pw_grids <- doc_l1_2022 %>%
 
 # 5) filter and summarize VWC by date time lysimeter was collecting FOR DOC data:
 
-```{r filter and summarize, message= FALSE}
-filter_and_summarize <- function(df, start_date, end_date) {
-  df %>%
-    filter(datetime_est >= start_date, datetime_est <= end_date) %>%
-    summarise(mean_vwc_m3m3 = mean(vwc_m3m3),
-              min_vwc_m3m3 = min(vwc_m3m3),
-              max_vwc_m3m3 = max(vwc_m3m3),
-              .groups = "drop") 
-}
+Update, split by plot since R was not retaining the grouping variables from before. 
 
-vwc_during_collection_15cm = doc_l1_pw_grids %>%
+```{r filter and summarize, message= FALSE}
+
+#Saltwater
+
+vwc_l2_15cm_salt <- vwc_l2_15cm %>%
+  dplyr::filter(plot == "Saltwater")
+
+
+vwc_during_collection_15cm_salt = doc_l1_pw_grids %>%
+  dplyr::filter(plot == "Saltwater") %>%
   group_by(plot, grid, evacuation_datetime, collection_datetime) %>%
-  summarize(mean_vwc_m3m3_15cm = mean(vwc_l2_15cm$vwc_m3m3[vwc_l2_15cm$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm$datetime_est <= first(collection_datetime)]),
-            min_vwc_m3m3_15cm = min(vwc_l2_15cm$vwc_m3m3[vwc_l2_15cm$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm$datetime_est <= first(collection_datetime)]),
-            max_vwc_m3m3_15cm = max(vwc_l2_15cm$vwc_m3m3[vwc_l2_15cm$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm$datetime_est <= first(collection_datetime)])) %>%
+  summarize(mean_vwc_m3m3_15cm = mean(vwc_l2_15cm_salt$vwc_m3m3[vwc_l2_15cm_salt$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_salt$datetime_est <= first(collection_datetime)]),
+            min_vwc_m3m3_15cm = min(vwc_l2_15cm_salt$vwc_m3m3[vwc_l2_15cm_salt$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_salt$datetime_est <= first(collection_datetime)]),
+            max_vwc_m3m3_15cm = max(vwc_l2_15cm_salt$vwc_m3m3[vwc_l2_15cm_salt$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_salt$datetime_est <= first(collection_datetime)])) %>%
   ungroup()
 
-vwc_lys_doc = vwc_during_collection_15cm  %>%
-  right_join(doc_l1_pw_grids, by=c("plot", "grid", "evacuation_datetime", "collection_datetime")) %>%
+doc_l1_pw_grids_salt <- doc_l1_pw_grids %>%
+    dplyr::filter(plot == "Saltwater")
+
+vwc_lys_doc_salt = vwc_during_collection_15cm_salt  %>%
+  right_join(doc_l1_pw_grids_salt, by=c("plot", "grid", "evacuation_datetime", "collection_datetime")) %>%
   distinct() %>%
   mutate(collection_date= as_date(collection_datetime)) 
+
+#Control
+
+vwc_l2_15cm_control <- vwc_l2_15cm %>%
+  dplyr::filter(plot == "Control")
+
+
+vwc_during_collection_15cm_control = doc_l1_pw_grids %>%
+  dplyr::filter(plot == "Control") %>%
+  group_by(plot, grid, evacuation_datetime, collection_datetime) %>%
+  summarize(mean_vwc_m3m3_15cm = mean(vwc_l2_15cm_control$vwc_m3m3[vwc_l2_15cm_control$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_control$datetime_est <= first(collection_datetime)]),
+            min_vwc_m3m3_15cm = min(vwc_l2_15cm_control$vwc_m3m3[vwc_l2_15cm_control$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_control$datetime_est <= first(collection_datetime)]),
+            max_vwc_m3m3_15cm = max(vwc_l2_15cm_control$vwc_m3m3[vwc_l2_15cm_control$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_control$datetime_est <= first(collection_datetime)])) %>%
+  ungroup()
+
+doc_l1_pw_grids_control <- doc_l1_pw_grids %>%
+    dplyr::filter(plot == "Control")
+
+vwc_lys_doc_control = vwc_during_collection_15cm_control  %>%
+  right_join(doc_l1_pw_grids_control, by=c("plot", "grid", "evacuation_datetime", "collection_datetime")) %>%
+  distinct() %>%
+  mutate(collection_date= as_date(collection_datetime)) 
+
+
+#Freshwater
+
+
+vwc_l2_15cm_freshwater <- vwc_l2_15cm %>%
+  dplyr::filter(plot == "Freshwater")
+
+
+vwc_during_collection_15cm_freshwater = doc_l1_pw_grids %>%
+  dplyr::filter(plot == "Freshwater") %>%
+  group_by(plot, grid, evacuation_datetime, collection_datetime) %>%
+  summarize(mean_vwc_m3m3_15cm = mean(vwc_l2_15cm_freshwater$vwc_m3m3[vwc_l2_15cm_freshwater$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_freshwater$datetime_est <= first(collection_datetime)]),
+            min_vwc_m3m3_15cm = min(vwc_l2_15cm_freshwater$vwc_m3m3[vwc_l2_15cm_freshwater$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_freshwater$datetime_est <= first(collection_datetime)]),
+            max_vwc_m3m3_15cm = max(vwc_l2_15cm_freshwater$vwc_m3m3[vwc_l2_15cm_freshwater$datetime_est >= first(evacuation_datetime) & vwc_l2_15cm_freshwater$datetime_est <= first(collection_datetime)])) %>%
+  ungroup()
+
+doc_l1_pw_grids_freshwater <- doc_l1_pw_grids %>%
+    dplyr::filter(plot == "Freshwater")
+
+vwc_lys_doc_freshwater = vwc_during_collection_15cm_freshwater  %>%
+  right_join(doc_l1_pw_grids_freshwater, by=c("plot", "grid", "evacuation_datetime", "collection_datetime")) %>%
+  distinct() %>%
+  mutate(collection_date= as_date(collection_datetime)) 
+
+vwc_lys_doc <-bind_rows( vwc_lys_doc_control, vwc_lys_doc_salt, vwc_lys_doc_freshwater)
+
 ```
 
 
 ```{r merging}
 
-vwc_lys_vol_doc = vwc_lys_doc %>%
+vwc_lys_vol_doc_1 = vwc_lys_doc %>%
   left_join(volumes_grids_pooled, by = c("plot", "grid", "collection_date"), relationship = "many-to-many") %>%
   distinct() %>%
   # There are some samples we have DOC for that WE STILL DON'T HAVE THE RIGHT METADATA FOR, namely missing the volume data. So, we're going to just have to take the mean of the other volumes at that date time, because, there is no way to track it back further. 
@@ -156,10 +209,31 @@ vwc_lys_vol_doc = vwc_lys_doc %>%
   group_by(collection_date) %>%
   mutate(Total_Volume_mL = ifelse(is.na(Total_Volume_mL), mean(Total_Volume_mL, na.rm = TRUE), Total_Volume_mL)) %>%
   ungroup() %>%
-  #when youre still getting nas for this bad metadata tracking of volumes, now just assume its 40mL: 
-  mutate(Total_Volume_mL = ifelse(is.na(Total_Volume_mL), 40, Total_Volume_mL)) %>%
+  #when youre still getting nas for this bad metadata tracking of volumes, now just assume its 20mL (which is the sum of all the analyte volumes on the triage list up to DOC): 
+  mutate(Total_Volume_mL = ifelse(is.na(Total_Volume_mL), 20, Total_Volume_mL)) %>%
   select(-collection_date, -evacuation_date) %>%
   distinct()
+
+#now we have to fix places where gapfilling is incorrect in the 2022 event data:
+vwc_lys_vol_doc_evacuation_date_issues <- vwc_lys_vol_doc_1 %>%
+  group_by(plot, grid, evacuation_datetime) %>%
+  filter(n() > 1) %>%
+  mutate(group_index = row_number()) %>%
+  mutate(adjusted_evacuation_datetime = case_when(group_index == 1 ~ evacuation_datetime,
+      TRUE ~ lag(collection_datetime)),
+      adjusted_evacuation_datetime = if_else(is.na(adjusted_evacuation_datetime), evacuation_datetime, adjusted_evacuation_datetime)) %>%
+  ungroup()
+
+vwc_lys_vol_doc_evacuation_date_fixed <-  vwc_lys_vol_doc_evacuation_date_issues %>% 
+  dplyr::select(-evacuation_datetime, -group_index) %>%
+  rename(evacuation_datetime = adjusted_evacuation_datetime)
+
+vwc_lys_vol_doc_2 <- vwc_lys_vol_doc_1 %>%
+  anti_join(vwc_lys_vol_doc_evacuation_date_issues)
+
+vwc_lys_vol_doc <- bind_rows(vwc_lys_vol_doc_2, vwc_lys_vol_doc_evacuation_date_fixed) %>%
+  arrange(plot, grid, evacuation_datetime, collection_datetime)
+
 
 write_csv(vwc_lys_vol_doc, "~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_Vols_VWC_DOC_forfluxes.csv")
 ```
