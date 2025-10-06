@@ -1,0 +1,31 @@
+---
+title: "Rain"
+author: "AMP"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+
+
+file created in: GitHub/TEMPEST-1-porewater/scripts/processing_scripts/teros_prep.Rmd
+
+```{r load}
+rain <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_2022-2023.csv")
+
+```
+
+```{r daily}
+
+rain_daily <- rain %>%
+  mutate(date = as.Date(datetime_est)) %>%
+  group_by(date) %>%
+  summarise(daily_total_rain_cm = sum(rain_15min_cm)) %>%
+  ungroup() %>%
+  mutate(cumulative_rain_annual_cm = cumsum(daily_total_rain_cm))
+
+write_csv(rain_daily, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_dailyavg_2022-2023.csv")
+```

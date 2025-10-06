@@ -87,6 +87,10 @@ pw_doc_2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TM
   mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
                           TRUE ~ doc_mg_l_sd))
 
+pw_doc_3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP3_Figure1.rds") %>%
+  mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
+                          TRUE ~ doc_mg_l_sd))
+
 #pw_tmp1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds")
 
 #doc_iqr <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") %>%
@@ -154,6 +158,28 @@ Figure1b <- pw_doc_2 %>%
 
 print(Figure1b)
 
+Figure1c <- pw_doc_3 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
+    ylab("DOC mgC/L")+
+    xlab("Sampling Month Post-Event")+
+   # title("Field Manipulation") +
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Field Year 3"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(Figure1b)
+
 Figure1b_LEGEND <- pw_doc_2 %>%
   group_by(adj_month) %>%
   mutate(plot = factor(plot, levels = plot_order),
@@ -177,7 +203,7 @@ Figure1b_LEGEND <- pw_doc_2 %>%
 fig1ab_legend = get_legend(Figure1b_LEGEND)
 
 
-Figure1c <- exp_doc %>%
+Figure1d <- exp_doc %>%
   mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
     mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
                           TRUE ~ doc_mg_l_sd)) %>%
@@ -192,11 +218,11 @@ Figure1c <- exp_doc %>%
     scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     theme_classic() +
     theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  d) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
 print(Figure1c)
 
-Figure1c_LEGEND <- exp_doc %>%
+Figure1d_LEGEND <- exp_doc %>%
   mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
     mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
                           TRUE ~ doc_mg_l_sd)) %>%
@@ -211,13 +237,13 @@ Figure1c_LEGEND <- exp_doc %>%
     scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     theme_classic() +
     theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  d) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
-fig1c_legend = get_legend(Figure1c_LEGEND)
+fig1c_legend = get_legend(Figure1d_LEGEND)
 
-Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c)
+Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, Figure1d)
 
-Figure1_ed <- ggarrange(Figure1a, Figure1c, ncol = 2)
+Figure1_ed <- ggarrange(Figure1a, Figure1d, ncol = 2)
 
 Figure1
 
