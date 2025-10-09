@@ -102,7 +102,7 @@ exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEM
                           TRUE ~ Wash),
     Treatment = case_when(Treatment == "AS" ~ "Artificial Saltwater",
                                Treatment == "FW" ~ "Artificial Freshwater",
-                               Treatment == "DI" ~ "Control",
+                               Treatment == "Control" ~ "Control",
                                Treatment == "SWE" ~ "Artificial Saltwater",
                                Treatment == "CL" ~ "Artificial Freshwater",
                           TRUE ~ Treatment))
@@ -220,7 +220,7 @@ Figure1d <- exp_doc %>%
     theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  d) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
-print(Figure1c)
+print(Figure1d)
 
 Figure1d_LEGEND <- exp_doc %>%
   mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
