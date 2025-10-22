@@ -151,7 +151,7 @@ dat <- lapply(files, function(f) {
     message("Reading ", basename(f))
     read_csv(f, col_types = "ccTccccdcclll")
 })
-dat <- do.call("rbind", dat)
+dat <- do.call("rbind", dat) 
 ```
 
 ### high level cleaning 
@@ -173,7 +173,7 @@ data_clean1 <- dat %>%
          ) %>%
   dplyr::select(datetime_est, research_name, plot, depth, sensor_id, location, value, contains("f_"))
 
-write_rds(data_clean1, "~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2021-2024_teros_EC_raw.rds")
+write_rds(data_clean1, "~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2021-2025_teros_EC_raw.rds")
 ```
 
 
@@ -353,7 +353,7 @@ Save this
 
 ```{r write out}
 
-saveRDS(teros_allqc, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2024_L2.rds")
+saveRDS(teros_allqc, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2025_L2.rds")
 
 ```
 
