@@ -74,6 +74,10 @@ WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
 WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 
+WaterDeliveryStart1_2024 = as.POSIXct("2024-06-11 06:10:00", tz = "EST")
+WaterDeliveryStart2_2024 = as.POSIXct("2024-06-12 06:08:00", tz = "EST")
+WaterDeliveryStart3_2024 = as.POSIXct("2024-06-13 06:21:00", tz = "EST")
+
 flood_event_datetime <- c(as_date("2022-06-22"))
 ```
 
@@ -109,7 +113,7 @@ exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEM
 
 ```
 
-# Figure 1: Year 1, 2 DOC and laboratory experiments 
+# Figure 1: Year 1, 2, 3 DOC Field
 Supporting Main Message: This phenomenon can be replicated in the laboratory; AND we can repeat it in the field the second year “reset” 
 
 ```{r plot DOC}
@@ -123,7 +127,7 @@ Figure1a <- pw_doc_1 %>%
    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
    geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
-    ylab("DOC mgC/L")+
+    ylab(" ")+
     xlab("Sampling Month Post-Event")+
    # title("Field Manipulation") +
     ylim(-10,100)+
@@ -131,7 +135,8 @@ Figure1a <- pw_doc_1 %>%
     scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
-    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16), axis.title.x = element_blank(), axis.text.x = element_blank() ) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field Year 1"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
 print(Figure1a)
@@ -153,7 +158,8 @@ Figure1b <- pw_doc_2 %>%
     scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
-    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+         text= element_text(size = 16), axis.title.x = element_blank(), axis.text.x = element_blank() ) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
 print(Figure1b)
@@ -167,7 +173,7 @@ Figure1c <- pw_doc_3 %>%
     ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
    geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
-    ylab("DOC mgC/L")+
+    ylab(" ")+
     xlab("Sampling Month Post-Event")+
    # title("Field Manipulation") +
     ylim(-10,100)+
@@ -175,10 +181,11 @@ Figure1c <- pw_doc_3 %>%
     scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
-    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Field Year 3"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
-print(Figure1b)
+print(Figure1c)
 
 Figure1b_LEGEND <- pw_doc_2 %>%
   group_by(adj_month) %>%
@@ -197,63 +204,23 @@ Figure1b_LEGEND <- pw_doc_2 %>%
     scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
-    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
-fig1ab_legend = get_legend(Figure1b_LEGEND)
+fig1_legend = get_legend(Figure1b_LEGEND)
 
 
-Figure1d <- exp_doc %>%
-  mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
-    mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
-                          TRUE ~ doc_mg_l_sd)) %>%
-    ggplot(aes(x = Wash, y = doc_mg_l_mean, color = Treatment)) +
-    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=16, size = 1)+
-    ylab("DOC mgC/L")+
-    xlab("Experimental Wash")+
-   # title("Laboratory Simulation")+
-    ylim(-10,100)+
-    scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    theme_classic() +
-    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  d) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
-print(Figure1d)
 
-Figure1d_LEGEND <- exp_doc %>%
-  mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
-    mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
-                          TRUE ~ doc_mg_l_sd)) %>%
-    ggplot(aes(x = Wash, y = doc_mg_l_mean, color = Treatment)) +
-    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=16, size = 1)+
-    ylab("DOC mgC/L")+
-    xlab("Experimental Wash")+
-   # title("Laboratory Simulation")+
-    ylim(-10,100)+
-    scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    theme_classic() +
-    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  d) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
 
-fig1c_legend = get_legend(Figure1d_LEGEND)
-
-Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, Figure1d)
-
-Figure1_ed <- ggarrange(Figure1a, Figure1d, ncol = 2)
 
 Figure1
 
-Figure1_ed
 
 cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pw_exp_doc.png",Figure1, dpi=600,
-                   ncol = 2, base_height = 11, base_width = 6)
+                   nrow = 3)
 
-#cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/ED_pw_exp_doc.png",Figure1_ed, dpi=600,
-#                   base_asp = 3)
 
 ```
 
@@ -483,6 +450,9 @@ ph %>%
     ggplot(aes(x = datetime, y = pH, color = plot)) +
     geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
     geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+
+    geom_vline(xintercept = WaterDeliveryStart1_2024,linetype="dashed",color="grey")+
+   geom_vline(xintercept = WaterDeliveryStart2_2024,linetype="dashed",color="grey")+
+   geom_vline(xintercept = WaterDeliveryStart3_2024,linetype="dashed",color="grey")+
    geom_pointrange(aes(ymin=pH-pH_sd, ymax=pH+pH_sd), shape=17, size=1)+
     ylab("porewater pH")+
     xlab("Date")+
@@ -516,6 +486,46 @@ icp %>%
     xlab("Date")+
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
+```
+
+```{r graveyard}
+Figure1d <- exp_doc %>%
+  mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
+    mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
+                          TRUE ~ doc_mg_l_sd)) %>%
+    ggplot(aes(x = Wash, y = doc_mg_l_mean, color = Treatment)) +
+    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=16, size = 1)+
+    ylab("DOC mgC/L")+
+    xlab("Experimental Wash")+
+   # title("Laboratory Simulation")+
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  d) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(Figure1d)
+
+Figure1d_LEGEND <- exp_doc %>%
+  mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
+    mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
+                          TRUE ~ doc_mg_l_sd)) %>%
+    ggplot(aes(x = Wash, y = doc_mg_l_mean, color = Treatment)) +
+    geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=16, size = 1)+
+    ylab("DOC mgC/L")+
+    xlab("Experimental Wash")+
+   # title("Laboratory Simulation")+
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  d) Laboratory"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+fig1c_legend = get_legend(Figure1d_LEGEND)
 ```
 
 

@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+
 # Figure 1: Year 1 DOC 
 Main Message 1 (Hypothesis rejected): There is a prolonged and sustained increase in dissolved carbon following initial drop in DOC after exposure to salinity.
 

@@ -1,0 +1,273 @@
+---
+title: "TEROS data prep"
+author: "PR Modified by AMP"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    keep_md: true
+knit: "rmarkdown::render"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, 
+                      message = F,
+                      warning = F)
+
+common_tz = "Etc/GMT+5"
+```
+
+### General purpose
+
+R markdown for the TEROS data for the project. 
+
+```{r Setup}
+## First, load setup script to set up environment
+pacman::p_load(tidyverse, 
+       #rdrop2, 
+       cowplot, 
+       lubridate, 
+       #ggtukey, # adding letters to boxplots
+      # multcompView, # compact letter display for comparing boxplots
+       plotly,
+       parsedate, # parse_date()
+       janitor, # clean_names()
+       purrr, # map()
+       furrr,  # future_map()
+       tictoc, # time stuff
+       sf, 
+       hms,
+       ggallin,
+       ggpubr, #stat_compare_means()
+       #metR, # geom_contour_fill
+       rnaturalearth,
+       ggspatial, # north arrow and compass
+       googledrive, 
+       ggthemes, #theme_map()
+      here) 
+```
+
+```{r metadata}
+#inventory_directory <- "https://docs.google.com/spreadsheets/d/10u29M5Dbkw54Z2DwkVBptVz6Td0SvSld/edit?gid=90806693#gid=90806693"
+
+directory= file.path(here() %>% dirname(), 'TEMPEST-1-Porewater/data_do_not_commit/')
+
+file_path = file.path(directory,"TEROSinventory.xlsx")
+
+#drive_download(inventory_directory, path= file_path, overwrite = TRUE)
+
+teros_inv <- readxl::read_excel(file_path, sheet="Sheet1") %>%
+    select(Plot, 'Grid Square', 'Junction Box ID', ID, Depth) %>% 
+    rename(Location_Inventory = "Grid Square",
+           sensor_id = ID,
+           plot = Plot,
+           depth = Depth) %>% 
+  mutate(depth = as.character(depth),
+         plot = case_when(plot == "Control" ~ "Control", 
+                          plot == "Seawater" ~ "Saltwater", 
+                          plot == "Freshwater" ~ "Freshwater")) %>%
+  drop_na()
+```
+
+<!-- ```{r data setup} -->
+<!-- raw_data_path <- "./data_do_not_commit/teros/" -->
+
+<!-- #TMP -->
+<!-- l1_2022_file_list <- drive_ls("https://drive.google.com/drive/u/0/folders/1su94GOgAeP0fo3Xb3X3DHzxx3PDSJct7",  -->
+<!--                       pattern = ".csv") -->
+
+<!-- #TMP  -->
+<!-- l1_2023_file_list <- drive_ls("https://drive.google.com/drive/u/0/folders/1zwdiXX7f_wv6WS2sG4vg_OE8ELhNKSdo",  -->
+<!--                       pattern = ".csv") -->
+
+<!-- #GCW -->
+<!-- l1_2022_weather_file_list <- drive_ls("https://drive.google.com/drive/u/0/folders/1PXTn8vIDn5IQiAjYtpubZKnt8svVkLVR",  -->
+<!--                       pattern = ".csv") -->
+<!-- #GCW -->
+<!-- l1_2023_weather_file_list <- drive_ls("https://drive.google.com/drive/u/0/folders/1p4RL7JStJmlPU1x2MXgcayU2rp2XtFGr",  -->
+<!--                       pattern = ".csv") -->
+
+
+
+<!-- getwd() -->
+<!-- ``` -->
+
+If you need to download the data, this is how you can do it. If not, SKIP this chunk (eval = F). 
+This is for downloading from google drive. Now getting from ESS-DIVE
+
+<!-- ```{r Pull L1 data from Gdrive, eval = F} -->
+
+<!-- drive_download_ <- function(data){ -->
+<!--   #message(paste("Downloading", data$name)) -->
+<!--   # you could add an ifelse to only download files it doesn't fine in raw_data_path -->
+<!--   drive_download(data$id, overwrite = T, path = paste0(raw_data_path, data$name)) -->
+<!-- } -->
+
+<!-- ## Use a for-loop to read in files in a way that I can see what's going on -->
+<!-- ## Download data to local. I tried to map() but for some reasons it doesn't work? -->
+<!-- for(i in 1:nrow(l1_2022_file_list)){ -->
+<!--   drive_download_(l1_2022_file_list %>% slice(i)) -->
+<!-- } -->
+
+<!-- for(i in 1:nrow(l1_2023_file_list)){ -->
+<!--   drive_download_(l1_2023_file_list %>% slice(i)) -->
+<!-- } -->
+
+<!-- for(i in 1:nrow(l1_2022_weather_file_list)){ -->
+<!--   drive_download_(l1_2022_weather_file_list %>% slice(i)) -->
+<!-- } -->
+
+<!-- for(i in 1:nrow(l1_2023_weather_file_list)){ -->
+<!--   drive_download_(l1_2023_weather_file_list %>% slice(i)) -->
+<!-- } -->
+<!-- ``` -->
+
+#### Read in Data from ESS-DIVE
+Download from https://data.ess-dive.lbl.gov/view/doi%3A10.15485%2F2479200
+
+```{r read in data}
+
+raw_data_path <- "./data_do_not_commit/sensor_data"
+
+site <- "TMP" # change this to e.g. "CRC_W" if you want a particular plot
+variable <- "soil_EC_15cm"
+
+# Construct a "regular expression" to find the files we want: in this case,
+# CSV files starting with the site code above
+regex <- paste0("^", site, ".*csv$")
+
+# Get the names of the files we need. Note this assumes that your
+# working directory is the main directory of the L1 data
+files <- list.files(path=raw_data_path, pattern = regex, recursive = TRUE, full.names = TRUE)
+
+# Helper function to read the files and filter to just the variable we want
+# Use readr::read_csv for easy timestamp handling
+# Note that we set "col_types" to force the "Plot" column to be read as a
+# character; see https://github.com/COMPASS-DOE/sensor-data-pipeline/issues/186
+library(readr)
+f <- function(f) {
+    message("Reading ", basename(f))
+    x <- read_csv(paste0(f), col_types = "ccTccccdccii")
+    x[x$research_name == variable,]
+}
+
+# Read the files
+dat <- lapply(files, f)
+dat <- do.call("rbind", dat)
+```
+
+### high level cleaning 
+
+```{r clean}
+#initial clean
+
+data_clean1 <- dat %>%
+     filter(F_OOB == 0, #filters out flag, Flag: out of instrumental bounds (logical; 1=TRUE)
+            F_OOS == 0) %>% #filters out flag, Flag: sensor listed as out of service (logical; 1=TRUE)
+    mutate(datetime_est = force_tz(TIMESTAMP, tzone = common_tz), 
+         depth = str_extract(research_name, "\\d+(?=cm)"),
+         plot = case_when(Plot == "C" ~ "Control", 
+                          Plot == "S" ~ "Saltwater", 
+                          Plot == "F" ~ "Freshwater")) %>% #for some reason the FW files are coming in with FALSE not F
+  rename(value = Value,
+         sensor_id = Sensor_ID,
+         location = Location
+         ) %>%
+  dplyr::select(datetime_est, research_name, plot, depth, sensor_id, location, value, contains("f_"))
+
+write_rds(data_clean1, "~/GitHub/TEMPEST-1-porewater/data_do_not_commit/2021-2024_teros_EC_raw.rds")
+```
+
+
+### Raw data
+
+```{r filter to pw grids}
+pwsite_key <- readxl::read_excel("~/GitHub/tempest-system-level-analysis/data/for processing/porewater_sites_complete_key.xlsx") %>%
+  select(Plot, Grid) %>%
+  unique() %>%
+  rename(plot = Plot,
+         Location_Inventory = Grid) %>%
+  mutate( plot = case_when(plot == "C" ~ "Control", 
+                          plot == "SW" ~ "Saltwater", 
+                          plot == "FW" ~ "Freshwater"))
+
+grids <- pwsite_key %>%
+  dplyr::distinct(Location_Inventory)
+
+grids
+```
+
+
+Remove the teros where we don't have lysimeters
+and filter out when lysimeter is out of service 
+
+```{r qc1}
+
+teros_qc1 <- data_clean1 %>% 
+  filter((location %in% grids$Location_Inventory)) %>%
+  mutate(variable = str_extract(research_name, "(?<=_)[^_]+(?=_)")) 
+```
+
+Let's first take a look at all the raw data. 
+EC for ionic strength:
+```{r, eval=FALSE}
+## Plotly plot to look at individual sensors
+q <- teros_qc1 %>%
+  ggplot(aes(datetime_est, value, linetype= location, color = depth)) + 
+  geom_line() + 
+  facet_wrap(~plot, ncol = 1)
+
+
+
+ plotly::ggplotly(q)
+```
+
+
+
+<!-- there are some crazy things happening in the control plot H6: -->
+<!-- peaks with one data point really high SPC in the 5cm sensor at H6 -->
+<!-- "2022-02-20 22:30" -->
+<!-- "2022-02-21 09:00" -->
+<!-- "2022-12-03 13:45" -->
+<!-- "2023-02-25 02:00" -->
+<!-- "2023-02-27 04:15" -->
+<!-- "2023-03-01 01:30" -->
+<!-- "2023-03-01 08:00" -->
+<!-- "2023-12-09 05:45" -->
+<!-- "2023-12-13 02:30" -->
+<!-- "2023-12-13 03:30" -->
+<!-- "2023-12-13 21:15" -->
+
+
+
+<!-- ```{r scrub the sketch 2} -->
+<!-- teros_qc2_EC <- teros_qc1 %>%  -->
+<!--   mutate(value = case_when(research_name == "soil_EC_5cm" & plot =="Control" & Location_Inventory == "H6" & datetime_est %in% as.POSIXct(c("2022-02-20 22:30", "2022-02-21 09:00", "2022-12-03 13:45",  -->
+<!--                                    "2023-02-25 02:00", "2023-02-27 04:15", "2023-03-01 01:30",  -->
+<!--                                    "2023-03-01 08:00", "2023-12-09 05:45", "2023-12-13 02:30", -->
+<!--                                    "2023-12-13 03:30", "2023-12-13 21:15"), tz = common_tz)  ~ NA, -->
+<!--                            TRUE ~ value)) %>% -->
+<!--     mutate(value = case_when(research_name == "soil_EC_30cm" & plot =="Saltwater" & Location_Inventory == "F4" & datetime_est %in% as.POSIXct(c("2023-01-17 03:35"), tz = common_tz)  ~ NA, -->
+<!--                            TRUE ~ value)) %>% -->
+<!--   mutate(value = case_when(research_name == "soil_EC_5cm" & plot =="Saltwater" & Location_Inventory == "C3" & datetime_est %in% as.POSIXct(c("2023-07-03 05:10"), tz = common_tz)  ~ NA, -->
+<!--                            TRUE ~ value)) -->
+
+<!-- ``` -->
+
+```{r EC for SI}
+
+EC_L2 <- teros_qc2_EC %>%
+  filter(depth == "15") %>%
+  filter(variable == "EC") %>%
+  rename(EC_uScm = value,
+         grid = Location_Inventory) %>%
+  select(datetime_est, plot, grid, depth, research_name, EC_uScm) %>%
+  mutate(plot = case_when(plot == "Estuarine-water" ~ "Saltwater",
+                          TRUE ~ plot))
+  
+print(EC_L2)
+
+write_csv(EC_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.csv")
+
+saveRDS(EC_L2, "~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.rds")
+  
+```
