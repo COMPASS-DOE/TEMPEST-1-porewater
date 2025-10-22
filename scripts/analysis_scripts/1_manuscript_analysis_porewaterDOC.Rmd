@@ -62,6 +62,10 @@ WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
 WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 
+WaterDeliveryStart1_2024 = as.POSIXct("2024-06-11 06:10:00", tz = "EST")
+WaterDeliveryStart2_2024 = as.POSIXct("2024-06-12 06:08:00", tz = "EST")
+WaterDeliveryStart3_2024 = as.POSIXct("2024-06-13 06:21:00", tz = "EST")
+
 plot_order <- c('Control', 'Freshwater','Saltwater')
 time_order <- c('Pre', 'Mid','Post')
 ```
@@ -117,6 +121,78 @@ Porewater DOC data manipulations for Figure 1
 <!-- ``` -->
 
 # Main Message 1: One salinity exposure permanently changes the soil DOC component of the carbon cycle. 
+
+### ANALYSIS: When does saltwater plot DOC go out of "normal" variablity? 
+
+```{r doc analysis}
+
+#1. calculate control plot baseline 
+
+baseline <- doc_l1_pw_grids %>%
+  filter(plot == "Control") %>%
+  group_by(evacuation_date) %>%
+  summarize(
+    baseline_mean = mean(doc_mg_l, na.rm = TRUE),
+    baseline_sd = sd(doc_mg_l, na.rm = TRUE) # Include standard deviation for later analysis
+  ) 
+
+max_sd <- max(baseline$baseline_sd, na.rm= TRUE)
+                                   
+
+# 2. Combine baseline data with saltwater data for comparison.
+comparison <- doc_l1_pw_grids  %>%
+  filter(plot == "Saltwater") %>%
+  left_join(baseline, by = "evacuation_date") %>%
+  mutate(baseline_mean = case_when(is.na(baseline_mean) ~ mean(baseline_mean, na.rm =TRUE),
+                                   TRUE ~ baseline_mean),
+         baseline_sd = case_when(is.na(baseline_sd) ~ max_sd,
+                                 TRUE ~ baseline_sd)) %>%
+  mutate(
+    # Calculate the deviation of saltwater analyte concentration from baseline.
+    deviation = doc_mg_l - baseline_mean,
+    # Flag dates where the saltwater concentration is significantly higher than baseline
+    flag_high_change = deviation > (3 * baseline_sd) # Adjust multiplier based on your needs
+  )
+
+# Inspect the comparison dataset
+print(comparison)
+
+# 3. Extract the dates where there is a "significant change" in the saltwater plot.
+significant_dates <- comparison %>%
+  group_by(grid) %>%
+  filter(flag_high_change) %>%
+  select(collection_datetime, doc_mg_l , deviation) %>%
+  mutate(year = lubridate::year(collection_datetime)) %>%
+  ungroup()
+
+print(significant_dates)
+
+# 4. Get the "first" date post event each year. 
+
+tmp1_first_dates <- significant_dates %>% 
+  filter(year == "2022") %>%
+  filter(collection_datetime == min(collection_datetime))
+
+tmp2_first_dates <- significant_dates %>% 
+  filter(year == "2023") %>%
+  filter(collection_datetime > WaterDeliveryStop2) %>%
+  filter(collection_datetime == min(collection_datetime))
+
+tmp3_first_dates <- significant_dates %>% 
+  filter(year > 2023) %>%
+  filter(collection_datetime > WaterDeliveryStart3_2024) %>%
+  filter(collection_datetime == min(collection_datetime))
+
+tmpdates_doc <- tmp1_first_dates %>%
+  full_join(tmp2_first_dates ) %>%
+  full_join(tmp3_first_dates)
+
+tmpdates_doc
+
+saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
+```
+
+
 
 ### Prep data for figure 1: Porewater DOC averages/std by plot and month
 Generate for  comparison with laboratory data sets.
@@ -541,12 +617,12 @@ saveRDS(pw_ph, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater.rds")
 
 ```{r teros EC}
 
-pw_grids_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.rds")
+pw_grids_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2024_L2.rds")
 
 pw_plot_ec <- pw_grids_ec %>%
   group_by(plot, depth, research_name, datetime_est, yday(datetime_est)) %>%
         summarise(datetime_est = mean(datetime_est),
-                  EC_uScm = mean(EC_uScm, na.rm = TRUE),
+                  EC_uScm = mean(value, na.rm = TRUE),
                   .groups = "drop")
 
 # write out for plotting:

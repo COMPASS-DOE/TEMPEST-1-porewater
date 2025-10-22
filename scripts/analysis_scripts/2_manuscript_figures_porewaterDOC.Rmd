@@ -402,23 +402,40 @@ plotly::ggplotly(condFig)
 
 pw_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
 
-pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2022-2023_L2.rds")
+pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2024_L2.rds")
+
+pw_doc_dates <- read_rds("~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
+
+pw_doc_dates
+````
+
+```{r set dates based on pw_doc_dates}
+tmp1_doc_high = as.POSIXct("2022-07-21 15:59:00", tz = "EST")
+tmp2_doc_high = as.POSIXct("2023-08-07 14:44:00", tz = "EST")
+tmp3_doc_high = as.POSIXct("2025-01-31 20:52:00", tz = "EST")
 
 ```
 
 ```{r spc timeseries}
 
+
+
 pw_ec %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = datetime_est, y = EC_uScm, color = plot)) +
     geom_point()+
-    geom_vline(xintercept = WaterDeliveryStart2022,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = WaterDeliveryStart2,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = WaterDeliveryStart1,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = tmp1_doc_high,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = tmp2_doc_high,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = tmp3_doc_high,linetype="dashed",color="grey")+ 
     ylab("mean Porewater Conductivity (uS/cm)")+
     xlab("Date")+
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
+
+
+
+
+```
 
 pw_ec_all %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
@@ -431,9 +448,6 @@ pw_ec_all %>%
     xlab("Date")+
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
-
-
-```
 
 
 # Supplmental Figure 2: pH timeseries 
