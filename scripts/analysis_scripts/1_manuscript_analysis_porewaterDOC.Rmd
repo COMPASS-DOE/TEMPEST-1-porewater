@@ -95,104 +95,8 @@ doc_l1_pw_grids <- doc_l1_2022 %>%
   select(plot, grid, evacuation_date, collection_datetime, doc_mg_l, tdn_mg_l) %>%
   drop_na() #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
 ```
-Porewater DOC data manipulations for Figure 1 
-<!-- include only year 1 data:  -->
-
-<!-- ```{r DOC data crunch} -->
-<!-- #1) filter dataframe to YR1 Event data -->
-
-<!-- doc_TMP1 <- doc_l1_pw_grids %>% -->
-<!--   filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1))  -->
-
-<!-- saveRDS(doc_TMP1, "~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds") -->
-
-<!-- #2) get min, max, IQR for control and freshwater plots -->
-
-<!-- doc_iqr <- doc_TMP1 %>% -->
-<!--   filter(plot != "Saltwater") %>% -->
-<!--   group_by(plot) %>% -->
-<!--   summarise(min_doc_mg_l = min(doc_mg_l), -->
-<!--             max_doc_mg_l = max(doc_mg_l), -->
-<!--             iqr_doc_mg_l = IQR(doc_mg_l), -->
-<!--             q1_doc_mg_l = quantile(doc_mg_l, 0.25), -->
-<!--             q3_doc_mg_l = quantile(doc_mg_l, 0.75)) -->
-
-<!-- saveRDS(doc_iqr, "~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") -->
-<!-- ``` -->
 
 # Main Message 1: One salinity exposure permanently changes the soil DOC component of the carbon cycle. 
-
-### ANALYSIS: When does saltwater plot DOC go out of "normal" variablity? 
-
-```{r doc analysis}
-
-#1. calculate control plot baseline 
-
-baseline <- doc_l1_pw_grids %>%
-  filter(plot == "Control") %>%
-  group_by(evacuation_date) %>%
-  summarize(
-    baseline_mean = mean(doc_mg_l, na.rm = TRUE),
-    baseline_sd = sd(doc_mg_l, na.rm = TRUE) # Include standard deviation for later analysis
-  ) 
-
-max_sd <- max(baseline$baseline_sd, na.rm= TRUE)
-                                   
-
-# 2. Combine baseline data with saltwater data for comparison.
-comparison <- doc_l1_pw_grids  %>%
-  filter(plot == "Saltwater") %>%
-  left_join(baseline, by = "evacuation_date") %>%
-  mutate(baseline_mean = case_when(is.na(baseline_mean) ~ mean(baseline_mean, na.rm =TRUE),
-                                   TRUE ~ baseline_mean),
-         baseline_sd = case_when(is.na(baseline_sd) ~ max_sd,
-                                 TRUE ~ baseline_sd)) %>%
-  mutate(
-    # Calculate the deviation of saltwater analyte concentration from baseline.
-    deviation = doc_mg_l - baseline_mean,
-    # Flag dates where the saltwater concentration is significantly higher than baseline
-    flag_high_change = deviation > (3 * baseline_sd) # Adjust multiplier based on your needs
-  )
-
-# Inspect the comparison dataset
-print(comparison)
-
-# 3. Extract the dates where there is a "significant change" in the saltwater plot.
-significant_dates <- comparison %>%
-  group_by(grid) %>%
-  filter(flag_high_change) %>%
-  select(collection_datetime, doc_mg_l , deviation) %>%
-  mutate(year = lubridate::year(collection_datetime)) %>%
-  ungroup()
-
-print(significant_dates)
-
-# 4. Get the "first" date post event each year. 
-
-tmp1_first_dates <- significant_dates %>% 
-  filter(year == "2022") %>%
-  filter(collection_datetime == min(collection_datetime))
-
-tmp2_first_dates <- significant_dates %>% 
-  filter(year == "2023") %>%
-  filter(collection_datetime > WaterDeliveryStop2) %>%
-  filter(collection_datetime == min(collection_datetime))
-
-tmp3_first_dates <- significant_dates %>% 
-  filter(year > 2023) %>%
-  filter(collection_datetime > WaterDeliveryStart3_2024) %>%
-  filter(collection_datetime == min(collection_datetime))
-
-tmpdates_doc <- tmp1_first_dates %>%
-  full_join(tmp2_first_dates ) %>%
-  full_join(tmp3_first_dates)
-
-tmpdates_doc
-
-saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
-```
-
-
 
 ### Prep data for figure 1: Porewater DOC averages/std by plot and month
 Generate for  comparison with laboratory data sets.
@@ -328,38 +232,123 @@ pw_doc_y3_all <- pw_doc_yr3 %>%
 saveRDS(pw_doc_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP3_Figure1.rds")
 ```
 
+
+
 # Main Message 2: The possible mechanisms at play here are all changing in concert, which clouds predictability across systems and scales.
 
-### precip
 
-```{r precip}
+### ANALYSIS: When does saltwater plot DOC go out of "normal" variablity?  
 
-rain_month_yr1 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_dailyavg_2022-2023.csv") %>%
- filter(between(date, startstudydate_yr1, endstudydate_yr1))  %>%
-mutate(month = lubridate::month(date),
-         year = lubridate::year(date),
-        # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  group_by(adj_month, year) %>%
-  summarise(mean_monthly_rain = mean(daily_total_rain_cm),
-            sd_monthly_rain = sd(daily_total_rain_cm))
+```{r doc analysis}
 
+#1. calculate control plot baseline 
 
-rain_month_yr2 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_dailyavg_2022-2023.csv") %>%
- filter(between(date, startstudydate_yr2, endstudydate_yr2))  %>%
-mutate(month = lubridate::month(date),
-         year = lubridate::year(date),
-        # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  group_by(adj_month, year) %>%
-  summarise(mean_monthly_rain = mean(daily_total_rain_cm),
-            sd_monthly_rain = sd(daily_total_rain_cm))
+baseline <- doc_l1_pw_grids %>%
+  filter(plot == "Control") %>%
+  group_by(evacuation_date) %>%
+  summarize(
+    baseline_mean = mean(doc_mg_l, na.rm = TRUE),
+    baseline_sd = sd(doc_mg_l, na.rm = TRUE) # Include standard deviation for later analysis
+  ) 
 
+max_sd <- max(baseline$baseline_sd, na.rm= TRUE)
+                                   
+
+# 2. Combine baseline data with saltwater data for comparison.
+comparison <- doc_l1_pw_grids  %>%
+  filter(plot == "Saltwater") %>%
+  left_join(baseline, by = "evacuation_date") %>%
+  mutate(baseline_mean = case_when(is.na(baseline_mean) ~ mean(baseline_mean, na.rm =TRUE),
+                                   TRUE ~ baseline_mean),
+         baseline_sd = case_when(is.na(baseline_sd) ~ max_sd,
+                                 TRUE ~ baseline_sd)) %>%
+  mutate(
+    # Calculate the deviation of saltwater analyte concentration from baseline.
+    deviation = doc_mg_l - baseline_mean,
+    # Flag dates where the saltwater concentration is significantly higher than baseline
+    flag_high_change = deviation > (3 * baseline_sd) # Adjust multiplier based on your needs
+  )
+
+# Inspect the comparison dataset
+print(comparison)
+
+# 3. Extract the dates where there is a "significant change" in the saltwater plot.
+significant_dates <- comparison %>%
+  group_by(grid) %>%
+  filter(flag_high_change) %>%
+  select(collection_datetime, doc_mg_l , deviation) %>%
+  mutate(year = lubridate::year(collection_datetime)) %>%
+  ungroup()
+
+print(significant_dates)
+
+# 4. Get the "first" date post event each year. 
+
+tmp1_first_dates <- significant_dates %>% 
+  filter(year == "2022") %>%
+  filter(collection_datetime == min(collection_datetime))
+
+tmp2_first_dates <- significant_dates %>% 
+  filter(year == "2023") %>%
+  filter(collection_datetime > WaterDeliveryStop2) %>%
+  filter(collection_datetime == min(collection_datetime))
+
+tmp3_first_dates <- significant_dates %>% 
+  filter(year > 2023) %>%
+  filter(collection_datetime > WaterDeliveryStart3_2024) %>%
+  filter(collection_datetime == min(collection_datetime))
+
+tmpdates_doc <- tmp1_first_dates %>%
+  full_join(tmp2_first_dates ) %>%
+  full_join(tmp3_first_dates)
+
+tmpdates_doc
+
+saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
 ```
 
 
+### Conductivity: What is the conductivity values when DOC is high? 
 
-#### Relationship between conductivity and DOC
+What is the conductivity when this happens?
+- bring in teros conductivity plot averages to ID conductivity values when DOC is high
+
+```{r teros EC}
+
+pw_grids_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2025_L2.rds")
+
+pw_plot_ec <- pw_grids_ec %>%
+  group_by(plot, depth, research_name, datetime_est, yday(datetime_est)) %>%
+        summarise(datetime_est = mean(datetime_est),
+                  EC_uScm = mean(value, na.rm = TRUE),
+                  .groups = "drop")
+
+# write out for plotting:
+saveRDS(pw_plot_ec, "~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
+
+```
+
+Mean plot conductivity values when DOC has reached 10x SD of control plot. 
+
+```{r cond threshold}
+dates_4_cond <- tmpdates_doc %>%
+  mutate(date = lubridate::date(collection_datetime))
+
+cond_doc_thres <- pw_plot_ec %>%
+  filter(plot == "Saltwater") %>%
+  mutate(date = lubridate::date(datetime_est)) %>%
+  group_by(plot, depth, research_name, date) %>%
+  filter(date %in% dates_4_cond$date) %>%
+  ungroup() %>%
+  summarise(EC_uScm_mean = mean(EC_uScm, na.rm = TRUE),
+                  EC_uScm_sd = sd(EC_uScm, na.rm = TRUE),
+                  .groups = "drop")
+
+cond_doc_thres
+
+```
+
+another way to look at this: Relationship between conductivity and DOC
 
 ```{r cond vs doc load data}
 cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations_SALTWATER.csv") %>%
@@ -432,19 +421,24 @@ new_data$lower <- new_data$pred - 1.96 * se_fit
 new_data$upper <- new_data$pred + 1.96 * se_fit
 
 ```
-# multivariate prep
 
-### Plot level pH averages and stds
+### pH: What is the relationship between pH and DOC after each event? 
+
+We can do this analysis a bit differently than conductivity since we should have directly paired datasets.
+
+1. Plot level pH averages and stds
 ```{r load pH data}
 
-ph <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_2023_L1.csv") 
+ph_2023 <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_2023_L1.csv") 
 ph_2024 <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_2024_L1.csv") 
+ph_2025 <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_2025_L1.csv") 
 
 ```
 
 ```{r ph all years}
-ph_l1_pw_grids <- ph %>%
+ph_l1_pw_grids <- ph_2023 %>%
   full_join(ph_2024) %>%
+  full_join(ph_2025) %>%
   dplyr::select(plot, datetime, evacuation_date, pH) %>%
   drop_na() %>%
   mutate(date = lubridate::date(datetime)) %>%
@@ -452,7 +446,29 @@ ph_l1_pw_grids <- ph %>%
   
 ```
 
-```{r ph avg std}
+Mean plot pH values when DOC has reached 10x SD of control plot. 
+
+```{r ph threshold}
+dates_4_ph <- tmpdates_doc %>%
+  mutate(date = lubridate::date(collection_datetime))
+
+ph_doc_thres <- ph_l1_pw_grids %>%
+  filter(plot == "Saltwater") %>%
+  mutate(date = lubridate::date(datetime)) %>%
+  group_by(plot, date) %>%
+  filter(date %in% dates_4_ph$date) %>%
+  ungroup() %>%
+  summarise(pH_mean = mean(pH, na.rm = TRUE),
+                  pH_sd = sd(pH, na.rm = TRUE),
+                  .groups = "drop")
+
+ph_doc_thres
+
+```
+
+2 a. ph time series
+
+```{r ph avg std for timeseries}
 # Some dates not enough water was collected to have multiple samples to get averages and sds for that evacuation period. Most of the time, those can be combined with sampling dates just before or just after as we go out over several multi-day periods. This, however isn't consistent across the FW, EW, or C plots, so it will be a bit tricky to do the gap filling. To make the gap filling more accurate, we'll take the average of those dates, so for example if the dates we're merging is 2022-11-25 and 2022-11-28 we'll have the date be the 26th (but we'll let R do that math).
 
 #First, isolate the trouble dates/times: 
@@ -610,26 +626,143 @@ pw_ph <- purrr::reduce(merging_dfs, full_join) %>%
 
 # write out for plotting:
 saveRDS(pw_ph, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater.rds")
+
+#note this has two dates close in 2025 that we might need to merge together at some point 
+```
+
+2 b. Now, get pH at the level as the DOC in terms of per month 
+
+```{r ph avg std by month YEAR 2}
+
+
+ph_yr2 <-  ph_2023 %>%
+  mutate(date = as_date(datetime)) %>%
+  select(plot, grid, date, pH) %>%
+  drop_na() %>% 
+  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  # fix the sampling dates in June before the event to the month before
+  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
+                               TRUE ~ adj_month)) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, pH, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+ph_yr2_2024 <- ph_2024 %>%
+  mutate(date = as_date(datetime)) %>%
+  select(plot, grid, date, pH) %>%
+  drop_na() %>% #
+  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               TRUE ~ adj_month )) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, pH, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+ph_y2_all <- ph_yr2 %>%
+  full_join(ph_yr2_2024)
+
+  
+
+saveRDS(ph_y2_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP2.rds")
+```
+
+```{r ph avg std by month YEAR 3}
+
+
+ph_yr3 <- ph_2024 %>%
+  mutate(date = as_date(datetime)) %>%
+  select(plot, grid, date, pH) %>%
+  drop_na() %>% 
+  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  # fix the sampling dates in June before the event to the month before
+  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
+                               TRUE ~ adj_month)) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, pH, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+  
+ph_yr3_2025 <- ph_2025 %>%
+  mutate(date = as_date(datetime)) %>%
+  select(plot, grid, date, pH) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               TRUE ~ adj_month )) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, pH, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+ph_y3_all <- ph_yr3 %>%
+  full_join(ph_yr3_2025)
+
+  
+
+saveRDS(ph_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP3.rds")
 ```
 
 
-# teros conductivity plot averages
+```
 
-```{r teros EC}
 
-pw_grids_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2024_L2.rds")
 
-pw_plot_ec <- pw_grids_ec %>%
-  group_by(plot, depth, research_name, datetime_est, yday(datetime_est)) %>%
-        summarise(datetime_est = mean(datetime_est),
-                  EC_uScm = mean(value, na.rm = TRUE),
-                  .groups = "drop")
 
-# write out for plotting:
-saveRDS(pw_plot_ec, "~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
+
+
+
+#Graveyard
+
+### precip
+
+```{r precip}
+
+rain_month_yr1 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_dailyavg_2022-2023.csv") %>%
+ filter(between(date, startstudydate_yr1, endstudydate_yr1))  %>%
+mutate(month = lubridate::month(date),
+         year = lubridate::year(date),
+        # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  group_by(adj_month, year) %>%
+  summarise(mean_monthly_rain = mean(daily_total_rain_cm),
+            sd_monthly_rain = sd(daily_total_rain_cm))
+
+
+rain_month_yr2 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_dailyavg_2022-2023.csv") %>%
+ filter(between(date, startstudydate_yr2, endstudydate_yr2))  %>%
+mutate(month = lubridate::month(date),
+         year = lubridate::year(date),
+        # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  group_by(adj_month, year) %>%
+  summarise(mean_monthly_rain = mean(daily_total_rain_cm),
+            sd_monthly_rain = sd(daily_total_rain_cm))
 
 ```
 
+
+
+
+# multivariate prep
 
 
 
@@ -1041,4 +1174,31 @@ summary(lmm_res)
 #baci_stats(dates_fticrms_avg_stats, var = relabund, plot = "Saltwater",  p_value_threshold = 0.05)
   
 ```
+
+
+
+Porewater DOC data manipulations for Figure 1 
+<!-- include only year 1 data:  -->
+
+<!-- ```{r DOC data crunch} -->
+<!-- #1) filter dataframe to YR1 Event data -->
+
+<!-- doc_TMP1 <- doc_l1_pw_grids %>% -->
+<!--   filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1))  -->
+
+<!-- saveRDS(doc_TMP1, "~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds") -->
+
+<!-- #2) get min, max, IQR for control and freshwater plots -->
+
+<!-- doc_iqr <- doc_TMP1 %>% -->
+<!--   filter(plot != "Saltwater") %>% -->
+<!--   group_by(plot) %>% -->
+<!--   summarise(min_doc_mg_l = min(doc_mg_l), -->
+<!--             max_doc_mg_l = max(doc_mg_l), -->
+<!--             iqr_doc_mg_l = IQR(doc_mg_l), -->
+<!--             q1_doc_mg_l = quantile(doc_mg_l, 0.25), -->
+<!--             q3_doc_mg_l = quantile(doc_mg_l, 0.75)) -->
+
+<!-- saveRDS(doc_iqr, "~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") -->
+<!-- ``` -->
 

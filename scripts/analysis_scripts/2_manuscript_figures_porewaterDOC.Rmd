@@ -402,7 +402,7 @@ plotly::ggplotly(condFig)
 
 pw_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
 
-pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2024_L2.rds")
+pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2025_L2.rds")
 
 pw_doc_dates <- read_rds("~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
 
@@ -424,9 +424,9 @@ pw_ec %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = datetime_est, y = EC_uScm, color = plot)) +
     geom_point()+
-    geom_vline(xintercept = tmp1_doc_high,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = tmp2_doc_high,linetype="dashed",color="grey")+ 
-    geom_vline(xintercept = tmp3_doc_high,linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = tmp1_doc_high,linetype="dashed",color="black")+ 
+    geom_vline(xintercept = tmp2_doc_high,linetype="dashed",color="black")+ 
+    geom_vline(xintercept = tmp3_doc_high,linetype="dashed",color="black")+ 
     ylab("mean Porewater Conductivity (uS/cm)")+
     xlab("Date")+
     scale_color_manual(values=Anyas_colors) +
@@ -458,6 +458,7 @@ ph <-  read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater.rds")
 
 ```
 
+
 ```{r pH timeseries}
 ph %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
@@ -474,6 +475,45 @@ ph %>%
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
 ```
+
+# Option 2 pH vs DOC
+
+```{r load ph year plot avgs}
+ph_2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP2.rds") %>%
+  mutate(pH_sd = case_when(is.na(pH_sd) ~ 0,
+                          TRUE ~ pH_sd))
+
+ph_3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP3.rds") %>%
+  mutate(pH_sd = case_when(is.na(pH_sd) ~ 0,
+                          TRUE ~ pH_sd))
+
+ph_2n3 <- ph_2 %>%
+  full_join(ph_3)
+```
+
+```{r merging}
+
+ph_doc <- pw_doc_2 %>%
+  full_join(pw_doc_3) %>%
+  full_join(ph_2n3, by = c("adj_month", "year", "plot")) %>%
+  select(-tdn_mg_l_mean, -tdn_mg_l_sd) %>%
+  drop_na()
+```
+
+```{r plot ph vs doc }
+
+ph_doc %>%
+   filter(plot == "Saltwater") %>%
+    ggplot(aes(x = pH_mean, y = doc_mg_l_mean)) +
+    geom_pointrange(aes(xmin=pH_mean-pH_sd, xmax=pH_mean+pH_sd, ymin= doc_mg_l_mean - doc_mg_l_sd, ymax = doc_mg_l_mean + doc_mg_l_sd), shape=17)+ 
+    ylab("porewater DOC")+
+    xlab("porewater pH")+
+    theme_classic()
+```
+
+
+
+
 ```{r load ICP data}
 
 icp <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_POOL_ICP_2022_L1.csv") 
