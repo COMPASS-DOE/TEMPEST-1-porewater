@@ -38,10 +38,10 @@ file_path = file.path(directory,"porewaterinventory.xlsx")
 drive_download(inventory_directory, path= file_path, overwrite = TRUE)
 
 pooled_vols <- readxl::read_excel(file_path, skip=4, sheet="Porewater - Pooled") %>%
-  select(Sample_ID, Total_Volume_mL, Grid_C3:Grid_I5, Evacuation_date_YYYMMDD, Collection_Date_YYYYMMDD) %>%
+  select(Sample_ID, Total_Volume_mL, Grid_B4:Grid_I5, Evacuation_date_YYYMMDD, Collection_Date_YYYYMMDD) %>%
   mutate(across(starts_with("Grid"), ~ ifelse(is.na(.),0,.))) %>%
   mutate(Plot = stringr::str_extract(Sample_ID, 'FW|SW|C')) %>%
-  pivot_longer(cols = c("Grid_C3", "Grid_C6", "Grid_F4", "Grid_H3", "Grid_H6", "Grid_B4", "Grid_D5", "Grid_E3", "Grid_F6", "Grid_I5"),
+  pivot_longer(cols = c("Grid_B4", "Grid_C3", "Grid_C6", "Grid_F4", "Grid_H3", "Grid_H6", "Grid_D5", "Grid_E3", "Grid_F6", "Grid_I5"),
                names_to = "grid",
                values_to = "Volume_mL") %>%
   mutate(plot = case_when(Plot == "C" ~ "Control",

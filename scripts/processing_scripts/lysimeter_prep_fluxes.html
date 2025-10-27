@@ -11,7 +11,7 @@
 
 <meta name="author" content="AMP" />
 
-<meta name="date" content="2025-03-20" />
+<meta name="date" content="2025-10-27" />
 
 <title>Water Fluxes</title>
 
@@ -352,7 +352,7 @@ display: none;
 
 <h1 class="title toc-ignore">Water Fluxes</h1>
 <h4 class="author">AMP</h4>
-<h4 class="date">2025-03-20</h4>
+<h4 class="date">2025-10-27</h4>
 
 </div>
 
@@ -420,10 +420,10 @@ time_order &lt;- c(&#39;Pre&#39;, &#39;Mid&#39;,&#39;Post&#39;)</code></pre>
 ## 
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
-<pre class="r"><code>#filter these to reasonable range, i.e. you need at least 7 mL for DOC:
+<pre class="r"><code>#filter these to reasonable range, i.e. you need at least 20 mL to have gotten DOC on the triage list:
 
 volumes_grids_pooled &lt;- volumes_grids_pooled %&gt;%
-  filter(Total_Volume_mL &gt; 7) %&gt;%
+  filter(Total_Volume_mL &gt; 20) %&gt;%
   distinct(plot, grid, collection_date, evacuation_date, .keep_all = TRUE) </code></pre>
 </div>
 <div id="bring-in-moisture-content" class="section level1">
@@ -471,6 +471,7 @@ doc_l1_2022 &lt;- read_csv(&quot;~/GitHub/TEMPEST-1-porewater/processed data/for
 <pre class="r"><code>doc_l1_pw_grids &lt;- doc_l1_2022 %&gt;%
   full_join(doc_l1_2023) %&gt;%
   select(plot, grid, evacuation_datetime, collection_datetime, doc_mg_l, tdn_mg_l) %&gt;%
+  mutate(elapsed_time = collection_datetime - evacuation_datetime) %&gt;%
  # mutate(date = as_date(collection_datetime)) %&gt;%
   drop_na() %&gt;%
   distinct()#This is dropping the EMPTY lysimeters: and don&#39;t need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.</code></pre>
@@ -481,27 +482,78 @@ doc_l1_2022 &lt;- read_csv(&quot;~/GitHub/TEMPEST-1-porewater/processed data/for
 <div id="filter-and-summarize-vwc-by-date-time-lysimeter-was-collecting-for-doc-data" class="section level1">
 <h1>5) filter and summarize VWC by date time lysimeter was collecting
 FOR DOC data:</h1>
-<pre class="r"><code>filter_and_summarize &lt;- function(df, start_date, end_date) {
-  df %&gt;%
-    filter(datetime_est &gt;= start_date, datetime_est &lt;= end_date) %&gt;%
-    summarise(mean_vwc_m3m3 = mean(vwc_m3m3),
-              min_vwc_m3m3 = min(vwc_m3m3),
-              max_vwc_m3m3 = max(vwc_m3m3),
-              .groups = &quot;drop&quot;) 
-}
+<p>Update, split by plot since R was not retaining the grouping
+variables from before.</p>
+<pre class="r"><code>#Saltwater
 
-vwc_during_collection_15cm = doc_l1_pw_grids %&gt;%
+vwc_l2_15cm_salt &lt;- vwc_l2_15cm %&gt;%
+  dplyr::filter(plot == &quot;Saltwater&quot;)
+
+
+vwc_during_collection_15cm_salt = doc_l1_pw_grids %&gt;%
+  dplyr::filter(plot == &quot;Saltwater&quot;) %&gt;%
   group_by(plot, grid, evacuation_datetime, collection_datetime) %&gt;%
-  summarize(mean_vwc_m3m3_15cm = mean(vwc_l2_15cm$vwc_m3m3[vwc_l2_15cm$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm$datetime_est &lt;= first(collection_datetime)]),
-            min_vwc_m3m3_15cm = min(vwc_l2_15cm$vwc_m3m3[vwc_l2_15cm$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm$datetime_est &lt;= first(collection_datetime)]),
-            max_vwc_m3m3_15cm = max(vwc_l2_15cm$vwc_m3m3[vwc_l2_15cm$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm$datetime_est &lt;= first(collection_datetime)])) %&gt;%
+  summarize(mean_vwc_m3m3_15cm = mean(vwc_l2_15cm_salt$vwc_m3m3[vwc_l2_15cm_salt$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_salt$datetime_est &lt;= first(collection_datetime)]),
+            min_vwc_m3m3_15cm = min(vwc_l2_15cm_salt$vwc_m3m3[vwc_l2_15cm_salt$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_salt$datetime_est &lt;= first(collection_datetime)]),
+            max_vwc_m3m3_15cm = max(vwc_l2_15cm_salt$vwc_m3m3[vwc_l2_15cm_salt$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_salt$datetime_est &lt;= first(collection_datetime)])) %&gt;%
   ungroup()
 
-vwc_lys_doc = vwc_during_collection_15cm  %&gt;%
-  right_join(doc_l1_pw_grids, by=c(&quot;plot&quot;, &quot;grid&quot;, &quot;evacuation_datetime&quot;, &quot;collection_datetime&quot;)) %&gt;%
+doc_l1_pw_grids_salt &lt;- doc_l1_pw_grids %&gt;%
+    dplyr::filter(plot == &quot;Saltwater&quot;)
+
+vwc_lys_doc_salt = vwc_during_collection_15cm_salt  %&gt;%
+  right_join(doc_l1_pw_grids_salt, by=c(&quot;plot&quot;, &quot;grid&quot;, &quot;evacuation_datetime&quot;, &quot;collection_datetime&quot;)) %&gt;%
   distinct() %&gt;%
-  mutate(collection_date= as_date(collection_datetime)) </code></pre>
-<pre class="r"><code>vwc_lys_vol_doc = vwc_lys_doc %&gt;%
+  mutate(collection_date= as_date(collection_datetime)) 
+
+#Control
+
+vwc_l2_15cm_control &lt;- vwc_l2_15cm %&gt;%
+  dplyr::filter(plot == &quot;Control&quot;)
+
+
+vwc_during_collection_15cm_control = doc_l1_pw_grids %&gt;%
+  dplyr::filter(plot == &quot;Control&quot;) %&gt;%
+  group_by(plot, grid, evacuation_datetime, collection_datetime) %&gt;%
+  summarize(mean_vwc_m3m3_15cm = mean(vwc_l2_15cm_control$vwc_m3m3[vwc_l2_15cm_control$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_control$datetime_est &lt;= first(collection_datetime)]),
+            min_vwc_m3m3_15cm = min(vwc_l2_15cm_control$vwc_m3m3[vwc_l2_15cm_control$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_control$datetime_est &lt;= first(collection_datetime)]),
+            max_vwc_m3m3_15cm = max(vwc_l2_15cm_control$vwc_m3m3[vwc_l2_15cm_control$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_control$datetime_est &lt;= first(collection_datetime)])) %&gt;%
+  ungroup()
+
+doc_l1_pw_grids_control &lt;- doc_l1_pw_grids %&gt;%
+    dplyr::filter(plot == &quot;Control&quot;)
+
+vwc_lys_doc_control = vwc_during_collection_15cm_control  %&gt;%
+  right_join(doc_l1_pw_grids_control, by=c(&quot;plot&quot;, &quot;grid&quot;, &quot;evacuation_datetime&quot;, &quot;collection_datetime&quot;)) %&gt;%
+  distinct() %&gt;%
+  mutate(collection_date= as_date(collection_datetime)) 
+
+
+#Freshwater
+
+
+vwc_l2_15cm_freshwater &lt;- vwc_l2_15cm %&gt;%
+  dplyr::filter(plot == &quot;Freshwater&quot;)
+
+
+vwc_during_collection_15cm_freshwater = doc_l1_pw_grids %&gt;%
+  dplyr::filter(plot == &quot;Freshwater&quot;) %&gt;%
+  group_by(plot, grid, evacuation_datetime, collection_datetime) %&gt;%
+  summarize(mean_vwc_m3m3_15cm = mean(vwc_l2_15cm_freshwater$vwc_m3m3[vwc_l2_15cm_freshwater$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_freshwater$datetime_est &lt;= first(collection_datetime)]),
+            min_vwc_m3m3_15cm = min(vwc_l2_15cm_freshwater$vwc_m3m3[vwc_l2_15cm_freshwater$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_freshwater$datetime_est &lt;= first(collection_datetime)]),
+            max_vwc_m3m3_15cm = max(vwc_l2_15cm_freshwater$vwc_m3m3[vwc_l2_15cm_freshwater$datetime_est &gt;= first(evacuation_datetime) &amp; vwc_l2_15cm_freshwater$datetime_est &lt;= first(collection_datetime)])) %&gt;%
+  ungroup()
+
+doc_l1_pw_grids_freshwater &lt;- doc_l1_pw_grids %&gt;%
+    dplyr::filter(plot == &quot;Freshwater&quot;)
+
+vwc_lys_doc_freshwater = vwc_during_collection_15cm_freshwater  %&gt;%
+  right_join(doc_l1_pw_grids_freshwater, by=c(&quot;plot&quot;, &quot;grid&quot;, &quot;evacuation_datetime&quot;, &quot;collection_datetime&quot;)) %&gt;%
+  distinct() %&gt;%
+  mutate(collection_date= as_date(collection_datetime)) 
+
+vwc_lys_doc &lt;-bind_rows( vwc_lys_doc_control, vwc_lys_doc_salt, vwc_lys_doc_freshwater)</code></pre>
+<pre class="r"><code>vwc_lys_vol_doc_1 = vwc_lys_doc %&gt;%
   left_join(volumes_grids_pooled, by = c(&quot;plot&quot;, &quot;grid&quot;, &quot;collection_date&quot;), relationship = &quot;many-to-many&quot;) %&gt;%
   distinct() %&gt;%
   # There are some samples we have DOC for that WE STILL DON&#39;T HAVE THE RIGHT METADATA FOR, namely missing the volume data. So, we&#39;re going to just have to take the mean of the other volumes at that date time, because, there is no way to track it back further. 
@@ -514,10 +566,33 @@ vwc_lys_doc = vwc_during_collection_15cm  %&gt;%
   group_by(collection_date) %&gt;%
   mutate(Total_Volume_mL = ifelse(is.na(Total_Volume_mL), mean(Total_Volume_mL, na.rm = TRUE), Total_Volume_mL)) %&gt;%
   ungroup() %&gt;%
-  #when youre still getting nas for this bad metadata tracking of volumes, now just assume its 40mL: 
-  mutate(Total_Volume_mL = ifelse(is.na(Total_Volume_mL), 40, Total_Volume_mL)) %&gt;%
+  #when youre still getting nas for this bad metadata tracking of volumes, now just assume its 20mL (which is the sum of all the analyte volumes on the triage list up to DOC): 
+  mutate(Total_Volume_mL = ifelse(is.na(Total_Volume_mL), 20, Total_Volume_mL)) %&gt;%
   select(-collection_date, -evacuation_date) %&gt;%
   distinct()
+
+#now we have to fix places where gapfilling is incorrect in the 2022 event data:
+vwc_lys_vol_doc_evacuation_date_issues &lt;- vwc_lys_vol_doc_1 %&gt;%
+  group_by(plot, grid, evacuation_datetime) %&gt;%
+  filter(n() &gt; 1) %&gt;%
+  mutate(group_index = row_number()) %&gt;%
+  mutate(adjusted_evacuation_datetime = case_when(group_index == 1 ~ evacuation_datetime,
+      TRUE ~ lag(collection_datetime)),
+      adjusted_evacuation_datetime = if_else(is.na(adjusted_evacuation_datetime), evacuation_datetime, adjusted_evacuation_datetime)) %&gt;%
+  ungroup()
+
+vwc_lys_vol_doc_evacuation_date_fixed &lt;-  vwc_lys_vol_doc_evacuation_date_issues %&gt;% 
+  dplyr::select(-evacuation_datetime, -group_index) %&gt;%
+  rename(evacuation_datetime = adjusted_evacuation_datetime)
+
+vwc_lys_vol_doc_2 &lt;- vwc_lys_vol_doc_1 %&gt;%
+  anti_join(vwc_lys_vol_doc_evacuation_date_issues)</code></pre>
+<pre><code>## Joining with `by = join_by(plot, grid, evacuation_datetime,
+## collection_datetime, mean_vwc_m3m3_15cm, min_vwc_m3m3_15cm, max_vwc_m3m3_15cm,
+## doc_mg_l, tdn_mg_l, elapsed_time, Total_Volume_mL)`</code></pre>
+<pre class="r"><code>vwc_lys_vol_doc &lt;- bind_rows(vwc_lys_vol_doc_2, vwc_lys_vol_doc_evacuation_date_fixed) %&gt;%
+  arrange(plot, grid, evacuation_datetime, collection_datetime)
+
 
 write_csv(vwc_lys_vol_doc, &quot;~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_Vols_VWC_DOC_forfluxes.csv&quot;)</code></pre>
 <p>note, there are no 5 cm lysimeters at all of the grid locations, only
