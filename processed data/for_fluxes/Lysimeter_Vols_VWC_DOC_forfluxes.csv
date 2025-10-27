@@ -1,4 +1,4 @@
-plot,grid,evacuation_datetime,collection_datetime,mean_vwc_m3m3_15cm,min_vwc_m3m3_15cm,max_vwc_m3m3_15cm,doc_mg_l,tdn_mg_l,elapsed_time,Total_Volume_mL
+plot,grid,evacuation_datetime,collection_datetime,mean_vwc_m3m3_15cm,min_vwc_m3m3_15cm,max_vwc_m3m3_15cm,doc_mg_l,tdn_mg_l,elapsed_time_mins,Total_Volume_mL
 Control,B4,2022-06-09T15:59:00Z,2022-06-13T15:59:00Z,0.33236827912116745,0.285507712,0.454496347,10.19,0.53,5760,52.5
 Control,B4,2022-06-22T15:59:00Z,2022-06-23T13:38:00Z,0.3218914472991014,0.258777523,0.455923819,11.82,0.37,1299,30
 Control,B4,2022-07-14T16:07:00Z,2022-07-18T17:00:00Z,0.3433304944515076,0.276950638,0.465788116,7.55,0.23,5813,36.5

@@ -471,7 +471,7 @@ doc_l1_2022 &lt;- read_csv(&quot;~/GitHub/TEMPEST-1-porewater/processed data/for
 <pre class="r"><code>doc_l1_pw_grids &lt;- doc_l1_2022 %&gt;%
   full_join(doc_l1_2023) %&gt;%
   select(plot, grid, evacuation_datetime, collection_datetime, doc_mg_l, tdn_mg_l) %&gt;%
-  mutate(elapsed_time = collection_datetime - evacuation_datetime) %&gt;%
+  mutate(elapsed_time_mins = collection_datetime - evacuation_datetime) %&gt;%
  # mutate(date = as_date(collection_datetime)) %&gt;%
   drop_na() %&gt;%
   distinct()#This is dropping the EMPTY lysimeters: and don&#39;t need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.</code></pre>
@@ -589,7 +589,7 @@ vwc_lys_vol_doc_2 &lt;- vwc_lys_vol_doc_1 %&gt;%
   anti_join(vwc_lys_vol_doc_evacuation_date_issues)</code></pre>
 <pre><code>## Joining with `by = join_by(plot, grid, evacuation_datetime,
 ## collection_datetime, mean_vwc_m3m3_15cm, min_vwc_m3m3_15cm, max_vwc_m3m3_15cm,
-## doc_mg_l, tdn_mg_l, elapsed_time, Total_Volume_mL)`</code></pre>
+## doc_mg_l, tdn_mg_l, elapsed_time_mins, Total_Volume_mL)`</code></pre>
 <pre class="r"><code>vwc_lys_vol_doc &lt;- bind_rows(vwc_lys_vol_doc_2, vwc_lys_vol_doc_evacuation_date_fixed) %&gt;%
   arrange(plot, grid, evacuation_datetime, collection_datetime)
 

@@ -110,7 +110,7 @@ doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_
 doc_l1_pw_grids <- doc_l1_2022 %>%
   full_join(doc_l1_2023) %>%
   select(plot, grid, evacuation_datetime, collection_datetime, doc_mg_l, tdn_mg_l) %>%
-  mutate(elapsed_time = collection_datetime - evacuation_datetime) %>%
+  mutate(elapsed_time_mins = collection_datetime - evacuation_datetime) %>%
  # mutate(date = as_date(collection_datetime)) %>%
   drop_na() %>%
   distinct()#This is dropping the EMPTY lysimeters: and don't need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
