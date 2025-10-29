@@ -1,0 +1,553 @@
+---
+title: "graveyard"
+author: "AMP"
+date: "`r Sys.Date()`"
+output: html_document
+---
+#Graveyard
+
+# another way to look at this: Relationship between conductivity and DOC
+
+```{r cond vs doc load data}
+cond_doc <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations_SALTWATER.csv") %>%
+  dplyr::filter(collection_datetime > WaterDeliveryStart2022) %>%
+  ungroup() %>%
+  filter(plot == "Saltwater") %>%
+  group_by(collection_date) %>%
+  dplyr::select(collection_date, mean_EC_uScm_15cm, max_EC_uScm_15cm, doc_mg_l) %>%
+ #  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup() %>%
+  mutate(date = as_date(collection_date)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               adj_month == 1 & collection_date == "2023-06-03" ~ 12,
+                               TRUE ~ adj_month)) 
+ # dplyr::filter(adj_month != 1)
+
+saveRDS(cond_doc, "~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships_SALT.rds")
+```
+
+do this for the control plot, for comparison
+
+```{r cond vs doc load data Control}
+cond_doc_C <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_fluxes/Lysimeter_EC_DOC_forcorrelations_CONTROL.csv") %>%
+  dplyr::filter(collection_datetime > WaterDeliveryStart2022) %>%
+  ungroup() %>%
+  filter(plot == "Control") %>%
+  group_by(collection_date) %>%
+  dplyr::select(collection_date, mean_EC_uScm_15cm, max_EC_uScm_15cm, doc_mg_l) %>%
+ #  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup() %>%
+  mutate(date = as_date(collection_date)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               adj_month == 1 & collection_date == "2023-06-03" ~ 12,
+                               TRUE ~ adj_month)) 
+ # dplyr::filter(adj_month != 1)
+
+saveRDS(cond_doc_C, "~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships_CONTROLPLOT.rds")
+```
+
+```{r make line for fig 5}
+
+start_a <- max(cond_doc$doc_mg_l) 
+start_b <- -0.001
+
+# Fit the model using nls
+fit_nls <- nls(doc_mg_l ~ a * exp(b * mean_EC_uScm_15cm), data = cond_doc, start = list(a = start_a, b = start_b))
+
+# Summary of the model
+summary(fit_nls)
+# Extract fitted values
+coefficients <- coef(fit_nls)
+a <- coefficients["a"]
+b <- coefficients["b"]
+
+# Create a prediction data frame
+new_data <- data.frame(mean_EC_uScm_15cm = seq(min(cond_doc$mean_EC_uScm_15cm), max(cond_doc$mean_EC_uScm_15cm), length.out = 100))
+new_data$pred <- predict(fit_nls, newdata = new_data)
+
+# Compute standard error of the fit
+se_fit <- sqrt(sum(residuals(fit_nls)^2) / df.residual(fit_nls))
+new_data$lower <- new_data$pred - 1.96 * se_fit
+new_data$upper <- new_data$pred + 1.96 * se_fit
+
+```
+
+
+### precip
+
+```{r precip}
+
+rain_month_yr1 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_dailyavg_2022-2023.csv") %>%
+ filter(between(date, startstudydate_yr1, endstudydate_yr1))  %>%
+mutate(month = lubridate::month(date),
+         year = lubridate::year(date),
+        # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  group_by(adj_month, year) %>%
+  summarise(mean_monthly_rain = mean(daily_total_rain_cm),
+            sd_monthly_rain = sd(daily_total_rain_cm))
+
+
+rain_month_yr2 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/TMP_rain_dailyavg_2022-2023.csv") %>%
+ filter(between(date, startstudydate_yr2, endstudydate_yr2))  %>%
+mutate(month = lubridate::month(date),
+         year = lubridate::year(date),
+        # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  group_by(adj_month, year) %>%
+  summarise(mean_monthly_rain = mean(daily_total_rain_cm),
+            sd_monthly_rain = sd(daily_total_rain_cm))
+
+```
+
+
+
+
+# multivariate prep
+
+
+
+# Misc graveyard analyses
+
+# Plot level DOC averages and stds
+```{r doc avg stds} 
+#can't get both mean and sd to work across everything for some reason, so calculate separate then recombine.  
+# Some dates not enough water was collected to have multiple samples to get averages and sds for that evacuation period. Most of the time, those can be combined with sampling dates just before or just after as we go out over several multi-day periods. This, however isn't consistent across the FW, EW, or C plots, so it will be a bit tricky to do the gap filling. To make the gap filling more accurate, we'll take the average of those dates, so for example if the dates we're merging is 2022-11-25 and 2022-11-28 we'll have the date be the 26th (but we'll let R do that math).
+
+#First, isolate the trouble dates/times:  
+
+#Control: 
+mean_doc_l1_c_to_gapfill <- doc_l1_pw_grids %>% 
+select(-grid) %>% 
+  filter(plot == "Control") %>% 
+  filter(evacuation_date %in% c("2022-09-09", "2022-09-12", "2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")) %>% 
+  mutate(gapfill_group = case_when(  
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "A", 
+    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "B", 
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "C", 
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "D", 
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E", 
+    TRUE ~ "no")) %>% 
+   group_by(plot, gapfill_group) %>% 
+    dplyr::summarise(across(everything(), mean), .groups = "keep") %>% 
+  mutate(collection_datetime = as.POSIXct(collection_datetime, origin = "1970-01-01"), 
+         evacuation_date = as_date(evacuation_date)) %>% 
+  ungroup() 
+ 
+sd_doc_l1_c_to_gapfill <- doc_l1_pw_grids %>% 
+  select(-collection_datetime, -grid) %>% 
+  filter(plot == "Control") %>% 
+  filter(evacuation_date %in% c("2022-09-09", "2022-09-12", "2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")) %>% 
+  mutate(gapfill_group = case_when(  
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "A", 
+    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "B", 
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "C", 
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "D", 
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E", 
+    TRUE ~ "no")) %>% 
+   group_by(plot, gapfill_group) %>% 
+    select(-evacuation_date) %>% 
+    dplyr::summarise(across(everything(), sd), .groups = "keep") %>% 
+  rename(doc_mg_l_sd = doc_mg_l, 
+         tdn_mg_l_sd = tdn_mg_l) %>% 
+    ungroup()  
+ 
+c_gapfill <- mean_doc_l1_c_to_gapfill %>% 
+  full_join(sd_doc_l1_c_to_gapfill, by = c("plot", "gapfill_group")) %>% 
+  select(-gapfill_group) 
+ 
+#Estuarine Water 
+mean_doc_l1_sw_to_gapfill <- doc_l1_pw_grids %>% 
+  select(-grid) %>% 
+  filter(plot == "Saltwater") %>% 
+  filter(evacuation_date %in% c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05","2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-12-05", "2023-12-08", "2023-01-30", "2023-02-02")) %>% 
+  mutate(gapfill_group = case_when(  
+    str_detect(evacuation_date,"2022-07-18") | str_detect(evacuation_date,"2022-07-14") ~ "A", 
+    str_detect(evacuation_date,"2022-08-08") | str_detect(evacuation_date,"2022-08-05") ~ "B", 
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "C", 
+    str_detect(evacuation_date,"2022-11-25") | str_detect(evacuation_date,"2022-11-28") ~ "D", 
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E", 
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "F", 
+    TRUE ~ "no")) %>% 
+   group_by(plot, gapfill_group) %>% 
+    dplyr::summarise(across(everything(), mean), .groups = "keep") %>% 
+    ungroup()  
+ 
+sd_doc_l1_sw_to_gapfill <- doc_l1_pw_grids %>% 
+  select(-collection_datetime, -grid) %>% 
+  filter(plot == "Saltwater") %>% 
+   filter(evacuation_date %in% c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05","2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-12-05", "2023-12-08", "2023-01-30", "2023-02-02")) %>% 
+  mutate(gapfill_group = case_when(  
+    str_detect(evacuation_date,"2022-07-18") | str_detect(evacuation_date,"2022-07-14") ~ "A", 
+    str_detect(evacuation_date,"2022-08-08") | str_detect(evacuation_date,"2022-08-05") ~ "B", 
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "C", 
+    str_detect(evacuation_date,"2022-11-25") | str_detect(evacuation_date,"2022-11-28") ~ "D", 
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "E", 
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "F", 
+    TRUE ~ "no")) %>% 
+   group_by(plot, gapfill_group) %>% 
+    select(-evacuation_date) %>% 
+    dplyr::summarise(across(everything(), sd), .groups = "keep") %>% 
+  rename(doc_mg_l_sd = doc_mg_l, 
+         tdn_mg_l_sd = tdn_mg_l) %>% 
+    ungroup() 
+ 
+sw_gapfill <- mean_doc_l1_sw_to_gapfill %>% 
+  full_join(sd_doc_l1_sw_to_gapfill, by = c("plot", "gapfill_group")) %>% 
+  select(-gapfill_group) 
+ 
+#Freshwater:  
+mean_doc_l1_fw_to_gapfill <- doc_l1_pw_grids %>% 
+    select(-grid) %>% 
+  filter(plot == "Freshwater") %>% 
+  filter(evacuation_date %in% c("2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")) %>% 
+  mutate(gapfill_group = case_when(  
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "A", 
+    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "B", 
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "C", 
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "D", 
+    str_detect(evacuation_date,"2023-09-29") | str_detect(evacuation_date,"2023-10-02") ~ "E", 
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "F", 
+    TRUE ~ "no")) %>% 
+   group_by(plot, gapfill_group) %>% 
+    dplyr::summarise(across(everything(), mean), .groups = "keep") %>% 
+    ungroup() 
+ 
+sd_doc_l1_fw_to_gapfill <- doc_l1_pw_grids %>% 
+  select(-collection_datetime, -grid) %>% 
+  filter(plot == "Freshwater") %>% 
+  filter(evacuation_date %in% c("2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")) %>% 
+  mutate(gapfill_group = case_when(  
+    str_detect(evacuation_date,"2022-09-09") | str_detect(evacuation_date,"2022-09-12") ~ "A", 
+    str_detect(evacuation_date,"2022-11-28") | str_detect(evacuation_date,"2022-11-25") ~ "B", 
+    str_detect(evacuation_date,"2023-01-30") | str_detect(evacuation_date,"2023-02-02") ~ "C", 
+    str_detect(evacuation_date,"2023-07-05") | str_detect(evacuation_date,"2023-07-07") ~ "D", 
+    str_detect(evacuation_date,"2023-09-29") | str_detect(evacuation_date,"2023-10-02") ~ "E", 
+    str_detect(evacuation_date,"2023-12-05") | str_detect(evacuation_date,"2023-12-08") ~ "F", 
+    TRUE ~ "no")) %>% 
+  group_by(plot, gapfill_group) %>% 
+  dplyr::select(-evacuation_date) %>% 
+  dplyr::summarise(across(everything(), sd), .groups = "keep") %>%
+  rename(doc_mg_l_sd = doc_mg_l, 
+         tdn_mg_l_sd = tdn_mg_l) %>% 
+    ungroup()  
+ 
+fw_gapfill <- mean_doc_l1_fw_to_gapfill %>% 
+  full_join(sd_doc_l1_fw_to_gapfill, by = c("plot", "gapfill_group")) %>% 
+  select(-gapfill_group) 
+ 
+ 
+#All the rest:  
+means_doc_l1_pw_grids <- doc_l1_pw_grids %>% 
+ select(-grid) %>% 
+filter(plot != "Control" |  
+ (plot == "Control" & !evacuation_date %in% as.Date(c("2022-09-09", "2022-09-12", "2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")))) %>% 
+ filter(plot != "Saltwater" | 
+(plot == "Saltwater" & !evacuation_date %in% as.Date(c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05","2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-12-05", "2023-12-08", "2023-01-30", "2023-02-02")))) %>% 
+filter(plot != "Freshwater" | 
+  (plot == "Freshwater" & !evacuation_date %in% as.Date(c("2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")))) %>% 
+  mutate(evacuation_date = as.numeric(evacuation_date), 
+     collection_datetime= as.numeric(collection_datetime)) %>% 
+group_by(plot, evacuation_date) %>% 
+dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
+mutate(collection_datetime = as.POSIXct(collection_datetime, origin = "1970-01-01"), 
+ evacuation_date = as_date(evacuation_date))
+
+sds_doc_l1_pw_grids <- doc_l1_pw_grids %>% 
+  select(-collection_datetime, -grid) %>% 
+  filter(plot != "Control" |  
+    (plot == "Control" & !evacuation_date %in% as.Date(c("2022-09-09", "2022-09-12", "2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-12-05", "2023-12-08")))) %>% 
+  filter(plot != "Saltwater" | 
+   (plot == "Saltwater" & !evacuation_date %in% as.Date(c("2022-07-18", "2022-07-14", "2022-08-08", "2022-08-05","2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-12-05", "2023-12-08", "2023-01-30", "2023-02-02"))))  %>% 
+  filter(plot != "Freshwater" |  
+    (plot == "Freshwater" & !evacuation_date %in% as.Date(c("2022-09-09", "2022-09-12","2022-11-28", "2022-11-25", "2023-01-30", "2023-02-02", "2023-07-05", "2023-07-07", "2023-09-29", "2023-10-02","2023-12-05", "2023-12-08")))) %>% 
+  mutate(evacuation_date = as.numeric(evacuation_date)) %>% 
+  group_by(plot, evacuation_date) %>% 
+  dplyr::summarise(across(everything(), sd), .groups = "keep") %>% 
+  mutate(evacuation_date = as_date(evacuation_date)) %>% 
+  rename(doc_mg_l_sd = doc_mg_l, 
+         tdn_mg_l_sd = tdn_mg_l) 
+
+
+merging_dfs <- list(means_doc_l1_pw_grids, sds_doc_l1_pw_grids, c_gapfill, sw_gapfill, fw_gapfill)
+
+pw_doc <- purrr::reduce(merging_dfs, full_join)
+  
+#write out for plotting: 
+saveRDS(pw_doc, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_plotlevel.rds")
+```
+  
+### run stats for DOC: 
+
+First source the functions from TSLA:
+
+```{r tsla functions}
+
+# set event window to use for all data frame function calls
+flood_event_date <- c(as_date("2022-06-22"))
+
+# set event window to use for all data frame function calls
+flood_event_datetime <- c(as_datetime("2022-06-22 5:30:00", tz = "EST"), as_datetime("2022-06-22 14:30:00", tz = "EST"))
+
+EVENT_START <- as_datetime("2022-06-22 05:30:00", tz = "EST")
+EVENT_STOP <- as_datetime("2022-06-22 14:30:00", tz = "EST")
+
+STUDY_START <- as_datetime("2022-05-01 00:00:00", tz = "EST")
+
+STUDY_END <- as_datetime("2023-05-31 00:00:00", tz = "EST")
+
+source("~/GitHub/tempest-system-level-analysis/scripts/tmp_test_functions.R")
+
+# check them out: 
+calc_dist_metrics
+
+```
+
+```{r baci functions}
+source("~/GitHub/TEMPEST-1-porewater/scripts/analysis_scripts/BACI_stats_function_fromDivideData.R")
+
+```
+
+```{r doc baci stats}
+doc_baci_sw_2022 <- doc_l1_pw_grids %>%
+    filter(collection_datetime < endstudydate & collection_datetime > startstudydate) %>%
+    divide_data(collection_datetime,flood_event_datetime)
+#  baci_stats(var = doc_mg_l, plot = "Saltwater",  p_value_threshold = 0.05)
+
+```
+
+
+[insert some version of BACI stats here]
+
+## OM Chemistry
+
+### CDOM 
+```{r read in cdom}
+
+#Porewater CDOM data, from L1 google drive: 
+
+cdom_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDS_POOL_Indicies_CDOM_2022_L1.csv")
+  
+cdom_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDS_POOL_Indicies_CDOM_2023_L1.csv")
+```
+```{r merging cdom}
+cdom_l1_pw_pool <- cdom_l1_2022 %>%
+  full_join(cdom_l1_2023) %>%
+  dplyr::filter(grid == "POOL") %>%
+  select(plot, grid, evacuation_date, collection_datetime, S275_295, S350_400, Sr:M_RSU) 
+```
+```{r bring in pooled DOC data for merging}
+doc_l1_pooled_2022 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/TMP_PW_POOLED_NPOCTDN_2022_L1.csv")
+
+doc_l1_pooled_2023 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/TMP_PW_POOLED_NPOCTDN_2023_L1.csv")
+
+doc_l1_pooled_all <- doc_l1_pooled_2022  %>%
+  full_join(doc_l1_pooled_2023)
+
+# merge cdom data with the pooled DOC data to calculate SUVA
+cdom_wdoc_pooled <- cdom_l1_pw_pool %>%
+  mutate(date = as_date(collection_datetime)) %>%
+  left_join(doc_l1_pooled_all, by = c("plot", "grid", "date", "evacuation_date")) %>%
+  mutate(suva_254 = Abs_254nm / doc_mg_l *100 ) %>%
+  #remove instances where pairs are unmatched returning NAs
+  drop_na()
+
+cdom_nodoc <- cdom_l1_pw_pool %>%
+  mutate(date = as_date(collection_datetime)) %>%
+  anti_join(doc_l1_pooled_all, by = c("plot", "grid", "date"))
+
+# datetimes for the rest are off by a day or so from the averaged DOC data; I am not really sure why this is. going to match them manually since only 17 samples we are dealing with- that can be consolidated into 11 unique instances by evacuation date groups: 
+cdom_nodoc_1 <- cdom_nodoc %>%
+    select(-grid) %>%
+    mutate(gapfill_group = case_when( 
+    str_detect(evacuation_date,"2022-06-13") | str_detect(evacuation_date,"2022-06-15") ~ "A",
+    str_detect(evacuation_date,"2022-07-14") | str_detect(evacuation_date,"2022-07-18") ~ "B",
+    str_detect(evacuation_date,"2022-09-09") ~ "C",
+    str_detect(evacuation_date,"2022-06-18") | str_detect(evacuation_date,"2022-06-22") ~ "D",
+    str_detect(evacuation_date,"2022-07-18") ~ "E",
+    TRUE ~ "no")) %>%
+   group_by(plot, gapfill_group) %>%
+   dplyr::select(-evacuation_date, -collection_datetime, -date) %>% # these get averaged if not. Will adopt the dates in the porewater DOC average sheet.  
+   dplyr::summarise(across(everything(), mean), .groups = "keep")
+
+#for these samples, use the plot averages at similar dates to calculate SUVA:
+pw_doc_1 <- pw_doc %>%
+  mutate(gapfill_group = case_when( 
+    str_detect(evacuation_date,"2022-06-09") ~ "A", #these all have collection dates of 6-14 in the avg doc sheet. 
+    str_detect(evacuation_date,"2022-07-14") ~ "B", #these all have collection dates of 7-18 in the avg doc sheet. 
+    str_detect(evacuation_date,"2022-09-10") | str_detect(evacuation_date,"2022-09-11") ~ "C", #these are closest to the 9/9 date in the cdom sheet. 
+    str_detect(evacuation_date,"2022-06-18") | str_detect(evacuation_date,"2022-06-22") ~ "D",
+    str_detect(evacuation_date,"2022-07-18") ~ "E",
+    TRUE ~ "no")) %>%
+   dplyr::filter(gapfill_group != "no") %>%
+   group_by(plot, gapfill_group) %>% #ok if dates/times get averaged here. 
+   dplyr::summarise(across(everything(), mean), .groups = "keep") %>%
+   dplyr::select(plot, gapfill_group, evacuation_date, collection_datetime, doc_mg_l)
+
+cdom_plot_avgsuva <- cdom_nodoc_1 %>%
+  left_join(pw_doc_1, by= c("plot",  "gapfill_group")) %>%
+  mutate(suva_254 = Abs_254nm / doc_mg_l *100 )
+
+cdom_all <- cdom_wdoc_pooled %>%
+  full_join(cdom_plot_avgsuva) %>%
+  dplyr::select(plot, evacuation_date, collection_datetime, doc_mg_l, suva_254, S275_295:M_RSU) %>%
+  mutate(date = as_date(collection_datetime))
+
+
+#write out for plotting:
+
+saveRDS(cdom_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_CDOM_POOL_porewater_figures.rds")
+```
+
+```{r cdom tsla metrics}
+# tsla metrics for YR 1 data: 
+cdom_long <- cdom_all %>%
+    filter(between(date, startstudydate_yr1, endstudydate_yr1)) %>%
+  dplyr::select(-doc_mg_l) %>%
+  pivot_longer(cols = -c(plot, evacuation_date, collection_datetime, date),
+               names_to = "metric",
+               values_to = "values")
+
+#assign timepoints and write out for various plotting efforts
+timepoints_cdom <- divide_data(cdom_long, date, flood_event_date)   
+
+
+sum_cdom <- timepoints_cdom %>%
+  group_by(plot, metric, timedate_bin) %>%
+  summarize(value_mean = mean(values), value_sd = sd(values), count = n()) 
+
+# write out for plotting:
+saveRDS(sum_cdom, "~/GitHub/TEMPEST-1-porewater/data/avg_metrics_premidpost_cdom_porewater.rds")
+
+```
+
+dates_cdom_avg <- cdom_all%>%
+  dplyr::select(-evacuation_date, -collection_datetime) %>%
+  group_by(plot, date, timedate_bin) %>%
+  filter(between(date, startstudydate_yr1, endstudydate)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  # fix the sampling dates in June before the event to the month before
+  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2022 ~ adj_month == 0,
+                               TRUE ~ adj_month)) %>%
+  group_by(adj_month, year, plot) %>%
+  
+    summarise( across( 
+      .cols = everything(),
+      .fns = list(mean = ~ mean(.), sd = ~ sd(.)),
+      .names = "{.col}_{.fn}"),
+    .groups = "keep")
+
+# write out for plotting:
+saveRDS(dates_cdom_avg, "~/GitHub/TEMPEST-1-porewater/data/avg_relabund_dates_cdom_porewater.rds")
+
+
+#### FTICRMS 
+```{r load fticrms}
+# load data
+pw_ft <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_POOL_FTICRMS_May2022-May2023_L1.rds") %>%
+  mutate(datetime_est = force_tz(collection_datetime, tzone = "EST")) %>% 
+   group_by(Event, plot, grid, date, sample_name, Class_detailed) %>%
+    dplyr::summarise(abund = sum(presence))  %>%
+    ungroup() %>% 
+    # create a new column for total counts per core assignment
+    # and then calculate relative abundance  
+    group_by(Event, plot, grid, date, sample_name) %>% 
+    dplyr::mutate(total = sum(abund),
+                  relabund  = round((abund/total)*100,2)) %>%
+  ungroup() %>%
+  dplyr::select(date, plot, Class_detailed, relabund) %>% 
+  group_by(date, plot, Class_detailed) %>%
+  zscore_standard(vars = "relabund") %>% ungroup()
+
+pw_ft %>% summary()
+
+```
+
+```{r tsla metrics}
+#assign timepoints and write out for various plotting efforts
+timepoints_fticrms <- divide_data(pw_ft, date, flood_event_date)   
+
+dates_fticrms_avg <- timepoints_fticrms %>%
+  group_by(plot, Class_detailed, date, timedate_bin) %>%
+  summarize(relabund_mean = mean(relabund), relabund_sd = sd(relabund)) %>%
+  mutate(plot = case_when(plot == "FW" ~ "Freshwater",
+                          plot == "SW" ~ "Saltwater",
+                          plot == "C" ~ "Control",
+                          TRUE ~ plot))
+
+# write out for plotting:
+saveRDS(dates_fticrms_avg, "~/GitHub/TEMPEST-1-porewater/data/avg_relabund_dates_fticrms_porewater.rds")
+
+
+sum_fticrms <- timepoints_fticrms%>%
+  group_by(plot, Class_detailed, timedate_bin) %>%
+  summarize(relabund_mean = mean(relabund), relabund_sd = sd(relabund)) %>%
+  mutate(plot = case_when(plot == "FW" ~ "Freshwater",
+                          plot == "SW" ~ "Saltwater",
+                          plot == "C" ~ "Control",
+                          TRUE ~ plot))
+
+# write out for plotting:
+saveRDS(sum_fticrms, "~/GitHub/TEMPEST-1-porewater/data/avg_relativeabundance_premidpost_fticrms_porewater.rds")
+```
+
+# OM chemistry stats
+
+Stats for aromatic content in FTICRMS signal:
+Trying a simple repeated measures anova first: 
+```{r anova aromatic fticrms}
+
+dates_fticrms_avg_stats <- timepoints_fticrms %>%
+  mutate(plot = case_when(plot == "FW" ~ "Freshwater",
+                          plot == "SW" ~ "Saltwater",
+                          plot == "C" ~ "Control",
+                          TRUE ~ plot)) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         timedate_bin = factor(timedate_bin, levels = time_order)) %>%
+filter(Class_detailed == "highly aromatic")
+
+lmm_res <- lmer(relabund ~ plot + (1|timedate_bin), data = dates_fticrms_avg_stats )
+summary(lmm_res)
+
+#baci_stats(dates_fticrms_avg_stats, var = relabund, plot = "Saltwater",  p_value_threshold = 0.05)
+  
+```
+
+
+
+Porewater DOC data manipulations for Figure 1 
+<!-- include only year 1 data:  -->
+
+<!-- ```{r DOC data crunch} -->
+<!-- #1) filter dataframe to YR1 Event data -->
+
+<!-- doc_TMP1 <- doc_l1_pw_grids %>% -->
+<!--   filter(between(evacuation_date, startstudydate_yr1, endstudydate_yr1))  -->
+
+<!-- saveRDS(doc_TMP1, "~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds") -->
+
+<!-- #2) get min, max, IQR for control and freshwater plots -->
+
+<!-- doc_iqr <- doc_TMP1 %>% -->
+<!--   filter(plot != "Saltwater") %>% -->
+<!--   group_by(plot) %>% -->
+<!--   summarise(min_doc_mg_l = min(doc_mg_l), -->
+<!--             max_doc_mg_l = max(doc_mg_l), -->
+<!--             iqr_doc_mg_l = IQR(doc_mg_l), -->
+<!--             q1_doc_mg_l = quantile(doc_mg_l, 0.25), -->
+<!--             q3_doc_mg_l = quantile(doc_mg_l, 0.75)) -->
+
+<!-- saveRDS(doc_iqr, "~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") -->
+<!-- ``` -->
+
