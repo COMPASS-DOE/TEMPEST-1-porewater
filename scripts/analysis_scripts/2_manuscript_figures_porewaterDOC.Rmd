@@ -407,18 +407,18 @@ pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15c
 pw_doc_dates <- read_rds("~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
 
 pw_doc_dates
-````
+```
 
 ```{r set dates based on pw_doc_dates}
 tmp1_doc_high = as.POSIXct("2022-07-21 15:59:00", tz = "EST")
-tmp2_doc_high = as.POSIXct("2023-08-07 14:44:00", tz = "EST")
+tmp2_doc_high = as.POSIXct("2023-08-10 15:53:00", tz = "EST")
 tmp3_doc_high = as.POSIXct("2025-01-31 20:52:00", tz = "EST")
 
 ```
 
 ```{r spc timeseries}
 
-
+#rectangles from cond_doc_threshold in `1_manuscript_anlaysis_porewaterDOC.Rmd`
 
 pw_ec %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
@@ -427,6 +427,7 @@ pw_ec %>%
     geom_vline(xintercept = tmp1_doc_high,linetype="dashed",color="black")+ 
     geom_vline(xintercept = tmp2_doc_high,linetype="dashed",color="black")+ 
     geom_vline(xintercept = tmp3_doc_high,linetype="dashed",color="black")+ 
+     annotate("rect", xmin= min(pw_ec$datetime_est) , xmax = max(pw_ec$datetime_est), ymin = (235.3203 - 28.85163), ymax = (235.3203 + 28.85163), fill= "grey", alpha = 0.2)+
     ylab("mean Porewater Conductivity (uS/cm)")+
     xlab("Date")+
     scale_color_manual(values=Anyas_colors) +
@@ -469,6 +470,7 @@ ph %>%
    geom_vline(xintercept = WaterDeliveryStart2_2024,linetype="dashed",color="grey")+
    geom_vline(xintercept = WaterDeliveryStart3_2024,linetype="dashed",color="grey")+
    geom_pointrange(aes(ymin=pH-pH_sd, ymax=pH+pH_sd), shape=17, size=1)+
+   annotate("rect", xmin= min(ph$datetime) , xmax = max(ph$datetime), ymin = (6.576429 - 0.4931158), ymax = (6.576429 + 0.4931158), fill= "blue", alpha = 0.2)+
     ylab("porewater pH")+
     xlab("Date")+
     ylim(0,10)+

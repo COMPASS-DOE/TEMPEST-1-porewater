@@ -257,6 +257,12 @@ max_sd <- max(baseline$baseline_sd, na.rm= TRUE)
 # 2. Combine baseline data with saltwater data for comparison.
 comparison <- doc_l1_pw_grids  %>%
   filter(plot == "Saltwater") %>%
+  group_by(evacuation_date) %>%
+  summarize(
+    doc_median = median(doc_mg_l, na.rm = TRUE),
+    doc_sd = sd(doc_mg_l, na.rm = TRUE) 
+  ) %>%
+  ungroup()%>%
   left_join(baseline, by = "evacuation_date") %>%
   mutate(baseline_mean = case_when(is.na(baseline_mean) ~ mean(baseline_mean, na.rm =TRUE),
                                    TRUE ~ baseline_mean),
@@ -264,7 +270,7 @@ comparison <- doc_l1_pw_grids  %>%
                                  TRUE ~ baseline_sd)) %>%
   mutate(
     # Calculate the deviation of saltwater analyte concentration from baseline.
-    deviation = doc_mg_l - baseline_mean,
+    deviation = doc_median - baseline_mean,
     # Flag dates where the saltwater concentration is significantly higher than baseline
     flag_high_change = deviation > (3 * baseline_sd) # Adjust multiplier based on your needs
   )
@@ -274,10 +280,9 @@ print(comparison)
 
 # 3. Extract the dates where there is a "significant change" in the saltwater plot.
 significant_dates <- comparison %>%
-  group_by(grid) %>%
   filter(flag_high_change) %>%
-  select(collection_datetime, doc_mg_l , deviation) %>%
-  mutate(year = lubridate::year(collection_datetime)) %>%
+  select(evacuation_date, doc_median , deviation) %>%
+  mutate(year = lubridate::year(evacuation_date)) %>%
   ungroup()
 
 print(significant_dates)
@@ -286,25 +291,37 @@ print(significant_dates)
 
 tmp1_first_dates <- significant_dates %>% 
   filter(year == "2022") %>%
-  filter(collection_datetime == min(collection_datetime))
+  filter(evacuation_date == min(evacuation_date))
 
 tmp2_first_dates <- significant_dates %>% 
   filter(year == "2023") %>%
-  filter(collection_datetime > WaterDeliveryStop2) %>%
-  filter(collection_datetime == min(collection_datetime))
+  filter(evacuation_date > WaterDeliveryStop2) %>%
+  filter(evacuation_date == min(evacuation_date))
 
 tmp3_first_dates <- significant_dates %>% 
   filter(year > 2023) %>%
-  filter(collection_datetime > WaterDeliveryStart3_2024) %>%
-  filter(collection_datetime == min(collection_datetime))
+  filter(evacuation_date > WaterDeliveryStart3_2024) %>%
+  filter(evacuation_date == min(evacuation_date))
 
-tmpdates_doc <- tmp1_first_dates %>%
+tmpdates_doc.1 <- tmp1_first_dates %>%
   full_join(tmp2_first_dates ) %>%
   full_join(tmp3_first_dates)
 
-tmpdates_doc
 
-saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
+collection_dates <- doc_l1_pw_grids %>%
+  filter(plot == "Saltwater") %>%
+  filter(evacuation_date %in% tmpdates_doc$evacuation_date) %>%
+  select(evacuation_date, collection_datetime) %>%
+  group_by(evacuation_date) %>%
+  summarise(collection_datetime = min(collection_datetime)) %>%
+  ungroup()
+
+tmpdates_doc <-  tmpdates_doc.1 %>%
+  full_join(collection_dates, by= "evacuation_date")
+
+tmpdates_doc 
+
+ saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
 ```
 
 
