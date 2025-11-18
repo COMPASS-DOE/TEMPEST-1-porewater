@@ -101,16 +101,6 @@ pw_doc_3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TM
 #  mutate(collection_datetime = as.POSIXct("2022-05-18 15:59:00", tz= "EST" ),
 #         doc_mg_l = NA)
 
-exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
-  mutate(Wash = case_when(is.na(Wash) ~ 0,
-                          TRUE ~ Wash),
-    Treatment = case_when(Treatment == "AS" ~ "Artificial Saltwater",
-                               Treatment == "FW" ~ "Artificial Freshwater",
-                               Treatment == "Control" ~ "Control",
-                               Treatment == "SWE" ~ "Artificial Saltwater",
-                               Treatment == "CL" ~ "Artificial Freshwater",
-                          TRUE ~ Treatment))
-
 ```
 
 # Figure 1: Year 1, 2, 3 DOC Field
@@ -218,7 +208,7 @@ Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", 
 Figure1
 
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_pw_exp_doc.png",Figure1, dpi=600,
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
                    nrow = 3)
 
 
@@ -393,11 +383,48 @@ plotly::ggplotly(condFig)
 
 
 # Supplemental Figures
-1. SPC through year (SW plot, TMP 1 & 2)
+1. Water Isotopes (from Lindsey)
+2. Column Experiment DOC
+3. SPC through year (SW plot, TMP 1 & 2)
 2. pH through year (FW and SW plot, TMP 2)
 3. DO before/during/after event (FW and SW plot, TMP 1 & 2? Discuss with Peter)
 
-# Supplemental Figure 1: SPC timeseries 
+#Supplemental Figure 2: Column Experiment DOC
+
+```{r, load col ex}
+exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
+  mutate(Wash = case_when(is.na(Wash) ~ 0,
+                          TRUE ~ Wash),
+    Treatment = case_when(Treatment == "AS" ~ "Artificial Saltwater",
+                               Treatment == "FW" ~ "Artificial Freshwater",
+                               Treatment == "Control" ~ "Control",
+                               Treatment == "SWE" ~ "Artificial Saltwater",
+                               Treatment == "CL" ~ "Artificial Freshwater",
+                          TRUE ~ Treatment)) %>%
+  mutate(Treatment = factor(Treatment, levels = Treatment_order))
+```
+
+```{r, col ex}
+SI2 <- exp_doc %>%
+   ggplot(aes(x = Wash, y = doc_mg_l_mean, color = Treatment)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
+    ylab("DOC mg/L")+
+    xlab("Treatment Wash Number")+
+   # title("Field Manipulation") +
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  Column Experiment"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(SI2)
+```
+
+# Supplemental Figure 3: SPC timeseries 
 ```{r bring in SPC}
 
 pw_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
