@@ -230,6 +230,13 @@ cdom_metrics_avg <- read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_metrics_prem
   mutate(value_sd = case_when(is.na(value_sd) ~ 0,
                               TRUE ~ value_sd))
 
+pw_cdom_1 <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP1.rds")
+
+pw_cdom_2 <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP2.rds")
+
+pw_cdom_3 <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP3.rds")
+
+
 ```
 
 ## Figure 4 A
@@ -321,6 +328,85 @@ fticrms_relabund_dates %>%
 ## Figure 4 B 
 - Slope Ratio (proxy for HMW/LMW) through year (FW & SW plots, TMP 1 & 2) https://aslopubs.onlinelibrary.wiley.com/doi/abs/10.4319/lo.2008.53.3.0955
 - SUVA (using average DOC for the plots?) (FW & SW plots, TMP 1 & 2)
+
+```{r plot Sr}
+
+FigureC_Ta <- pw_cdom_1 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+   ggplot(aes(x = adj_month, y = C_T_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=C_T_mean-C_T_sd, ymax=C_T_mean+C_T_sd), shape=17, size = 1)+
+    ylab(" ")+
+    xlab("Sampling Month Post-Event")+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16), axis.title.x = element_blank(), axis.text.x = element_blank() ) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field Year 1"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(FigureC_Ta)
+
+FigureC_Tb <- pw_cdom_2 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = C_T_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=C_T_mean-C_T_sd, ymax=C_T_mean+C_T_sd), shape=17, size = 1)+
+    ylab("Fluoresence Index")+
+    xlab("Sampling Month Post-Event")+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+         text= element_text(size = 16), axis.title.x = element_blank(), axis.text.x = element_blank() ) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(FigureC_Tb)
+
+FigureC_Tc <- pw_cdom_3 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = C_T_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=C_T_mean-C_T_sd, ymax=C_T_mean+C_T_sd), shape=17, size = 1)+
+    ylab(" ")+
+    xlab("Sampling Month Post-Event")+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Field Year 3"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(FigureC_Tc)
+
+
+
+FigureC_T <- ggarrange(FigureC_Ta, FigureC_Tb, FigureC_Tc, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
+
+
+FigureC_T
+
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureX_CTratio.png",FigureC_T, dpi=600,
+                   nrow = 3)
+
+
+```
 
 EDITS:spatial variability in conductivity is small, but spatial characteristics of DOM chemistry/character may be important/driving trends; and or spatial distribution of aggregates
 - plot year 2 as a function of DOC vs chemistry metrics (SUVA/ SR)
@@ -566,6 +652,16 @@ icp %>%
     geom_point(shape=17, size=4)+
     geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
     ylab("Porewater Mg2+ mg/L")+
+    xlab("Date")+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+
+icp %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = date, y = Na_mgL_Porewater_average, color = plot)) +
+    geom_point(shape=17, size=4)+
+    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
+    ylab("Porewater Na+ mg/L")+
     xlab("Date")+
     scale_color_manual(values=Anyas_colors) +
     theme_classic()

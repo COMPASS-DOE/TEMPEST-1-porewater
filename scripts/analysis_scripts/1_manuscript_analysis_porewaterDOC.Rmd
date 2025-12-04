@@ -54,13 +54,15 @@ EventStart2022 = lubridate::as_date("2022-06-22")
 WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
 WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
 
-EventStart2023 = lubridate::as_date("2022-06-06")
+EventStart2023 = lubridate::as_date("2023-06-06")
 
 WaterDeliveryStart1 = as.POSIXct("2023-06-06 05:30:00", tz = "EST")
 WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
 
 WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
+
+EventStart2024 = lubridate::as_date("2024-06-11")
 
 WaterDeliveryStart1_2024 = as.POSIXct("2024-06-11 06:10:00", tz = "EST")
 WaterDeliveryStart2_2024 = as.POSIXct("2024-06-12 06:08:00", tz = "EST")
@@ -310,7 +312,7 @@ tmpdates_doc.1 <- tmp1_first_dates %>%
 
 collection_dates <- doc_l1_pw_grids %>%
   filter(plot == "Saltwater") %>%
-  filter(evacuation_date %in% tmpdates_doc$evacuation_date) %>%
+  filter(evacuation_date %in% tmpdates_doc.1$evacuation_date) %>%
   select(evacuation_date, collection_datetime) %>%
   group_by(evacuation_date) %>%
   summarise(collection_datetime = min(collection_datetime)) %>%
@@ -323,7 +325,68 @@ tmpdates_doc
 
  saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
 ```
+These "significant dates" fall in the 
+1st month post event 2022 (i.e. July)
+2nd month post event 2023 (i.e. August)
+8th month post event 2024 (i.e. January)
 
+```{r doc stats for paper}
+
+fw_doc_mean_all <- doc_l1_pw_grids %>%
+  filter(plot == "Freshwater") %>%
+  summarize(
+    fw_mean = mean(doc_mg_l, na.rm = TRUE),
+    fw_sd = sd(doc_mg_l, na.rm = TRUE) 
+  ) 
+
+fw_doc_mean_all
+
+control_doc_mean_all <- doc_l1_pw_grids %>%
+  filter(plot == "Control") %>%
+  summarize(
+    control_mean = mean(doc_mg_l, na.rm = TRUE),
+    control_sd = sd(doc_mg_l, na.rm = TRUE) 
+  ) 
+
+control_doc_mean_all
+
+salt_doc_mean_afterincrease <- doc_l1_pw_grids %>%
+   filter(plot == "Saltwater") %>%
+  filter(
+        (evacuation_date > "2022-07-18" & evacuation_date < EventStart2023) | # year 1
+        (evacuation_date > "2023-08-07" & evacuation_date < EventStart2024 ) |  # year 2 
+        (evacuation_date > "2025-01-28" & evacuation_date < endstudydate_yr3) # year 3
+        ) %>%
+    summarize(
+    sw_mean = mean(doc_mg_l, na.rm = TRUE),
+    sw_sd = sd(doc_mg_l, na.rm = TRUE) 
+  ) 
+
+salt_doc_mean_afterincrease
+
+salt_doc_mean_beforeincrease <- doc_l1_pw_grids %>%
+   filter(plot == "Saltwater") %>%
+  filter(
+        (evacuation_date > EventStart2023 & evacuation_date < "2022-07-18") | # year 1
+        (evacuation_date > EventStart2024 & evacuation_date < "2023-08-07") |  # year 2 
+        (evacuation_date > endstudydate_yr3 & evacuation_date < "2025-01-28") # year 3
+        ) %>%
+    summarize(
+    sw_mean = mean(doc_mg_l, na.rm = TRUE),
+    sw_sd = sd(doc_mg_l, na.rm = TRUE) 
+  ) 
+
+salt_doc_mean_afterincrease
+
+percent_increase_mean <- ((salt_doc_mean_afterincrease$sw_mean - control_doc_mean_all$control_mean)/ control_doc_mean_all$control_mean) * 100
+
+percent_increase_mean
+
+sd_percent_increase <- (100 / control_doc_mean_all$control_mean) * sqrt(salt_doc_mean_afterincrease$sw_sd^2 + (control_doc_mean_all$control_sd^2 * ((salt_doc_mean_afterincrease$sw_mean - control_doc_mean_all$control_mean) / control_doc_mean_all$control_mean)^2))
+
+sd_percent_increase
+
+```
 
 ### Conductivity: What is the conductivity values when DOC is high? 
 
@@ -665,6 +728,13 @@ ph_y3_all <- ph_yr3 %>%
 saveRDS(ph_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP3.rds")
 ```
 
+### The changes in concentration observed are coupled with a dramatic shift in the organic matter chemistry (both during and after the event). 
+
+```{r load cdom data}
+
+```
+
+
 # Experimental Data Analysis for mechanistic relationships
 Workflow 
 1) Exploratory Data Analysis: look at DOC vs driver variable relationships in the ColEx data 
@@ -737,6 +807,10 @@ whitelist <- data.frame(
 
 dag <- hc(data, whitelist = whitelist)
 plot(dag)
+```
+
+
+##
 
 
 
