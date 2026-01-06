@@ -109,7 +109,7 @@ cdom_2024_2025 <- readxl::read_excel("~/GitHub/TEMPEST_Porewater/processing_scri
          C_M = C_RSU/M_RSU,
          C_T = C_RSU/T_RSU) %>%
   dplyr::mutate(Event = "TMP",
-                Plot = stringr::str_extract(SERC_inventory_id, 'FW|SW|C|ESTUARY'), 
+                Plot = stringr::str_extract(SERC_inventory_id, 'FW|SW|C|Source'), 
                 Grid = stringr::str_extract(SERC_inventory_id, "B4|C3|C6|D5|E3|F4|F6|H3|H6|I5|SOURCE|BARGE|POOL|WELL"),
                 date = stringr::str_extract(SERC_inventory_id, "[0-9]{8}"),
                 time = stringr::str_extract(SERC_inventory_id, "(?<=[0-9]{8}_)\\d{4}"),
@@ -126,7 +126,8 @@ cdom_2024 <- cdom_2024_2025 %>%
                           Plot == "C" ~ "Control",
                           Plot == "SW" ~ "Saltwater",
                           TRUE ~ Plot)) %>%
-  select(-Plot)
+  select(-Plot) %>%
+  filter(plot != "Source")
 
 cdom_2025 <- cdom_2024_2025 %>%
   select(sample_name, Plot, collection_datetime, S275_295, S350_400, Sr, FI, HIX, FRESH, BIX, A_T, C_A, C_M, C_T) %>%
@@ -136,7 +137,16 @@ cdom_2025 <- cdom_2024_2025 %>%
                           Plot == "C" ~ "Control",
                           Plot == "SW" ~ "Saltwater",
                           TRUE ~ Plot)) %>%
-  select(-Plot)
+  select(-Plot) %>%
+  filter(plot != "Source")
+
+cdom_allyears <- cdom_2022 %>%
+  full_join(cdom_2023) %>%
+  full_join(cdom_2024) %>%
+  full_join(cdom_2025)
+
+saveRDS(cdom_allyears, "~/GitHub/TEMPEST-1-porewater/data/cdom_indicies_porewater_2022-2025.rds")
+
 
 #### Year 1 CDOM signatures ####
 pw_cdom_yr1 <- cdom_2022 %>%
@@ -326,6 +336,14 @@ abs_norm_2025 <-  cdom_2024_2025 %>%
                           TRUE ~ Plot)) %>%
   select(-Plot) %>%
   select(sample_name, plot, grid, collection_date, doc_mg_l, S275_295, S350_400, Sr, SUVA254:SVA440)
+
+abs_allyears <- abs_doc_2022_pool %>%
+  full_join(abs_norm_2023) %>%
+  full_join(abs_norm_2024) %>%
+  full_join(abs_norm_2025 )
+
+saveRDS(abs_allyears, "~/GitHub/TEMPEST-1-porewater/data/absorbance_docnormalized_porewater_2022-2025.rds")
+
 
 #### Year 1 ABS signatures ####
 pw_abs_yr1 <- abs_doc_2022_pool%>%

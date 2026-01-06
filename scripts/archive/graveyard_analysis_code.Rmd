@@ -476,7 +476,7 @@ pw_ft %>% summary()
 
 ```{r tsla metrics}
 #assign timepoints and write out for various plotting efforts
-timepoints_fticrms <- divide_data(pw_ft, date, flood_event_date)   
+timepoints_fticrms <- divide_data(pw_ft, date, flood_event_datetime_1, eventB = c("2022-07-18 21:00:00 EST", "2022-07-21 15:59:00 EST"), eventB_name = "DOC_increase")   
 
 dates_fticrms_avg <- timepoints_fticrms %>%
   group_by(plot, Class_detailed, date, timedate_bin) %>%
@@ -522,6 +522,262 @@ summary(lmm_res)
 
 #baci_stats(dates_fticrms_avg_stats, var = relabund, plot = "Saltwater",  p_value_threshold = 0.05)
   
+```
+
+#Figure 4 OM chemistry shifts
+The changes in concentration observed are coupled with a dramatic shift in the organic matter chemistry (both during and after the event). 
+```{r load om chem data}
+
+fticrms_relabund_avg <- read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_relativeabundance_premidpost_fticrms_porewater.rds")
+
+fticrms_relabund_dates <-read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_relabund_dates_fticrms_porewater.rds")
+
+```
+
+```{r load cdom data}
+
+cdom_metrics_avg <- read_rds("~/GitHub/TEMPEST-1-porewater/data/avg_metrics_premidpost_cdom_porewater.rds") %>%
+  mutate(value_sd = case_when(is.na(value_sd) ~ 0,
+                              TRUE ~ value_sd))
+
+pw_cdom_1 <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP1.rds")
+
+pw_cdom_2 <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP2.rds")
+
+pw_cdom_3 <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP3.rds")
+
+
+```
+
+## Figure 4 A
+
+```{r om chemistry plot}
+colorblind_friendly_custom <- c("#66C2A5", "#FC8D62", "#FFD92F", "#E78AC3", "#A6D854", "#8DA0CB")
+
+rel_abd_fig <- fticrms_relabund_avg %>%
+  mutate(timedate_bin = factor(timedate_bin, levels = c("Pre", "Mid","Btwn Events", "DOC_increase", "Post"))) %>%
+  arrange(timedate_bin) %>%
+  group_by(plot, timedate_bin) %>%
+  ggplot() +
+  geom_bar(aes(x = timedate_bin, y = relabund_mean, fill = Class_detailed), stat= "identity") +
+    labs(x = "Event Timepoint", y = "Relative Abundance (%)", fill = "Assigned FTICR-MS groupings", title = "a)")+
+    scale_fill_manual(values = colorblind_friendly_custom)  + 
+  facet_wrap(~factor(plot, level=plot_order), nrow = 1, 
+             labeller = label_wrap_gen(10)) +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        text = element_text(size = 14),          # Global text size
+        axis.title = element_text(size=16),      # Axis title size
+        axis.text = element_text(size=14),       # Axis text size
+        legend.title = element_text(size=14),    # Legend title size
+        legend.text = element_text(size=12),     # Legend text size
+        strip.text = element_text(size=14),      # Facet title size
+        plot.title = element_text(size=18))      # Plot title size
+  
+rel_abd_fig
+
+figure3a <- fticrms_relabund_avg %>%
+  mutate(timedate_bin = factor(timedate_bin, levels = c("Pre", "Mid","Btwn Events", "DOC_increase", "Post"))) %>%
+  arrange(timedate_bin) %>%
+  filter(Class_detailed == "highly aromatic") %>%
+  group_by(plot, timedate_bin) %>%
+  ggplot() +
+  geom_bar(aes(x = timedate_bin, y = relabund_mean), stat= "identity") +
+    labs(x = "Event Timepoint", y = "Relative Abundance of aromatics (%)",  title = "a)")+
+    scale_fill_manual(values = colorblind_friendly_custom)  + 
+  facet_wrap(~factor(plot, level=plot_order), nrow = 1, 
+             labeller = label_wrap_gen(10)) +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        text = element_text(size = 14),          # Global text size
+        axis.title = element_text(size=16),      # Axis title size
+        axis.text = element_text(size=14),       # Axis text size
+        legend.title = element_text(size=14),    # Legend title size
+        legend.text = element_text(size=12),     # Legend text size
+        strip.text = element_text(size=14),      # Facet title size
+        plot.title = element_text(size=18))      # Plot title size
+
+figure3a
+```
+figure3b <- cdom_metrics_avg %>%
+  mutate(timedate_bin = factor(timedate_bin, levels = c("Pre", "Mid", "Post"))) %>%
+  arrange(timedate_bin) %>%
+  group_by(plot, timedate_bin) %>%
+  filter(metric == "suva_254") %>%
+  ggplot() +
+  geom_bar(aes(x = timedate_bin, y = value_mean), stat= "identity") +
+  geom_errorbar(aes(x = timedate_bin, ymin = value_mean-value_sd, ymax = value_mean + value_sd))+
+    labs(x = "Event Timepoint", y = "SUVA", title = "b)")+
+  facet_wrap(~factor(plot, level=plot_order), nrow = 1, 
+             labeller = label_wrap_gen(10)) +
+  theme_classic() +
+  theme(legend.position = "bottom",
+        text = element_text(size = 14),          # Global text size
+        axis.title = element_text(size=16),      # Axis title size
+        axis.text = element_text(size=14),       # Axis text size
+        legend.title = element_text(size=14),    # Legend title size
+        legend.text = element_text(size=12),     # Legend text size
+        strip.text = element_text(size=14),      # Facet title size
+        plot.title = element_text(size=18))      # Plot title size
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/figure3_pw_FTICRMS.png",figure3, dpi=300, base_asp = 1.5, base_height = 8, base_width = 14)
+
+
+```{r timeline}
+##
+fticrms_relabund_dates %>%
+  filter(Class_detailed == "highly aromatic") %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = date, y = relabund_mean, color = plot)) +
+    geom_vline(xintercept = flood_event_datetime,linetype="dashed",color="grey")+ 
+   geom_pointrange(aes(ymin=relabund_mean-relabund_sd, ymax=relabund_mean+relabund_sd), shape=17, size=1)+
+    ylab("Relative abundance of highly aromatic group (%)")+
+    xlab("Date")+
+    ylim(0,40)+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+```
+
+## Figure 4 B 
+- Slope Ratio (proxy for HMW/LMW) through year (FW & SW plots, TMP 1 & 2) https://aslopubs.onlinelibrary.wiley.com/doi/abs/10.4319/lo.2008.53.3.0955
+- SUVA (using average DOC for the plots?) (FW & SW plots, TMP 1 & 2)
+
+```{r plot Sr}
+
+FigureC_Ta <- pw_cdom_1 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+   ggplot(aes(x = adj_month, y = C_T_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=C_T_mean-C_T_sd, ymax=C_T_mean+C_T_sd), shape=17, size = 1)+
+    ylab(" ")+
+    xlab("Sampling Month Post-Event")+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16), axis.title.x = element_blank(), axis.text.x = element_blank() ) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field Year 1"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(FigureC_Ta)
+
+FigureC_Tb <- pw_cdom_2 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = C_T_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=C_T_mean-C_T_sd, ymax=C_T_mean+C_T_sd), shape=17, size = 1)+
+    ylab("Fluoresence Index")+
+    xlab("Sampling Month Post-Event")+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+         text= element_text(size = 16), axis.title.x = element_blank(), axis.text.x = element_blank() ) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(FigureC_Tb)
+
+FigureC_Tc <- pw_cdom_3 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = C_T_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=C_T_mean-C_T_sd, ymax=C_T_mean+C_T_sd), shape=17, size = 1)+
+    ylab(" ")+
+    xlab("Sampling Month Post-Event")+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Field Year 3"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(FigureC_Tc)
+
+
+
+FigureC_T <- ggarrange(FigureC_Ta, FigureC_Tb, FigureC_Tc, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
+
+
+FigureC_T
+
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureX_CTratio.png",FigureC_T, dpi=600,
+                   nrow = 3)
+
+
+```
+
+EDITS:spatial variability in conductivity is small, but spatial characteristics of DOM chemistry/character may be important/driving trends; and or spatial distribution of aggregates
+- plot year 2 as a function of DOC vs chemistry metrics (SUVA/ SR)
+## Figure 5 Mechanisms
+
+```{r load cond doc data}
+cond_doc <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships_SALT.rds")
+
+cond_doc_control <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_cond_data_for_relationships_CONTROLPLOT.rds")
+
+```
+
+```{r make line for fig 5}
+
+start_a <- max(cond_doc$doc_mg_l) 
+start_b <- -0.001
+
+# Fit the model using nls
+fit_nls <- nls(doc_mg_l ~ a * exp(b * mean_EC_uScm_15cm), data = cond_doc, start = list(a = start_a, b = start_b))
+
+# Summary of the model
+summary(fit_nls)
+# Extract fitted values
+coefficients <- coef(fit_nls)
+a <- coefficients["a"]
+b <- coefficients["b"]
+
+# Create a prediction data frame
+new_data <- data.frame(mean_EC_uScm_15cm = seq(min(cond_doc$mean_EC_uScm_15cm), max(cond_doc$mean_EC_uScm_15cm), length.out = 100))
+new_data$pred <- predict(fit_nls, newdata = new_data)
+
+# Compute standard error of the fit
+se_fit <- sqrt(sum(residuals(fit_nls)^2) / df.residual(fit_nls))
+new_data$lower <- new_data$pred - 1.96 * se_fit
+new_data$upper <- new_data$pred + 1.96 * se_fit
+
+```
+
+```{r figure 5}
+pal= wesanderson::wes_palette("Zissou1", 21, type = "continuous")
+
+condFig <- cond_doc %>%
+  ggplot() +
+  geom_point(data= , aes(x = max_EC_uScm_15cm, y = doc_mg_l, color = adj_month), shape = 16, size=5) +
+  stat_smooth(aes(x = mean_EC_uScm_15cm, y = doc_mg_l),
+    method="nls",
+    formula = y ~ a * exp(b * x),
+    method.args = list(start = list(a = a, b = b)),    # Starting values for a and b
+    se=FALSE) +
+  scale_color_gradientn(colors = pal)+
+ # geom_ribbon(data = new_data, aes(x= max_EC_uScm_15cm, ymin = lower, ymax = upper), fill = "blue", alpha = 0.2) +
+  ylab("DOC (mg/L)") +
+  xlab("Mean Soil Conductivity during lysimeter collection") +
+  theme_classic()
+
+condFig
+
+plotly::ggplotly(condFig)
 ```
 
 

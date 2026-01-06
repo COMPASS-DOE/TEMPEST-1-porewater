@@ -54,6 +54,9 @@ EventStart2022 = lubridate::as_date("2022-06-22")
 WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
 WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
 
+flood_event_datetime_1 <- c(WaterDeliveryStart2022, WaterDeliveryStop2022)
+
+
 EventStart2023 = lubridate::as_date("2023-06-06")
 
 WaterDeliveryStart1 = as.POSIXct("2023-06-06 05:30:00", tz = "EST")
@@ -62,11 +65,17 @@ WaterDeliveryStop1 = as.POSIXct("2023-06-06 14:30:00", tz = "EST")
 WaterDeliveryStart2 = as.POSIXct("2023-06-07 05:30:00", tz = "EST")
 WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 
+flood_event_datetime_2 <- c(WaterDeliveryStart1, WaterDeliveryStop2)
+
 EventStart2024 = lubridate::as_date("2024-06-11")
 
 WaterDeliveryStart1_2024 = as.POSIXct("2024-06-11 06:10:00", tz = "EST")
 WaterDeliveryStart2_2024 = as.POSIXct("2024-06-12 06:08:00", tz = "EST")
 WaterDeliveryStart3_2024 = as.POSIXct("2024-06-13 06:21:00", tz = "EST")
+
+WaterDeliveryStop3_2024 = as.POSIXct("2024-06-13 16:29:00", tz = "EST")
+
+flood_event_datetime_3 <- c(WaterDeliveryStart1_2024, WaterDeliveryStop3_2024)
 
 plot_order <- c('Control', 'Freshwater','Saltwater')
 time_order <- c('Pre', 'Mid','Post')
@@ -319,7 +328,8 @@ collection_dates <- doc_l1_pw_grids %>%
   ungroup()
 
 tmpdates_doc <-  tmpdates_doc.1 %>%
-  full_join(collection_dates, by= "evacuation_date")
+  full_join(collection_dates, by= "evacuation_date") %>%
+  mutate(date_type = c("Year1_date", "Year2_date", "Year3_date"))
 
 tmpdates_doc 
 
@@ -732,7 +742,174 @@ saveRDS(ph_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP3
 
 ```{r load cdom data}
 
+cdom_yr1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP1.rds")
+cdom_yr2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP2.rds")
+cdom_yr3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP3.rds")
+
+cdom_allyrs <- readRDS("~/GitHub/TEMPEST-1-porewater/data/cdom_indicies_porewater_2022-2025.rds")
 ```
+
+```{r load abs data}
+
+abs_allyears <- readRDS("~/GitHub/TEMPEST-1-porewater/data/absorbance_docnormalized_porewater_2022-2025.rds")
+```
+
+
+```{r load functions for analysis}
+
+source("~/GitHub/tempest-system-level-analysis/data_package_prep/scripts/tmp_test_functions.R")
+
+#set doc increase dates 
+
+tmpdates_doc1 <- tmpdates_doc %>%
+  filter(date_type == "Year1_date") %>%
+  select(evacuation_date, collection_datetime) %>%
+  rename(datetime = evacuation_date,
+         datetime2 = collection_datetime) %>%
+  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
+
+tmpdates_doc2 <- tmpdates_doc %>%
+  filter(date_type == "Year2_date") %>%
+  select(evacuation_date, collection_datetime) %>%
+  rename(datetime = evacuation_date,
+         datetime2 = collection_datetime) %>%
+  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
+
+tmpdates_doc3 <- tmpdates_doc %>%
+  filter(date_type == "Year3_date") %>%
+  select(evacuation_date, collection_datetime) %>%
+  rename(datetime = evacuation_date,
+         datetime2 = collection_datetime) %>%
+  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
+
+```
+
+#NOTE there are some issues with time zones messing up the dates slightly here!!!!
+```{r divide data for cdom}
+
+cdom_tmp1 <- cdom_allyrs %>%
+  rename(datetime = collection_datetime) %>%
+  filter(between(datetime, startstudydate_yr1, endstudydate_yr1))
+
+cdom_tmp1_dd <- divide_data(cdom_tmp1, datetime, flood_event_datetime_1, eventB = c(tmpdates_doc1$datetime, tmpdates_doc1$datetime2), eventB_name = "DOC_increase")
+
+cdom_tmp2 <- cdom_allyrs %>%
+  rename(datetime = collection_datetime) %>%
+  filter(between(datetime, startstudydate_yr2, endstudydate_yr2))
+
+cdom_tmp2_dd <- divide_data(cdom_tmp2, datetime, flood_event_datetime_2, eventB = c(tmpdates_doc2$datetime, tmpdates_doc2$datetime2), eventB_name = "DOC_increase")
+
+cdom_tmp3 <- cdom_allyrs %>%
+  rename(datetime = collection_datetime) %>%
+  filter(between(datetime, startstudydate_yr3, endstudydate_yr3))
+
+cdom_tmp3_dd <- divide_data(cdom_tmp3, datetime, flood_event_datetime_3, eventB = c(tmpdates_doc3$datetime, tmpdates_doc3$datetime2), eventB_name = "DOC_increase")
+
+cdom_indicies_divided_all <- cdom_tmp1_dd %>%
+  full_join(cdom_tmp2_dd) %>%
+  full_join(cdom_tmp3_dd) 
+
+```
+
+```{r try multivariate eems analysis}
+
+eems4multi <- cdom_indicies_divided_all %>%
+  select(-plot, -timedate_bin, -sample_name, -datetime) 
+
+
+eemspca = prcomp(eems4multi , retx = TRUE, center = TRUE, scale. = TRUE)
+
+library(vegan)
+
+nmds = vegan::metaMDS(eems4multi, distance="bray", 
+          k = 3,
+          maxit = 999, 
+          trymax = 500,
+          wascores = TRUE)
+
+```
+
+```{r prelim plots}
+
+
+cdom_indicies_divided_all %>%
+    group_by(plot, timedate_bin) %>%
+   select(-sample_name) %>%
+    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
+   ungroup() %>%
+  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Btwn Events", "DOC_increase", "Post")), 
+               y=A_T_mean)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = A_T_mean - A_T_sd, ymax= A_T_mean + A_T_sd), width = 0.2) +
+  facet_wrap( ~ plot)
+
+biplot(eemspca)
+
+library(dplyr)
+library(ggplot2)
+library(ggfortify)
+library("wesanderson")
+
+pal <- wes_palette("Darjeeling2",5, type = "discrete")
+
+graphy <-autoplot(eemspca, data = cdom_indicies_divided_all, shape= 'plot', colour= 'timedate_bin',
+  size=2,
+  loadings = TRUE, loadings.colour = 'black',
+  loadings.label = TRUE, loadings.label.size = 2)+
+  scale_colour_manual(values = pal) + 
+  scale_shape_manual( values = c("Control" = 2, "Freshwater" = 1, "Saltwater" = 16)  )+
+  cowplot::theme_cowplot()
+
+print(graphy)
+
+
+loc <- cdom_indicies_divided_all %>% select(plot, timedate_bin)
+
+env1 <- vegan::envfit(nmds, loc, permu = 999)
+
+vegan::ordiplot(nmds, display = 'si', type = 'n')
+points(nmds, pch = 19)
+vegan::ordiellipse(nmds, groups= cdom_indicies_divided_all$timedate_bin )
+
+```
+
+
+
+
+## CEC from pre event soils
+
+```{r cec}
+
+
+soils_directory <- "https://docs.google.com/spreadsheets/d/1a-4Nt7jorO301bi3NF9ebGhwNx_hVjPG/edit?gid=456381663#gid=456381663"
+
+directory= file.path(here::here() %>% dirname(), 'TEMPEST-1-Porewater/data_do_not_commit/')
+
+file_path = file.path(directory,"UGA_soils_analysis_2020.xlsx")
+
+googledrive::drive_download(soils_directory, path= file_path, overwrite = TRUE)
+```
+
+```{r cec 2}
+
+soil_data <- readxl::read_excel("~/GitHub/TEMPEST-1-Porewater/data_do_not_commit//UGA_soils_analysis_2020.xlsx", skip = 8) %>%
+  mutate(plot = case_when(stringr::str_detect(Sample, "C:") ~ "Control",
+                          stringr::str_detect(Sample, "F:") ~ "Freshwater",
+                          stringr::str_detect(Sample, "S:") ~ "Saltwater",
+                          TRUE ~ NA),
+         depth = case_when(stringr::str_detect(Sample, " 0-5") ~ "0-5",
+                           stringr::str_detect(Sample, "5-10") ~ "5-10",
+                           stringr::str_detect(Sample, "10-15") ~ "10-15",
+                           TRUE ~ "deeper than 15cm"))  %>%
+  filter(depth != "deeper than 15cm") %>%
+  select(-Lab, - Sample) %>%
+    group_by(plot) %>%
+      dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
+   ungroup()
+  
+```
+
+
 
 
 # Experimental Data Analysis for mechanistic relationships
