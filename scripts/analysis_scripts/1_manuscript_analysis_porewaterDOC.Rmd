@@ -335,6 +335,22 @@ tmpdates_doc
 
  saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
 ```
+
+```{r time elapsed}
+
+yr1_elapsed_time <- tmpdates_doc %>% 
+  mutate(event_stop_date = c(as_date(WaterDeliveryStop2022), as_date(WaterDeliveryStop2), as_date(WaterDeliveryStop3_2024))) %>%
+  mutate(elapsed_time_days = evacuation_date- event_stop_date)
+
+yr1_elapsed_time
+```
+
+
+
+
+
+
+
 These "significant dates" fall in the 
 1st month post event 2022 (i.e. July)
 2nd month post event 2023 (i.e. August)
