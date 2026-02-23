@@ -411,6 +411,28 @@ icp %>%
     xlab("Date")+
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
+
+icp %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = date, y = Fe_mgL_Porewater_average, color = plot)) +
+    geom_point(shape=17, size=4)+
+    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = as.Date("2022-07-21 15:59:00"),linetype="solid",color="grey")+ 
+    ylab("Porewater Fetot mg/L")+
+    xlab("Date")+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
+
+icp %>%
+  mutate(plot = factor(plot, levels = plot_order)) %>%
+    ggplot(aes(x = date, y = Al_mgL_Porewater_average, color = plot)) +
+    geom_point(shape=17, size=4)+
+    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = as.Date("2022-07-21 15:59:00"),linetype="solid",color="grey")+ 
+    ylab("Porewater Al mg/L")+
+    xlab("Date")+
+    scale_color_manual(values=Anyas_colors) +
+    theme_classic()
 ```
 
 ```{r graveyard}
