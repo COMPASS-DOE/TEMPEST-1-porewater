@@ -126,7 +126,8 @@ Figure1a <- pw_doc_1 %>%
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16), axis.title.x = element_blank(), axis.text.x = element_blank() ) +
+          text= element_text(size = 16),  axis.title.x = element_blank() )+
+          #, axis.title.x = element_blank(), axis.text.x = element_blank() ) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field Year 1"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
 print(Figure1a)
@@ -149,7 +150,8 @@ Figure1b <- pw_doc_2 %>%
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
-         text= element_text(size = 16), axis.title.x = element_blank(), axis.text.x = element_blank() ) +
+         text= element_text(size = 16) ) +
+       #  , axis.title.x = element_blank(), axis.text.x = element_blank() ) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
 print(Figure1b)
@@ -172,7 +174,8 @@ Figure1c <- pw_doc_3 %>%
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16)) +
+          text= element_text(size = 16), 
+          axis.title.x = element_blank() ) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Field Year 3"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
 print(Figure1c)
@@ -202,15 +205,18 @@ fig1_legend = get_legend(Figure1b_LEGEND)
 
 
 
-Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
+#Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
 
 
-Figure1
+#Figure1
 
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
-                   nrow = 3)
+#cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
+#                   nrow = 3)
 
+all_hands_fig<- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
+
+all_hands_fig
 
 ```
 
