@@ -205,64 +205,31 @@ fig1_legend = get_legend(Figure1b_LEGEND)
 
 
 
-#Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
+# Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
 
 
-#Figure1
+# Figure1
 
 
-#cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
+# cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
 #                   nrow = 3)
 
-all_hands_fig<- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
+all_hands_fig <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
 
 all_hands_fig
 
 ```
 
 # Supplemental Figures
-1. Water Isotopes (from Lindsey)
+1. SPC through year (SW plot, TMP 1 & 2)
 2. Column Experiment DOC
-3. SPC through year (SW plot, TMP 1 & 2)
 2. pH through year (FW and SW plot, TMP 2)
 3. DO before/during/after event (FW and SW plot, TMP 1 & 2? Discuss with Peter)
 
-#Supplemental Figure 2: Column Experiment DOC
+Water Isotopes (from Lindsey)
 
-```{r, load col ex}
-exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
-  mutate(Wash = case_when(is.na(Wash) ~ 0,
-                          TRUE ~ Wash),
-    Treatment = case_when(Treatment == "AS" ~ "Artificial Saltwater",
-                               Treatment == "FW" ~ "Artificial Freshwater",
-                               Treatment == "Control" ~ "Control",
-                               Treatment == "SWE" ~ "Artificial Saltwater",
-                               Treatment == "CL" ~ "Artificial Freshwater",
-                          TRUE ~ Treatment)) %>%
-  mutate(Treatment = factor(Treatment, levels = Treatment_order))
-```
 
-```{r, col ex}
-SI2 <- exp_doc %>%
-   ggplot(aes(x = Wash, y = doc_mg_l_mean, color = Treatment)) +
-   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
-    ylab("DOC mg/L")+
-    xlab("Treatment Wash Number")+
-   # title("Field Manipulation") +
-    ylim(-10,100)+
-    scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    scale_shape_manual(values = c(2, 17))+ 
-    theme_classic() +
-    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  Column Experiment"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
-
-print(SI2)
-```
-
-# Supplemental Figure 3: SPC timeseries 
+# Supplemental Figure 1: SPC timeseries 
 ```{r bring in SPC}
 
 pw_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
@@ -316,7 +283,55 @@ pw_ec_all %>%
     theme_classic()
 
 
-# Supplmental Figure 2: pH timeseries 
+
+#Supplemental Figure 2: Column Experiment DOC
+
+```{r load col ex}
+# exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
+#   mutate(Wash = case_when(is.na(Wash) ~ 0,
+#                           TRUE ~ Wash),
+#     Treatment = case_when(Treatment == "AS" ~ "Artificial Saltwater",
+#                                Treatment == "FW" ~ "Artificial Freshwater",
+#                                Treatment == "Control" ~ "Control",
+#                                Treatment == "SWE" ~ "Artificial Saltwater",
+#                                Treatment == "CL" ~ "Artificial Freshwater",
+#                           TRUE ~ Treatment)) %>%
+#   mutate(Treatment = factor(Treatment, levels = Treatment_order))
+
+exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/TEMPEST_Col_Ex_all_chem_averaged_L2.csv") %>%
+  mutate(Wash = case_when(is.na(Timepoint) ~ 0,
+                          TRUE ~ Timepoint),
+    Treatment = case_when(Treatment == "SW" ~ "Artificial Saltwater",
+                               Treatment == "FW" ~ "Artificial Freshwater",
+                               Treatment == "Control" ~ "Control",
+                               Treatment == "SWE" ~ "Artificial Saltwater",
+                               Treatment == "CL" ~ "Artificial Freshwater",
+                          TRUE ~ Treatment)) %>%
+  mutate(Treatment = factor(Treatment, levels = Treatment_order))
+```
+
+```{r col ex}
+SI2 <- exp_doc %>%
+   ggplot(aes(x = Wash, y = doc_mgperL_avg, color = Treatment)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mgperL_avg-doc_mgperL_sd, ymax=doc_mgperL_avg+doc_mgperL_sd), shape=17, size = 1)+
+    ylab("DOC mg/L")+
+    xlab("Treatment Wash Number")+
+   # title("Field Manipulation") +
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  Column Experiment"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(SI2)
+```
+
+
+# Supplmental Figure 3: pH 
 
 ```{r load pH data}
 
@@ -343,7 +358,7 @@ ph %>%
     theme_classic()
 ```
 
-# Option 2 pH vs DOC
+## SI 3 Option 2 pH vs DOC
 
 ```{r load ph year plot avgs}
 ph_2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP2.rds") %>%
@@ -379,6 +394,85 @@ ph_doc %>%
 ```
 
 
+# Supplemental Figure 4: ICP data from column experiment 
+
+```{r icp column}
+
+exp_col_dat <- read_csv("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/TEMPEST_Col_Ex_all_chem_averaged_L2.csv") %>%
+  mutate(Wash = case_when(is.na(Timepoint) ~ 0,
+                          TRUE ~ Timepoint),
+    Treatment = case_when(Treatment == "SW" ~ "Artificial Saltwater",
+                               Treatment == "FW" ~ "Artificial Freshwater",
+                               Treatment == "Control" ~ "Control",
+                               Treatment == "SWE" ~ "Artificial Saltwater",
+                               Treatment == "CL" ~ "Artificial Freshwater",
+                          TRUE ~ Treatment)) %>%
+  mutate(Treatment = factor(Treatment, levels = Treatment_order))
+
+
+```
+Fe, Al, Ca
+```{r icp col ex}
+SI4_a <- exp_col_dat %>%
+  filter(Treatment == "Artificial Saltwater")  %>%
+   ggplot(aes(x = Wash, y = Fe_ppm_avg), color = "#C38D18") +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=Fe_ppm_avg-Fe_ppm_sd, ymax=Fe_ppm_avg+Fe_ppm_sd), shape=17, size = 1, color = "#C38D18")+
+    ylab("Fe mg/L")+
+    xlab(" ")+
+   # title("Field Manipulation") +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  Column Experiment"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(SI4_a)
+
+SI4_b <- exp_col_dat %>%
+  filter(Treatment == "Artificial Saltwater")  %>%
+   ggplot(aes(x = Wash, y = Al_ppm_avg), color = "#DCDCDA") +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=Al_ppm_avg-Al_ppm_sd, ymax=Al_ppm_avg+Al_ppm_sd), shape=17, size = 1, color = "#DCDCDA")+
+    ylab("Al mg/L")+
+    xlab(" ")+
+   # title("Field Manipulation") +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  Column Experiment"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(SI4_b)
+
+SI4_c <- exp_col_dat %>%
+  filter(Treatment == "Artificial Saltwater")  %>%
+   ggplot(aes(x = Wash, y = Ca_ppm_avg), color = "#009DBD") +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=Ca_ppm_avg-Ca_ppm_sd, ymax=Ca_ppm_avg+Ca_ppm_sd), shape=17, size = 1, color = "#009DBD")+
+    ylab("Ca mg/L")+
+    xlab("Treatment Wash Number")+
+   # title("Field Manipulation") +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  Column Experiment"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(SI4_c)
+
+SI4 <- ggarrange(SI4_a, SI4_b, SI4_c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
+
+SI4
+
+ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS4.png",SI4, dpi=600,
+                  nrow = 3)
+```
+
+# Supplemental Figure 5: ICP data from YR 1 through time 
 
 
 ```{r load ICP data}
@@ -388,17 +482,21 @@ icp <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/T
 ```
 
 ```{r icp timeseries}
-icp %>%
+ca <- icp %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = date, y = Ca_mgL_Porewater_average, color = plot)) +
     geom_point(shape=17, size=4)+
-    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
-    ylab("Porewater Ca2+ mg/L")+
-    xlab("Date")+
+    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="blue")+ 
+    geom_vline(xintercept = as.Date("2022-07-21 15:59:00"),linetype="solid",color="grey")+
+    ylab("Porewater Ca (mg/L)")+
+    xlab("")+
     scale_color_manual(values=Anyas_colors) +
-    theme_classic()
+    theme_classic()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
+  theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16))
 
-icp %>%
+mg <- icp %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = date, y = Mg_mgL_Porewater_average, color = plot)) +
     geom_point(shape=17, size=4)+
@@ -408,7 +506,7 @@ icp %>%
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
 
-icp %>%
+na <- icp %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = date, y = Na_mgL_Porewater_average, color = plot)) +
     geom_point(shape=17, size=4)+
@@ -418,29 +516,43 @@ icp %>%
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
 
-icp %>%
+fe <-icp %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = date, y = Fe_mgL_Porewater_average, color = plot)) +
     geom_point(shape=17, size=4)+
-    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="blue")+ 
     geom_vline(xintercept = as.Date("2022-07-21 15:59:00"),linetype="solid",color="grey")+ 
-    ylab("Porewater Fetot mg/L")+
-    xlab("Date")+
+    ylab("Porewater Fe (mg/L)")+
+    xlab("")+
     scale_color_manual(values=Anyas_colors) +
-    theme_classic()
+    theme_classic()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))  +
+  theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16))
 
-icp %>%
+al <- icp %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = date, y = Al_mgL_Porewater_average, color = plot)) +
     geom_point(shape=17, size=4)+
-    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
+    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="blue")+ 
     geom_vline(xintercept = as.Date("2022-07-21 15:59:00"),linetype="solid",color="grey")+ 
-    ylab("Porewater Al mg/L")+
+    ylab("Porewater Al (mg/L)")+
     xlab("Date")+
     scale_color_manual(values=Anyas_colors) +
-    theme_classic()
-```
+    theme_classic()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))  +
+  theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16))
 
+SI5 <- ggarrange(fe, al, ca, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
+
+SI5
+
+ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS5.png",SI5, dpi=600,
+                  nrow = 1)
+
+```
+#graveyard 
 ```{r graveyard}
 Figure1d <- exp_doc %>%
   mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
