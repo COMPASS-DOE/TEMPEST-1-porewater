@@ -921,9 +921,129 @@ soil_data <- readxl::read_excel("~/GitHub/TEMPEST-1-Porewater/data_do_not_commit
   select(-Lab, - Sample) %>%
     group_by(plot) %>%
       dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
-   ungroup()
+   ungroup() %>%
+  mutate(depth_mean = "0-15cm") %>%
+  select(-depth_sd)
+
+soil_data_bhm <- soil_data %>%
+  filter(plot == "Control") %>%
+  select(plot, depth_mean, `Base
+Saturation_mean`, `Base
+Saturation_sd`, CEC_mean, CEC_sd, `pH 2_mean`, `pH 2_sd`, C_mean, C_sd, Na_mean, Na_sd, 
+         K_mean, K_sd, Ca_mean, Ca_sd, Mg_mean, Mg_sd, Fe_mean, Fe_sd) %>%
+  rename(Base_Saturation_percent = `Base
+Saturation_mean`,
+         Base_Saturation_percent_stdev = `Base
+Saturation_sd`,
+         CEC_meqper100g = CEC_mean,
+         CEC_meqper100g_stdev = CEC_sd,
+         pH = `pH 2_mean`, 
+         pH_stdev = `pH 2_sd`,
+         SoilC_percent = C_mean, 
+         SoilC_percent_stdev = C_sd, 
+         Na_ppm = Na_mean, 
+         Na_ppm_stdev = Na_sd, 
+         K_ppm = K_mean, 
+         K_ppm_stdev = K_sd, 
+         Ca_ppm = Ca_mean, 
+         Ca_ppm_stdev = Ca_sd, 
+         Mg_ppm = Mg_mean, 
+         Mg_ppm_stdev = Mg_sd, 
+         Fe_ppm = Fe_mean, 
+         Fe_ppm_stdev = Fe_sd)
+
+write_csv(soil_data_bhm, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_soildata_2020.csv")
+
   
 ```
+
+
+# ColEx fluxes 
+
+```{r colex fluxes}
+
+colex_data <- readxl::read_excel("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/ColEx_data_allreps_alltreatments_formatted.xlsx")
+
+```
+
+
+```{r col ex doc flux}
+
+colex_flux <- colex_data %>%
+  group_by(Treatment, Column) %>%
+  mutate(across(doc_mgperL:S_ppm, ~ .x * (volume_added_mL/1000), .names = "mgtot_{.col}")) %>%
+  rename_with(~ str_remove(.x, "_[^_]+$"), starts_with("mgtot_")) %>%
+  filter(Timepoint != 1) %>%
+  filter(Column != "Treatment Water") %>%
+  summarise(across(starts_with("mgtot_"), sum, na.rm = TRUE), .groups = "drop")
+
+
+colex_flux_tot <- colex_flux%>%
+  ungroup() %>%
+  group_by(Treatment) %>%
+  summarise(across(starts_with("mgtot_"), list(mean = mean, sd = sd), na.rm = TRUE, .names = "{.col}_{.fn}"), .groups = "drop")
+
+```
+
+```{r column soil}
+
+soil_masses <- readxl::read_excel("~/GitHub/TEMPEST-1-porewater/data_do_not_commit/from ed/Column_data_Soil_masses.xlsx",skip=5) %>%
+  select(Column, soil_g) %>% drop_na()
+
+colex_soil <- colex_flux %>%
+  full_join(soil_masses, by="Column") %>%
+  drop_na()
+
+soil_c <- soil_data %>%
+  select(plot, C_mean, C_sd, N_mean, N_sd, Na_mean, Na_sd, K_mean, K_sd, Mg_mean, Mg_sd, Ca_mean, Ca_sd, Fe_mean, Fe_sd, Mn_mean, Mn_sd) %>%
+  mutate(Treatment = case_when(plot == "Saltwater" ~ "ASW",
+                               TRUE ~ plot)) 
+
+#save for BHM
+
+colex_soil_2 <- colex_soil %>%
+  select(Treatment, Column, soil_g)
+
+write_csv(colex_soil_2, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_ColEx_soil_masses.csv")
+
+```
+need a monte carlo to propagate uncertainty since we dont have exact soil carbon values for these cores. 
+```{r c flux vs c soil}
+n_sim <- 10000 #number of simulations 
+
+soils_colex <- colex_soil %>%
+  left_join(soil_c, by = "Treatment")
+
+#function to repeat simulation results, drawing on random C value per treatment from a normal distribution of the data.
+#Then, calculate C stock - C export 
+sim_results <- replicate(n_sim, {
+  
+  # one C draw per treatment
+  C_draws <- soils_colex %>%
+    distinct(Treatment, C_mean_mg, C_sd_mg) %>% #C is in % from the UGA values
+    mutate(C_draw = rnorm(n(), C_mean_mg, C_sd_mg))
+  
+  df_sim <- soils_colex %>%
+    select(Column, Treatment, soil_g, mgtot_doc) %>%
+    left_join(select(C_draws, Treatment, C_draw), by = "Treatment") %>%
+    mutate(
+      soil_stock_g = soil_g * C_draw, # g soil x g C / 100g soil 
+      net_C_g = soil_stock_g - (mgtot_doc/1000)
+    )
+  
+# summarize 
+
+ df_sim %>%
+    group_by(Treatment) %>%
+    summarise(mean_net_C = mean(net_C), .groups = "drop") %>%
+    pull(mean_net_C)
+
+})
+
+
+```
+
+
 
 
 
@@ -940,7 +1060,7 @@ Workflow
 ### Exploratory data analysis
 
 ```{r load ColEx data}
-ColEx <- read_excel("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/ColEx_data_allreps_formatted.xlsx") %>% #drop initial for this
+ColEx <- readxl::read_excel("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/ColEx_data_allreps_formatted.xlsx") %>% #drop initial for this
   filter(Timepoint != 0)
 
 ```
