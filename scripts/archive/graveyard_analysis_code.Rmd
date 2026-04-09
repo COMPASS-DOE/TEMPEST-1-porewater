@@ -579,11 +579,11 @@ rel_abd_fig
 figure3a <- fticrms_relabund_avg %>%
   mutate(timedate_bin = factor(timedate_bin, levels = c("Pre", "Mid","Btwn Events", "DOC_increase", "Post"))) %>%
   arrange(timedate_bin) %>%
-  filter(Class_detailed == "highly aromatic") %>%
+  filter(Class_detailed == "aliphatic+N") %>%
   group_by(plot, timedate_bin) %>%
   ggplot() +
   geom_bar(aes(x = timedate_bin, y = relabund_mean), stat= "identity") +
-    labs(x = "Event Timepoint", y = "Relative Abundance of aromatics (%)",  title = "a)")+
+    labs(x = "Event Timepoint", y = "Relative Abundance of N containing OM (%)",  title = "a)")+
     scale_fill_manual(values = colorblind_friendly_custom)  + 
   facet_wrap(~factor(plot, level=plot_order), nrow = 1, 
              labeller = label_wrap_gen(10)) +
