@@ -552,6 +552,35 @@ SI5
                   nrow = 1)
 
 ```
+### Supplemental Figure XX: Precip and DOC
+
+```{r precip}
+doc_precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_allyrs_withprecip.csv")
+precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/mean_monthly_precip_2006-2026.csv")
+```
+
+```{r plots doc rain}
+rain_doc <- doc_precip %>%
+   ggplot() +
+   geom_point(aes(x = stamp, y = doc_mg_l_mean, color= mean_monthly_precip_cm)) +
+   facet_wrap(~plot)+
+    theme_classic()
+
+rain_doc
+
+precip_study <- precip %>%
+  filter(year > 2021)
+
+   ggplot() +
+   geom_col(aes(x = stamp, y =  mean_monthly_precip_cm * 100), data = precip_study) +
+   geom_point(aes(x = stamp, y = doc_mg_l_mean, color = plot), data = doc_precip)+
+         scale_color_manual(values=Anyas_colors) 
+
+
+
+```
+
+
 #graveyard 
 ```{r graveyard}
 Figure1d <- exp_doc %>%

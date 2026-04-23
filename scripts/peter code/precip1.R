@@ -1,0 +1,41 @@
+pacman::p_load(AOI, climateR, 
+       extRemes, ## Used to calculate extreme value theory metrics
+       tictoc,
+       tidyverse)
+
+## Parameters listed here: https://docs.hyriver.io/examples/notebooks/gridmet.html
+tic("read data")
+precip_raw <- aoi_ext("Annapolis", units = "km", bbox = TRUE) %>% 
+  getGridMET(AOI = .,
+             varname   = c("pr"),
+             startDate = "1995-01-01", 
+             endDate = "2025-01-01") %>% 
+  as_tibble() %>% 
+  mutate(precip_cm = pr / 10)
+toc()
+
+# Step 1: Extract annual maximum precipitation
+annual_max <- precip_raw %>%
+  mutate(year = year(date)) %>%
+  group_by(year) %>%
+  summarize(annual_max_precip_cm = max(precip_cm, na.rm = TRUE)) %>%
+  ungroup()
+
+# Step 2: Fit the Generalized Extreme Value (GEV) distribution to annual maxima
+gev_fit <- fevd(annual_max$annual_max_precip_cm, type = "GEV")
+
+# Step 3: Calculate return levels for different return periods
+return_periods <- c(10, 100, 1000)
+return_levels <- return.level(gev_fit, return.period = return_periods)
+
+ggplot(precip_raw, aes(x = date, y = precip_cm)) + 
+  geom_line(color = "lightblue") +   
+  geom_point(data = precip_raw %>% filter(as_date(date) == "2012-10-29"), color = "red") + 
+  geom_hline(aes(yintercept = return_levels[[1]]), color = "gray40", linetype = "dashed") + 
+  geom_hline(aes(yintercept = return_levels[[2]]), color = "gray40", linetype = "dashed") + 
+  geom_hline(aes(yintercept = return_levels[[3]]), color = "gray40", linetype = "dashed") + 
+  annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[1]] - 0.75, label = "10-year storm", color = "gray40") + 
+  annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[2]] - 0.75, label = "100-year storm", color = "gray40") + 
+  annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[3]] - 0.75, label = "1000-year storm", color = "gray40") + 
+  annotate(geom = "text", x = as.POSIXct("2012-11-29"), y = 18, label = "Hurricane Sandy", color = "red") + 
+  labs(x = "", y = "Daily total precip. (cm)")

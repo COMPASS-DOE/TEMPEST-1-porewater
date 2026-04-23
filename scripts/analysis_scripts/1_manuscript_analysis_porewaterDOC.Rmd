@@ -148,7 +148,9 @@ pw_doc_yr1_2023 <- doc_l1_2023 %>%
    ungroup()
 
 pw_doc_y1_all <- pw_doc_yr1 %>%
-  full_join(pw_doc_yr1_2023)
+  full_join(pw_doc_yr1_2023) %>%
+  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
+                           adj_month > 7 ~ adj_month - 7))
   
 
 saveRDS(pw_doc_y1_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP1_Figure1.rds")
@@ -191,7 +193,9 @@ pw_doc_yr2_2024 <- doc_l1_2024 %>%
    ungroup()
 
 pw_doc_y2_all <- pw_doc_yr2 %>%
-  full_join(pw_doc_yr2_2024)
+  full_join(pw_doc_yr2_2024) %>%
+  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
+                           adj_month > 7 ~ adj_month - 7))
 
   
 
@@ -236,11 +240,36 @@ pw_doc_yr3_2025 <- doc_l1_2025 %>%
    ungroup()
 
 pw_doc_y3_all <- pw_doc_yr3 %>%
-  full_join(pw_doc_yr3_2025)
+  full_join(pw_doc_yr3_2025) %>%
+  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
+                           adj_month > 7 ~ adj_month - 7))
 
   
 
 saveRDS(pw_doc_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP3_Figure1.rds")
+```
+
+```{r group all doc}
+
+pw_doc_all <- pw_doc_y1_all %>%
+  full_join(pw_doc_y2_all) %>%
+full_join(pw_doc_y3_all)
+
+```
+
+```{r bring in precip}
+
+precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/mean_monthly_precip_2006-2026.csv")
+
+```
+
+```{r save doc precip}
+pw_doc_all_wprecip <- pw_doc_all %>%
+  left_join(precip, by = c("month", "year"))
+
+
+write_csv(pw_doc_all_wprecip, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_allyrs_withprecip.csv")
+
 ```
 
 
