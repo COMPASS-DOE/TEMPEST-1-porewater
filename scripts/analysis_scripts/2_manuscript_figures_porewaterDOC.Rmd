@@ -252,7 +252,7 @@ tmp3_doc_high = as.POSIXct("2025-01-31 20:52:00", tz = "EST")
 
 #rectangles from cond_doc_threshold in `1_manuscript_anlaysis_porewaterDOC.Rmd`
 
-pw_ec %>%
+SI1 <- pw_ec %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = datetime_est, y = EC_uScm, color = plot)) +
     geom_point()+
@@ -265,8 +265,9 @@ pw_ec %>%
     scale_color_manual(values=Anyas_colors) +
     theme_classic()
 
+SI1
 
-
+ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS1.png",SI1, dpi=600)
 
 ```
 
@@ -324,10 +325,12 @@ SI2 <- exp_doc %>%
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16)) +
+          text= element_text(size = 14)) +
   geom_text(data = data.frame(x = -Inf, y = Inf, label = "  Column Experiment"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
 
 print(SI2)
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS2.png",SI2, dpi=600)
 ```
 
 
@@ -384,13 +387,18 @@ ph_doc <- pw_doc_2 %>%
 
 ```{r plot ph vs doc }
 
-ph_doc %>%
+SI3 <- ph_doc %>%
    filter(plot == "Saltwater") %>%
     ggplot(aes(x = pH_mean, y = doc_mg_l_mean)) +
     geom_pointrange(aes(xmin=pH_mean-pH_sd, xmax=pH_mean+pH_sd, ymin= doc_mg_l_mean - doc_mg_l_sd, ymax = doc_mg_l_mean + doc_mg_l_sd), shape=17)+ 
     ylab("porewater DOC")+
     xlab("porewater pH")+
     theme_classic()
+
+SI3
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS3.png",SI3, dpi=600)
+
 ```
 
 
@@ -472,7 +480,60 @@ SI4
                   nrow = 3)
 ```
 
-# Supplemental Figure 5: ICP data from YR 1 through time 
+
+# Supplemental Figure 5: ICP data from NaCl experiment 
+
+```{r icp nacl}
+
+exp_nacl_dat <- readxl::read_excel("~/GitHub/tempest_ionic_strength/Data/Exp 2 Ionic Strength NaCl Data/TEMPEST_Ionic_Strength_NaCl_chem_L2.xlsx")  %>%
+  mutate(Treatment =  as.factor(Treatment))
+
+```
+Fe, Al
+```{r icp col ex}
+SI5_a <- exp_nacl_dat %>%
+   ggplot(aes(x = Wash, y = Fe_ppm, color = Treatment)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=Fe_ppm-Fe_ppm_stdev, ymax=Fe_ppm+Fe_ppm_stdev), shape=17, size = 1)+
+    ylab("Fe mg/L")+
+    xlab(" ")+
+   # title("Field Manipulation") +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,6)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "NaCl"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(SI5_a)
+
+SI5_b <- exp_nacl_dat %>%
+   ggplot(aes(x = Wash, y = Al_ppm, color = Treatment)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=Al_ppm-Al_ppm_stdev, ymax=Al_ppm+Al_ppm_stdev), shape=17, size = 1)+
+    ylab("Al mg/L")+
+    xlab("Wash")+
+   # title("Field Manipulation") +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,6)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "NaCl"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(SI5_b)
+
+SI5 <- ggarrange(SI5_a, SI5_b, nrow = 2, legend = "bottom", common.legend = TRUE, align = "hv")
+
+SI5
+
+ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS5.png",SI5, dpi=600,
+                  nrow = 2)
+
+```
+
+
+# Supplemental Figure 6: ICP data from YR 1 through time 
 
 
 ```{r load ICP data}
@@ -544,11 +605,11 @@ al <- icp %>%
   theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
           text= element_text(size = 16))
 
-SI5 <- ggarrange(fe, al, ca, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
+SI6 <- ggarrange(fe, al, ca, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
 
-SI5
+SI6
 
- cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS5.png",SI5, dpi=600,
+ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS6.png",SI6, dpi=600,
                   nrow = 1)
 
 ```
