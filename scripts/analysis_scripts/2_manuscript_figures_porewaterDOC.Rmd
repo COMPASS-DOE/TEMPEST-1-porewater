@@ -205,14 +205,14 @@ fig1_legend = get_legend(Figure1b_LEGEND)
 
 
 
-# Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
+ Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
 
 
-# Figure1
+ Figure1
 
 
-# cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
-#                   nrow = 3)
+ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
+                   nrow = 3)
 
 all_hands_fig <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
 
