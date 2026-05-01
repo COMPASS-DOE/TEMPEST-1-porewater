@@ -95,7 +95,22 @@ doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_
 
 doc_l1_2024 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2024_L1.csv")
 
-doc_l1_2025 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2025_L1.csv")
+doc_l1_2025 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2025_L1_updated.csv")
+
+doc_l1_2026 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/tmp_doc_2026/COMPASS_TEMPEST_DOC_2026.csv") %>%
+  mutate(plot = case_when(plot == "FW" ~ "Freshwater",
+                          plot == "C" ~ "Control",
+                          plot == "SW" ~ "Saltwater",
+                          TRUE ~ plot),
+            collection_date = lubridate::as_date(as.character(Collection_Date_YYYYMMDD), format = "%Y%m%d"),
+           Collection_End_Time_24hrs = str_replace(Collection_End_Time_24hrs, '\\d+', function(m) str_pad(m, 4, pad = '0', side = ("left"))),
+         Collection_End_Time_24hrs = strptime(Collection_End_Time_24hrs, format ="%H%M"),
+         Collection_End_Time_24hrs = strftime(Collection_End_Time_24hrs, "%H:%M:%S")) %>%
+  mutate(collection_datetime = as.POSIXct(paste(collection_date, Collection_End_Time_24hrs), format = "%Y-%m-%d %H:%M:%S"),
+        evacuation_date =  lubridate::as_date(as.character(Evacuation_date_YYYMMDD), format = "%Y%m%d")) %>%
+  rename(doc_mg_l = npoc_mgL)
+
+
 ```
 ```{r combine years}
 doc_l1_pw_grids <- doc_l1_2022 %>%
@@ -103,8 +118,14 @@ doc_l1_pw_grids <- doc_l1_2022 %>%
   full_join(doc_l1_2024) %>%
   full_join(doc_l1_2025) %>%
   mutate(evacuation_date = as_date(evacuation_datetime)) %>%
-  select(plot, grid, evacuation_date, collection_datetime, doc_mg_l, tdn_mg_l) %>%
-  drop_na() #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) %>%
+  drop_na() 
+
+doc_l1_pw_grid_2022_2026 <- doc_l1_pw_grids %>%
+full_join(doc_l1_2026) %>%
+select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) 
+ 
+saveRDS(doc_l1_pw_grid_2022_2026, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_2022-2026.rds")
 ```
 
 # Main Message 1: One salinity exposure permanently changes the soil DOC component of the carbon cycle. 
@@ -405,26 +426,26 @@ control_doc_mean_all <- doc_l1_pw_grids %>%
 
 control_doc_mean_all
 
-salt_doc_mean_afterincrease <- doc_l1_pw_grids %>%
+salt_doc_mean_beforeincrease <- doc_l1_pw_grids %>%
    filter(plot == "Saltwater") %>%
   filter(
-        (evacuation_date > "2022-07-18" & evacuation_date < EventStart2023) | # year 1
-        (evacuation_date > "2023-08-07" & evacuation_date < EventStart2024 ) |  # year 2 
-        (evacuation_date > "2025-01-28" & evacuation_date < endstudydate_yr3) # year 3
+        (evacuation_date > EventStart2022 & evacuation_date < "2022-07-18") | # year 1
+        (evacuation_date > EventStart2023 & evacuation_date < "2023-08-07") |  # year 2 
+        (evacuation_date > EventStart2024 & evacuation_date < "2025-01-28") # year 3
         ) %>%
     summarize(
     sw_mean = mean(doc_mg_l, na.rm = TRUE),
     sw_sd = sd(doc_mg_l, na.rm = TRUE) 
   ) 
 
-salt_doc_mean_afterincrease
+salt_doc_mean_beforeincrease
 
-salt_doc_mean_beforeincrease <- doc_l1_pw_grids %>%
+salt_doc_mean_afterincrease <- doc_l1_pw_grids %>%
    filter(plot == "Saltwater") %>%
   filter(
-        (evacuation_date > EventStart2023 & evacuation_date < "2022-07-18") | # year 1
-        (evacuation_date > EventStart2024 & evacuation_date < "2023-08-07") |  # year 2 
-        (evacuation_date > endstudydate_yr3 & evacuation_date < "2025-01-28") # year 3
+        (evacuation_date > "2022-07-18" & evacuation_date < EventStart2023) | # year 1
+        (evacuation_date > "2023-08-07" & evacuation_date < EventStart2024 ) |  # year 2 
+        (evacuation_date > "2025-01-28" & evacuation_date < endstudydate_yr3) # year 3
         ) %>%
     summarize(
     sw_mean = mean(doc_mg_l, na.rm = TRUE),
@@ -799,7 +820,51 @@ cdom_allyrs <- readRDS("~/GitHub/TEMPEST-1-porewater/data/cdom_indicies_porewate
 abs_allyears <- readRDS("~/GitHub/TEMPEST-1-porewater/data/absorbance_docnormalized_porewater_2022-2025.rds")
 ```
 
+2022 cdom was collected at the pooled level but DOC was at the grid level. Take the plot level doc averages for the collection dates where this is the case for SUVA.
 
+```{r abs data}
+
+averaged_DOC_2022 <- doc_l1_2022 %>%
+  select(plot, grid, collection_datetime, doc_mg_l) %>%
+  drop_na() %>%
+  mutate(collection_date = lubridate::as_date(collection_datetime)) %>%
+  select(-collection_datetime, -grid) %>%
+  group_by(collection_date, plot) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup() %>%
+  select(-doc_mg_l_sd)
+
+abs_allyears_1 <- abs_allyears %>%
+  left_join(averaged_DOC_2022, by=c("collection_date", "plot")) %>%
+  mutate(doc_mg_l_filled = coalesce(doc_mg_l, doc_mg_l_mean),
+         SUVA254 = case_when(is.na(SUVA254) ~ Abs_254nm / doc_mg_l_filled * 100,
+                             TRUE ~ SUVA254),
+         SUVA280 = case_when(is.na(SUVA280) ~ Abs_280nm / doc_mg_l_filled * 100,
+                             TRUE ~ SUVA280), 
+         SUVA350 = case_when(is.na(SUVA350) ~ Abs_350nm / doc_mg_l_filled * 100,
+                             TRUE ~ SUVA350),
+         SVA412 = case_when(is.na(SVA412) ~ Abs_412nm / doc_mg_l_filled * 100,
+                             TRUE ~ SVA412),
+         SVA440 = case_when(is.na(SVA440) ~ Abs_440nm / doc_mg_l_filled * 100,
+                             TRUE ~ SVA440)) %>%
+  select(sample_name, plot, grid, collection_date, S275_295:Sr, SUVA254:SVA440) %>%
+  drop_na()
+  
+saveRDS(abs_allyears_1, "~/GitHub/TEMPEST-1-porewater/data/absorbance_porewater_2022-2025_withpooled.rds")
+
+```
+
+
+```{r abs eems}
+
+abs_eems_all_years <- cdom_allyrs %>%
+  mutate(collection_date = as_date(collection_datetime)) %>%
+  select(-S275_295, - S350_400, -Sr) %>%
+  left_join(abs_allyears_1, by = c("sample_name", "collection_date", "plot")) %>%
+  distinct(sample_name, .keep_all = TRUE)
+```
+
+# system level anlaysis 
 ```{r load functions for analysis}
 
 source("~/GitHub/tempest-system-level-analysis/data_package_prep/scripts/tmp_test_functions.R")
@@ -832,45 +897,130 @@ tmpdates_doc3 <- tmpdates_doc %>%
 #NOTE there are some issues with time zones messing up the dates slightly here!!!!
 ```{r divide data for cdom}
 
-cdom_tmp1 <- cdom_allyrs %>%
+cdom_tmp1 <- abs_eems_all_years  %>%
   rename(datetime = collection_datetime) %>%
   filter(between(datetime, startstudydate_yr1, endstudydate_yr1))
 
-cdom_tmp1_dd <- divide_data(cdom_tmp1, datetime, flood_event_datetime_1, eventB = c(tmpdates_doc1$datetime, tmpdates_doc1$datetime2), eventB_name = "DOC_increase")
+cdom_tmp1_dd <- divide_data(cdom_tmp1, datetime, flood_event_datetime_1, eventB = c(tmpdates_doc1$datetime, tmpdates_doc1$datetime2), eventB_name = "Post") %>%
+    mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
+                                  TRUE ~ timedate_bin)) %>%
+    mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))
 
-cdom_tmp2 <- cdom_allyrs %>%
+cdom_tmp2 <- abs_eems_all_years  %>%
   rename(datetime = collection_datetime) %>%
   filter(between(datetime, startstudydate_yr2, endstudydate_yr2))
 
-cdom_tmp2_dd <- divide_data(cdom_tmp2, datetime, flood_event_datetime_2, eventB = c(tmpdates_doc2$datetime, tmpdates_doc2$datetime2), eventB_name = "DOC_increase")
+cdom_tmp2_dd <- divide_data(cdom_tmp2, datetime, flood_event_datetime_2, eventB = c(tmpdates_doc2$datetime, tmpdates_doc2$datetime2), eventB_name = "Post") %>%
+     mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
+                                  TRUE ~ timedate_bin)) %>%
+  mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))%>%
+  mutate(timedate_bin = case_when(timedate_bin == "Pre" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))
 
-cdom_tmp3 <- cdom_allyrs %>%
+cdom_tmp3 <- abs_eems_all_years %>%
   rename(datetime = collection_datetime) %>%
-  filter(between(datetime, startstudydate_yr3, endstudydate_yr3))
+  filter(between(datetime, startstudydate_yr3, endstudydate_yr3))  
 
-cdom_tmp3_dd <- divide_data(cdom_tmp3, datetime, flood_event_datetime_3, eventB = c(tmpdates_doc3$datetime, tmpdates_doc3$datetime2), eventB_name = "DOC_increase")
+cdom_tmp3_dd <- divide_data(cdom_tmp3, datetime, flood_event_datetime_3, eventB = c(tmpdates_doc3$datetime, tmpdates_doc3$datetime2), eventB_name = "Post") %>%
+     mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
+                                  TRUE ~ timedate_bin)) %>%
+  mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))%>%
+  mutate(timedate_bin = case_when(timedate_bin == "Pre" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))
+
 
 cdom_indicies_divided_all <- cdom_tmp1_dd %>%
   full_join(cdom_tmp2_dd) %>%
-  full_join(cdom_tmp3_dd) 
+  full_join(cdom_tmp3_dd) %>%
+  drop_na()
 
 ```
+
 
 ```{r try multivariate eems analysis}
 
 eems4multi <- cdom_indicies_divided_all %>%
-  select(-plot, -timedate_bin, -sample_name, -datetime) 
+  select(-sample_name, -grid, -plot, -timedate_bin, -datetime, -collection_date) 
 
 
 eemspca = prcomp(eems4multi , retx = TRUE, center = TRUE, scale. = TRUE)
 
 library(vegan)
 
-nmds = vegan::metaMDS(eems4multi, distance="bray", 
-          k = 3,
-          maxit = 999, 
-          trymax = 500,
-          wascores = TRUE)
+#nmds = vegan::metaMDS(eems4multi, distance="bray", 
+#          k = 3,
+ #         maxit = 999, 
+ #         trymax = 500,
+ #         wascores = TRUE)
+
+```
+
+```{r gllm prep}
+cdom_stats <- cdom_indicies_divided_all %>%
+  mutate(date = as_date(datetime),
+         timedate_bin = factor(timedate_bin),
+         date = factor(date),
+         grid = factor(grid),
+         plot = factor(plot),
+       spatial_rep = case_when(grid =="POOL" ~ NA,
+                               TRUE ~ grid),
+        spatial_rep = factor(spatial_rep),
+       plot_time = interaction(plot, date, drop = TRUE)) %>%
+  filter(
+    !is.na(SUVA254),
+    !is.na(timedate_bin),
+    !is.na(plot),
+    !is.na(grid),
+    SUVA254 > 0
+  )
+
+# Check replication before modeling
+table(cdom_stats$plot, cdom_stats$timedate_bin)
+table(cdom_stats$plot_time)
+
+```
+
+```{r glmm model}
+
+  # Packages
+library(glmmTMB)
+library(emmeans)
+library(DHARMa)
+
+# Example assumes your data frame is called dat
+# Columns:
+# y              response variable
+# timedate_bin           4-category bin factor
+# datetime          sampling timepoint
+# grid       repeated sampler ID
+# plot           plot ID
+# spatial_rep    spatial replicate ID, NA for pooled samples
+
+
+# GLMM
+m1 <- glmmTMB(
+  SUVA254 ~ timedate_bin +
+    (1 | plot) +
+    (1 | grid),
+  family = Gamma(link = "log"),
+  data = cdom_stats
+)
+
+# Model diagnostics
+sim <- simulateResiduals(m1)
+plot(sim)
+testDispersion(sim)
+testZeroInflation(sim)
+
+# Test overall bin effect
+drop1(m1, test = "Chisq")
+
+# look at responses
+emmeans(m1, ~ timedate_bin, type = "response")
+pairs(emmeans(m1, ~ timedate_bin), adjust = "tukey", type = "response")
 
 ```
 
@@ -879,14 +1029,26 @@ nmds = vegan::metaMDS(eems4multi, distance="bray",
 
 cdom_indicies_divided_all %>%
     group_by(plot, timedate_bin) %>%
-   select(-sample_name) %>%
     dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
    ungroup() %>%
-  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Btwn Events", "DOC_increase", "Post")), 
+  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
                y=A_T_mean)) +
   geom_col() +
   geom_errorbar(aes(ymin = A_T_mean - A_T_sd, ymax= A_T_mean + A_T_sd), width = 0.2) +
   facet_wrap( ~ plot)
+
+cdom_indicies_divided_all %>%
+    group_by(plot, timedate_bin) %>%
+    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
+   ungroup() %>%
+  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
+               y=SUVA254_mean)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = SUVA254_mean - SUVA254_sd, ymax= SUVA254_mean + SUVA254_sd), width = 0.2) +
+  facet_wrap( ~ plot) +
+  xlab("Sampling Timeframe") +
+  ylab("SUVA254")+
+  theme_classic()
 
 biplot(eemspca)
 
@@ -901,12 +1063,13 @@ graphy <-autoplot(eemspca, data = cdom_indicies_divided_all, shape= 'plot', colo
   size=2,
   loadings = TRUE, loadings.colour = 'black',
   loadings.label = TRUE, loadings.label.size = 2)+
-  scale_colour_manual(values = pal) + 
+ # scale_colour_manual(values = pal) + 
   scale_shape_manual( values = c("Control" = 2, "Freshwater" = 1, "Saltwater" = 16)  )+
   cowplot::theme_cowplot()
 
 print(graphy)
 
+```
 
 loc <- cdom_indicies_divided_all %>% select(plot, timedate_bin)
 
@@ -916,7 +1079,6 @@ vegan::ordiplot(nmds, display = 'si', type = 'n')
 points(nmds, pch = 19)
 vegan::ordiellipse(nmds, groups= cdom_indicies_divided_all$timedate_bin )
 
-```
 
 
 
@@ -1074,6 +1236,7 @@ sim_results <- replicate(n_sim, {
 
 
 
+# DOC increased markedly in the ASW soil columns after 6 successive washes of low ionic strength water following the initial ASW pulse, with no significant differences in DOC across washes in the control or freshwater column experiments (insert the stats for this) (SI Figure 2). 
 
 
 
