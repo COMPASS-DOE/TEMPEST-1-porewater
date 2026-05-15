@@ -15,8 +15,10 @@ library(car)
 library(emmeans)
 library(lme4)
 library(lmerTest)  
+library(nlme)
 library(ggplot2)    # For diagnostic plots
 library(broom)      # For tidy model outputs
+
 
 #double check your wd
 getwd()
@@ -113,7 +115,9 @@ doc_l1_2026 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/tmp_d
 
 ```
 ```{r combine years}
-doc_l1_pw_grids <- doc_l1_2022 %>%
+doc_l1_pw_grids <- doc_l1_2022 %>% ## why are there duplicates inserted here? We will never know, something with the 2022 data....
+   mutate(troubleshooting = duplicated(doc_l1_2022)) %>%
+   filter(troubleshooting == FALSE) %>%
   full_join(doc_l1_2023) %>%
   full_join(doc_l1_2024) %>%
   full_join(doc_l1_2025) %>%
@@ -121,14 +125,65 @@ doc_l1_pw_grids <- doc_l1_2022 %>%
   select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) %>%
   drop_na() 
 
+nrow(doc_l1_pw_grids)
+
+nrow(unique(doc_l1_pw_grids))
+
 doc_l1_pw_grid_2022_2026 <- doc_l1_pw_grids %>%
 full_join(doc_l1_2026) %>%
 select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) 
- 
-saveRDS(doc_l1_pw_grid_2022_2026, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_2022-2026.rds")
+
+nrow(doc_l1_pw_grid_2022_2026)
+
+nrow(unique(doc_l1_pw_grid_2022_2026))
+
+saveRDS(doc_l1_pw_grid_2022_2026_final, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_2022-2026.rds")
 ```
 
 # Main Message 1: One salinity exposure permanently changes the soil DOC component of the carbon cycle. 
+
+### Stats for DOC paper
+no significant differences between freshwater DOC concentrations and control plot DOC concentrations have been observed 
+
+```{r doc stats}
+
+hist(doc_l1_pw_grid_2022_2026$doc_mg_l)
+
+doc_comparison <- doc_l1_pw_grid_2022_2026 %>%
+  filter(plot != "Saltwater") %>%
+  mutate(logdoc = log(doc_mg_l),  #DOC is right skewed
+  gridID = interaction(plot, grid, sep = "_"),
+  month = lubridate::month(evacuation_date),
+  year = lubridate::year(evacuation_date),
+  dateID = interaction(month, year, sep = "_"))# create unique grid IDs (per plot)
+
+hist(doc_comparison$logdoc)
+
+doc_lme <- lme(
+  logdoc ~ plot ,
+  random = ~ 1 | gridID, # random effect of grids in the plot
+  correlation = corAR1(form = ~ 1 | gridID), # repeated monthly observations are temporally autocorrelated
+  data = doc_comparison 
+)
+
+summary(doc_lme)
+
+plot(doc_lme)
+
+qqnorm(resid(doc_lme))
+qqline(resid(doc_lme))
+
+#one factor model
+
+EMM <- emmeans(doc_lme, ~ plot)
+
+EMM
+
+### pairwise comparisons
+pairs(EMM)
+
+```
+
 
 ### Prep data for figure 1: Porewater DOC averages/std by plot and month
 Generate for easy comparison between event years and with laboratory data sets.
@@ -274,7 +329,45 @@ saveRDS(pw_doc_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater
 
 pw_doc_all <- pw_doc_y1_all %>%
   full_join(pw_doc_y2_all) %>%
-full_join(pw_doc_y3_all)
+full_join(pw_doc_y3_all) %>%
+  mutate(logdoc = log(doc_mg_l_mean),
+         dateID = interaction(adj_month, year, sep = "_")) %>%
+  group_by(plot) %>%
+  arrange(dateID, .by_group = TRUE) %>%
+  mutate(index = row_number()) %>%
+  ungroup()
+
+```
+
+```{r doc glm means}
+
+pw_doc_cf <- pw_doc_all %>%
+  filter(plot != "Saltwater")
+
+doc_gls <- nlme::gls(
+  logdoc ~ plot,
+  correlation = corAR1(form = ~ index | plot),
+    weights = varIdent(form = ~1 | plot),
+  data = pw_doc_cf,
+  method = "REML"
+)
+
+summary(doc_gls)
+
+plot(doc_gls)
+
+qqnorm(resid(doc_gls))
+qqline(resid(doc_gls))
+
+#one factor model
+
+EMM <- emmeans(doc_gls, ~ plot)
+
+EMM
+
+### pairwise comparisons
+pairs(EMM)
+
 
 ```
 
@@ -406,7 +499,7 @@ These "significant dates" fall in the
 2nd month post event 2023 (i.e. August)
 8th month post event 2024 (i.e. January)
 
-```{r doc stats for paper}
+```{r doc summaries paper}
 
 fw_doc_mean_all <- doc_l1_pw_grids %>%
   filter(plot == "Freshwater") %>%
