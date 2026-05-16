@@ -131,13 +131,25 @@ nrow(unique(doc_l1_pw_grids))
 
 doc_l1_pw_grid_2022_2026 <- doc_l1_pw_grids %>%
 full_join(doc_l1_2026) %>%
-select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) 
+select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) %>%
+  mutate( collection_date = lubridate::as_date(collection_datetime),
+    evacuation_month = lubridate::floor_date(evacuation_date, "month"),
+    collection_month = lubridate::floor_date(collection_date, "month"),
+    evacuation_month_year = format(evacuation_month, "%b %Y"),
+    collection_month_year = format(collection_month, "%b %Y"),
+    evac_is_month_end = lubridate::day(evacuation_date) == lubridate::days_in_month(evacuation_date),
+    Group = case_when(lubridate::month(collection_date) == 6 ~ collection_date,  # June experimental treatment: keep exact collection date
+      evac_is_month_end & evacuation_month != collection_month ~ collection_month, # Edge case: evacuation started on the last day of prior month, so assign the interval to the collection month
+      TRUE ~ evacuation_month),    # Default: assign integrated sample to evacuation month
+    sampling_interval = paste(evacuation_date, collection_date, sep = "_to_"),
+    crosses_month = evacuation_month != collection_month) %>%
+  select(-evacuation_month, -collection_month)
 
 nrow(doc_l1_pw_grid_2022_2026)
 
 nrow(unique(doc_l1_pw_grid_2022_2026))
 
-saveRDS(doc_l1_pw_grid_2022_2026_final, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_2022-2026.rds")
+saveRDS(doc_l1_pw_grid_2022_2026, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_2022-2026.rds")
 ```
 
 # Main Message 1: One salinity exposure permanently changes the soil DOC component of the carbon cycle. 
@@ -330,19 +342,23 @@ saveRDS(pw_doc_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater
 pw_doc_all <- pw_doc_y1_all %>%
   full_join(pw_doc_y2_all) %>%
 full_join(pw_doc_y3_all) %>%
-  mutate(logdoc = log(doc_mg_l_mean),
-         dateID = interaction(adj_month, year, sep = "_")) %>%
-  group_by(plot) %>%
-  arrange(dateID, .by_group = TRUE) %>%
-  mutate(index = row_number()) %>%
-  ungroup()
+  mutate(stamp =lubridate::my(interaction(month, year, sep = " "))) 
+  
+
+saveRDS(pw_doc_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_ALLYEARS_Figure1.rds")
 
 ```
 
 ```{r doc glm means}
 
 pw_doc_cf <- pw_doc_all %>%
-  filter(plot != "Saltwater")
+  mutate(logdoc = log(doc_mg_l_mean),
+         dateID = interaction(adj_month, year, sep = "_")) %>%
+  group_by(plot) %>%
+  arrange(dateID, .by_group = TRUE) %>%
+  mutate(index = row_number()) %>%
+  ungroup() %>%
+  filter(plot != "Saltwater") 
 
 doc_gls <- nlme::gls(
   logdoc ~ plot,

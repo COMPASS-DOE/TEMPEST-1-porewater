@@ -621,6 +621,38 @@ precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/mean_monthly_precip_2006-2
 ```
 
 ```{r plots doc rain}
+top_y <- 100
+bottom_y <- 0
+
+max_precip <- max(doc_precip$mean_monthly_precip_cm, na.rm = TRUE)
+
+scale_factor <- (top_y - bottom_y) / max_precip
+
+precip_axis <- function(x) (top_y - x) / scale_factor
+
+scale_factor
+
+#note this only has precip when we have DOC data...
+Figure1_combined <- doc_precip %>%
+   ggplot(aes(x = stamp, y = doc_mg_l_mean, color = plot)) +
+   geom_rect(aes(xmin = stamp -15,  xmax = stamp + 15, y = top_y - mean_monthly_precip_cm * scale_factor), ymax = top_y, inherit.aes = FALSE, fill = "skyblue", alpha = 0.6) +
+   #geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
+    ylab(" ")+
+    xlab("Sampling Month Post-Event")+
+   # title("Field Manipulation") +
+    scale_y_continuous(limits = c(bottom_y, top_y),  name = "DOC (mg/L)", sec.axis = sec_axis(trans = precip_axis , name = "Mean Monthly Precipitation (cm)")
+  ) +
+    scale_color_manual(values=Anyas_colors) +
+   # scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16),  axis.title.x = element_blank() )
+          #, axis.title.x = element_blank(), axis.text.x = element_blank() ) 
+
+Figure1_combined 
+
 rain_doc <- doc_precip %>%
    ggplot() +
    geom_point(aes(x = stamp, y = doc_mg_l_mean, color= mean_monthly_precip_cm)) +
