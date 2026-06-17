@@ -30,8 +30,11 @@ rm(list = ls())
 ### Set the study dates
 
 ```{r event and study dates}
-endstudydate = lubridate::as_date("2024-01-31")
+endstudydate = lubridate::as_date("2026-05-31")
 startstudydate = lubridate::as_date("2022-05-01")
+
+plotting_end = as.POSIXct("2025-05-31 11:59:59", tz = "EST")
+plotting_start = as.POSIXct("2022-05-01 00:00:00", tz = "EST")
 
 endstudydate_yr1 = lubridate::as_date("2023-05-31")
 startstudydate_yr1 = lubridate::as_date("2022-05-01")
@@ -51,6 +54,8 @@ year2_stop = lubridate::as_date("2023-12-31")
 year3_start = lubridate::as_date("2024-01-01")
 year3_stop = lubridate::as_date("2024-12-31")
 
+
+## TMP 1 
 EventStart2022 = lubridate::as_date("2022-06-22")
 
 WaterDeliveryStart2022 = as.POSIXct("2022-06-22 05:30:00", tz = "EST")
@@ -58,7 +63,7 @@ WaterDeliveryStop2022 = as.POSIXct("2022-06-22 14:30:00", tz = "EST")
 
 flood_event_datetime_1 <- c(WaterDeliveryStart2022, WaterDeliveryStop2022)
 
-
+## TMP 2
 EventStart2023 = lubridate::as_date("2023-06-06")
 
 WaterDeliveryStart1 = as.POSIXct("2023-06-06 05:30:00", tz = "EST")
@@ -69,6 +74,7 @@ WaterDeliveryStop2 = as.POSIXct("2023-06-07 14:30:00", tz = "EST")
 
 flood_event_datetime_2 <- c(WaterDeliveryStart1, WaterDeliveryStop2)
 
+## TMP 3
 EventStart2024 = lubridate::as_date("2024-06-11")
 
 WaterDeliveryStart1_2024 = as.POSIXct("2024-06-11 06:10:00", tz = "EST")
@@ -95,7 +101,7 @@ doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_
   
 doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2023_L1.csv")
 
-doc_l1_2024 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2024_L1.csv")
+doc_l1_2024 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2024_L1_updated.csv")
 
 doc_l1_2025 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2025_L1_updated.csv")
 
@@ -137,225 +143,66 @@ select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) %>%
     collection_month = lubridate::floor_date(collection_date, "month"),
     evacuation_month_year = format(evacuation_month, "%b %Y"),
     collection_month_year = format(collection_month, "%b %Y"),
-    evac_is_month_end = lubridate::day(evacuation_date) == lubridate::days_in_month(evacuation_date),
+    days_from_month_end = lubridate::days_in_month(evacuation_date) - lubridate::day(evacuation_date),
+    evac_is_month_end = days_from_month_end <= 2, #if within a few days of the end of the month, we want this as the prior month
     Group = case_when(lubridate::month(collection_date) == 6 ~ collection_date,  # June experimental treatment: keep exact collection date
       evac_is_month_end & evacuation_month != collection_month ~ collection_month, # Edge case: evacuation started on the last day of prior month, so assign the interval to the collection month
       TRUE ~ evacuation_month),    # Default: assign integrated sample to evacuation month
     sampling_interval = paste(evacuation_date, collection_date, sep = "_to_"),
-    crosses_month = evacuation_month != collection_month) %>%
-  select(-evacuation_month, -collection_month)
+    crosses_month = evacuation_month != collection_month,
+    Group = case_when(Group == "2022-12-01" ~ lubridate::as_date("2022-11-01"),
+                           TRUE ~ Group)) %>%
+  select(-evacuation_month, -collection_month) %>%
+  group_by(Group) %>%
+  mutate(nominal_date = mean(evacuation_date) + (mean(collection_date) - mean(evacuation_date))/2) %>%
+  #Fix some edge cases in 2023 sampling (straddling months)
+  mutate( nominal_date = case_when(Group == "2023-02-01" ~ Group,
+                                  Group == "2023-10-01" ~ Group,
+                                  TRUE ~ nominal_date)) %>% 
+  ungroup()
 
 nrow(doc_l1_pw_grid_2022_2026)
 
 nrow(unique(doc_l1_pw_grid_2022_2026))
 
 saveRDS(doc_l1_pw_grid_2022_2026, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_2022-2026.rds")
+
+doc_pw_studydates <-  doc_l1_pw_grid_2022_2026 %>%
+  filter(between(collection_date, startstudydate, endstudydate))
+  
+
+saveRDS(doc_pw_studydates, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_STUDYPERIOD_may2022-may2025.rds")
+
 ```
+```{r means DOC}
+
+ doc_means_pw <- doc_pw_studydates %>% 
+  group_by(nominal_date, plot) %>%
+  dplyr::select(plot, doc_mg_l, nominal_date) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+  #select(plot, grid, Group, doc_mg_l, sampling_interval, nominal_date) %>%
+  #group_by(plot, Group) %>%
+  #dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+  # ungroup() %>%
+
+saveRDS(doc_means_pw, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_FINAL.rds")
+
+```
+
 
 # Main Message 1: One salinity exposure permanently changes the soil DOC component of the carbon cycle. 
 
 ### Stats for DOC paper
 no significant differences between freshwater DOC concentrations and control plot DOC concentrations have been observed 
 
-```{r doc stats}
-
-hist(doc_l1_pw_grid_2022_2026$doc_mg_l)
-
-doc_comparison <- doc_l1_pw_grid_2022_2026 %>%
-  filter(plot != "Saltwater") %>%
-  mutate(logdoc = log(doc_mg_l),  #DOC is right skewed
-  gridID = interaction(plot, grid, sep = "_"),
-  month = lubridate::month(evacuation_date),
-  year = lubridate::year(evacuation_date),
-  dateID = interaction(month, year, sep = "_"))# create unique grid IDs (per plot)
-
-hist(doc_comparison$logdoc)
-
-doc_lme <- lme(
-  logdoc ~ plot ,
-  random = ~ 1 | gridID, # random effect of grids in the plot
-  correlation = corAR1(form = ~ 1 | gridID), # repeated monthly observations are temporally autocorrelated
-  data = doc_comparison 
-)
-
-summary(doc_lme)
-
-plot(doc_lme)
-
-qqnorm(resid(doc_lme))
-qqline(resid(doc_lme))
-
-#one factor model
-
-EMM <- emmeans(doc_lme, ~ plot)
-
-EMM
-
-### pairwise comparisons
-pairs(EMM)
-
-```
-
-
-### Prep data for figure 1: Porewater DOC averages/std by plot and month
-Generate for easy comparison between event years and with laboratory data sets.
-Can simplify this from previous iterations (see `graveyard_analysis_code.Rmd`) because we just want a monthly timeframe. 
-```{r doc avg std by month YEAR 1}
-
-pw_doc_yr1 <- doc_l1_2022 %>%
-  mutate(date = as_date(date)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr1, endstudydate)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  # fix the sampling dates in June before the event to the month before
-  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2022 ~ adj_month == 0,
-                               TRUE ~ adj_month)) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_yr1_2023 <- doc_l1_2023 %>%
-  mutate(date = as_date(date)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr1, endstudydate_yr1)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(adj_month == 0 ~ 12,
-                               TRUE ~ adj_month )) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_y1_all <- pw_doc_yr1 %>%
-  full_join(pw_doc_yr1_2023) %>%
-  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
-                           adj_month > 7 ~ adj_month - 7))
-  
-
-saveRDS(pw_doc_y1_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP1_Figure1.rds")
-```
-
-```{r doc avg std by month YEAR 2}
-
-
-pw_doc_yr2 <- doc_l1_2023 %>%
-  mutate(date = as_date(evacuation_datetime)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  # fix the sampling dates in June before the event to the month before
-  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
-                               TRUE ~ adj_month)) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_yr2_2024 <- doc_l1_2024 %>%
-  mutate(date = as_date(date)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(adj_month == 0 ~ 12,
-                               TRUE ~ adj_month )) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_y2_all <- pw_doc_yr2 %>%
-  full_join(pw_doc_yr2_2024) %>%
-  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
-                           adj_month > 7 ~ adj_month - 7))
-
-  
-
-saveRDS(pw_doc_y2_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP2_Figure1.rds")
-```
-
-```{r doc avg std by month YEAR 3}
-
-
-pw_doc_yr3 <- doc_l1_2024 %>%
-  mutate(date = as_date(evacuation_datetime)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  # fix the sampling dates in June before the event to the month before
-  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
-                               TRUE ~ adj_month)) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-  
-pw_doc_yr3_2025 <- doc_l1_2025 %>%
-  mutate(date = as_date(date)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(adj_month == 0 ~ 12,
-                               TRUE ~ adj_month )) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_y3_all <- pw_doc_yr3 %>%
-  full_join(pw_doc_yr3_2025) %>%
-  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
-                           adj_month > 7 ~ adj_month - 7))
-
-  
-
-saveRDS(pw_doc_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP3_Figure1.rds")
-```
-
-```{r group all doc}
-
-pw_doc_all <- pw_doc_y1_all %>%
-  full_join(pw_doc_y2_all) %>%
-full_join(pw_doc_y3_all) %>%
-  mutate(stamp =lubridate::my(interaction(month, year, sep = " "))) 
-  
-
-saveRDS(pw_doc_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_ALLYEARS_Figure1.rds")
-
-```
-
 ```{r doc glm means}
 
-pw_doc_cf <- pw_doc_all %>%
-  mutate(logdoc = log(doc_mg_l_mean),
-         dateID = interaction(adj_month, year, sep = "_")) %>%
+pw_doc_cf <-  doc_means_pw  %>%
+  mutate(logdoc = log(doc_mg_l_mean)) %>%
   group_by(plot) %>%
-  arrange(dateID, .by_group = TRUE) %>%
+  arrange(nominal_date, .by_group = TRUE) %>%
   mutate(index = row_number()) %>%
   ungroup() %>%
   filter(plot != "Saltwater") 
@@ -386,21 +233,274 @@ pairs(EMM)
 
 
 ```
+### calculate effect sizes for figure 1 
 
-```{r bring in precip}
+DOC effect-size workflow:
+1. Split data frames; Drop DOC outliers in the control plot. 
+2. Collapse repeated samples to Group/plot/grid means.
+3. Get datasets ready (unique columns for control and treatment plots). Use same-Group Control when available. If no same-Group Control exists, gapfill from previous mean value and global standard deviation for the plot. if no standard deviation for the treatment plots, use the plot average across all time points. Drop timepoints when data only in control and not in the treatment plots. 
+4. Bootstrap spatial variability and write a plotting-ready CSV.
 
-precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/mean_monthly_precip_2006-2026.csv")
+```{r split data frame}
+
+fw_plot <- doc_pw_studydates %>%
+  select(plot, grid, collection_datetime, nominal_date, doc_mg_l) %>%
+  filter(plot == "Freshwater") %>%
+  group_by(nominal_date, plot) %>%
+  dplyr::summarise(
+    n_timepoints_collapsed = n_distinct(collection_datetime), # for tracking only; note that these count each lysimeter separately in future years when we got better about timepoints 
+    treatment_doc_mg_l_mean = mean(doc_mg_l, na.rm = TRUE),
+    treatment_doc_mg_l_sd = sd(doc_mg_l, na.rm = TRUE),
+    treatment_n_grids = n(),
+    treatment_doc_mg_l_se = treatment_doc_mg_l_sd / sqrt(treatment_n_grids),
+    .groups = "drop"
+  )
+  
+
+sw_plot <- doc_pw_studydates %>%
+  select(plot, grid, collection_datetime, nominal_date, doc_mg_l) %>%
+  filter(plot == "Saltwater") %>%
+  group_by(nominal_date, plot) %>%
+  dplyr::summarise(
+    n_timepoints_collapsed = n_distinct(collection_datetime), # for tracking only; note that these count each lysimeter separately in future years when we got better about timepoints 
+    treatment_doc_mg_l_mean = mean(doc_mg_l, na.rm = TRUE),
+    treatment_doc_mg_l_sd = sd(doc_mg_l, na.rm = TRUE),
+    treatment_n_grids = n(),
+    treatment_doc_mg_l_se = treatment_doc_mg_l_sd / sqrt(treatment_n_grids),
+    .groups = "drop"
+  )
+  
+
+c_plot_for_outliers <- doc_pw_studydates %>%
+  select(plot, grid, collection_datetime, nominal_date, doc_mg_l) %>%
+  filter(plot == "Control") %>%
+  mutate(source_row = row_number())
+
+control_median_doc <- median(c_plot_for_outliers$doc_mg_l, na.rm = TRUE)
+control_mad_doc <- mad(c_plot_for_outliers$doc_mg_l, constant = 1, na.rm = TRUE)
+
+control_removed_outliers <- c_plot_for_outliers %>%
+  mutate(
+    control_modified_z = if (control_mad_doc > 0) {
+      0.6745 * (doc_mg_l - control_median_doc) / control_mad_doc
+    } else {
+      NA_real_
+    },
+    control_mad_outlier = abs(control_modified_z) > 3.5
+  ) %>%
+  filter(control_mad_outlier)
+
+c_plot <- c_plot_for_outliers %>%
+  anti_join(
+    control_removed_outliers %>% select(source_row),
+    by = "source_row"
+  ) %>%
+   group_by(nominal_date, plot) %>%
+  dplyr::summarise(
+    n_timepoints_collapsed = n_distinct(collection_datetime), # for tracking only; note that these count each lysimeter separately in future years when we got better about timepoints 
+    control_doc_mg_l_mean = mean(doc_mg_l, na.rm = TRUE),
+    control_doc_mg_l_sd = sd(doc_mg_l, na.rm = TRUE),
+    control_n_grids = n(),
+    control_doc_mg_l_se = control_doc_mg_l_sd / sqrt(control_n_grids),
+    .groups = "drop"
+  )
+
+
+fw_c_foreffect <- fw_plot %>%
+  full_join(c_plot, by = c("nominal_date")) %>%
+  filter(plot.x == "Freshwater") %>% # filter out when only have data for treatment plot 
+  #gapfilling when missing control data points; using "typical monthly values" for both mean and std: 
+  mutate(month = month(nominal_date)) %>%
+  group_by(month) %>%
+    mutate(
+     plot.y = case_when(is.na(plot.y) ~ "Gapfilled",
+                            TRUE ~ plot.y),
+  control_n_grids = if_else(is.na(control_n_grids),
+  as.integer(round(median(control_n_grids, na.rm = TRUE))),
+  control_n_grids),
+  treatment_n_grids = if_else(is.na(treatment_n_grids),
+  as.integer(round(median(treatment_n_grids, na.rm = TRUE))),
+  treatment_n_grids),
+    control_doc_mg_l_mean = if_else(is.na(control_doc_mg_l_mean),
+    mean(control_doc_mg_l_mean, na.rm = TRUE),
+    control_doc_mg_l_mean),
+  control_doc_mg_l_sd = if_else(is.na(control_doc_mg_l_sd),
+    mean(control_doc_mg_l_sd, na.rm = TRUE),
+    control_doc_mg_l_sd),
+  treatment_doc_mg_l_sd = if_else(is.na(treatment_doc_mg_l_sd),
+    mean(treatment_doc_mg_l_sd, na.rm = TRUE),
+    treatment_doc_mg_l_sd),
+  control_doc_mg_l_se = control_doc_mg_l_sd / sqrt(control_n_grids),
+  treatment_doc_mg_l_se = treatment_doc_mg_l_sd / sqrt(treatment_n_grids),
+    treatment_doc_mg_l_se = if_else(
+      is.na(treatment_doc_mg_l_se),
+      median(treatment_doc_mg_l_se, na.rm = TRUE),
+      treatment_doc_mg_l_se)) %>%
+  ungroup()
+
+
+sw_c_foreffect <- sw_plot %>%
+  full_join(c_plot, by = c("nominal_date")) %>%
+  filter(plot.x == "Saltwater") %>% # filter out when only have data for treatment plot 
+  #gapfilling when missing control data points; using "typical monthly values" for both mean and std: 
+  mutate(month = month(nominal_date)) %>%
+  group_by(month) %>%
+   mutate(
+     plot.y = case_when(is.na(plot.y) ~ "Gapfilled",
+                            TRUE ~ plot.y),
+  control_n_grids = if_else(is.na(control_n_grids),
+  as.integer(round(median(control_n_grids, na.rm = TRUE))),
+  control_n_grids),
+  treatment_n_grids = if_else(is.na(treatment_n_grids),
+  as.integer(round(median(treatment_n_grids, na.rm = TRUE))),
+  treatment_n_grids),
+    control_doc_mg_l_mean = if_else(is.na(control_doc_mg_l_mean),
+    mean(control_doc_mg_l_mean, na.rm = TRUE),
+    control_doc_mg_l_mean),
+  control_doc_mg_l_sd = if_else(is.na(control_doc_mg_l_sd),
+    mean(control_doc_mg_l_sd, na.rm = TRUE),
+    control_doc_mg_l_sd),
+  treatment_doc_mg_l_sd = if_else(is.na(treatment_doc_mg_l_sd),
+    mean(treatment_doc_mg_l_sd, na.rm = TRUE),
+    treatment_doc_mg_l_sd),
+  control_doc_mg_l_se = control_doc_mg_l_sd / sqrt(control_n_grids),
+  treatment_doc_mg_l_se = treatment_doc_mg_l_sd / sqrt(treatment_n_grids),
+    treatment_doc_mg_l_se = if_else(
+      is.na(treatment_doc_mg_l_se),
+      median(treatment_doc_mg_l_se, na.rm = TRUE),
+      treatment_doc_mg_l_se)) %>%
+  ungroup()
+
+ 
+```
+
+```{r effect size}
+
+set.seed(20260603)
+
+n_boot <- 10000
+
+fw_effect <- fw_c_foreffect %>%
+  mutate(
+    effect_size = (treatment_doc_mg_l_mean - control_doc_mg_l_mean) /
+      control_doc_mg_l_mean
+  )
+
+sw_effect <- sw_c_foreffect %>%
+  mutate(
+    effect_size = (treatment_doc_mg_l_mean - control_doc_mg_l_mean) /
+      control_doc_mg_l_mean
+  )
+
+## bootstrapping 
+
+save_bootstrap_replicates <- FALSE
+estimation_method <- "parametric_normal_plot_mean_uncertainty"
+
+#inputs
+effect_size_bootstrap_input <- bind_rows(
+  fw_effect %>% mutate(treatment_plot = "Freshwater"),
+  sw_effect %>% mutate(treatment_plot = "Saltwater")
+) %>%
+  mutate(
+    bootstrap_row_id = row_number(),
+    nominal_date = as.Date(nominal_date),
+    control_reference = case_when(
+      as.character(plot.y) == "Control" ~ "same_nominal_date_control",
+      as.character(plot.y) == "Gapfilled" ~ "gapfilled_monthly_control",
+      is.na(plot.y) ~ "missing_control",
+      TRUE ~ as.character(plot.y)
+    ),
+    estimation_method = estimation_method,
+    bootstrap_status = case_when(
+      !is.finite(control_doc_mg_l_mean) | control_doc_mg_l_mean <= 0 ~
+        "skipped_bad_control_mean",
+      !is.finite(treatment_doc_mg_l_mean) ~ "skipped_bad_treatment_mean",
+      !is.finite(control_doc_mg_l_se) | control_doc_mg_l_se < 0 ~
+        "skipped_missing_control_se",
+      !is.finite(treatment_doc_mg_l_se) | treatment_doc_mg_l_se < 0 ~
+        "skipped_missing_treatment_se",
+      TRUE ~ "calculated"
+    )
+  )
+
+calculated_bootstrap_input <- effect_size_bootstrap_input %>%
+  filter(bootstrap_status == "calculated")
+
+bootstrap_replicates <- map_dfr(seq_len(nrow(calculated_bootstrap_input)), function(i) {
+  this_row <- calculated_bootstrap_input[i, ]
+
+  control_mean_boot <- rnorm(
+    n_boot,
+    mean = this_row$control_doc_mg_l_mean,
+    sd = this_row$control_doc_mg_l_se
+  )
+
+  treatment_mean_boot <- rnorm(
+    n_boot,
+    mean = this_row$treatment_doc_mg_l_mean,
+    sd = this_row$treatment_doc_mg_l_se
+  )
+
+  tibble(
+    bootstrap_row_id = this_row$bootstrap_row_id,
+    nominal_date = this_row$nominal_date,
+    treatment_plot = this_row$treatment_plot,
+    control_reference = this_row$control_reference,
+    bootstrap_iteration = seq_len(n_boot),
+    control_doc_mg_l_mean_boot = control_mean_boot,
+    treatment_doc_mg_l_mean_boot = treatment_mean_boot,
+    effect_size_boot = if_else(
+      control_doc_mg_l_mean_boot > 0,
+      (treatment_doc_mg_l_mean_boot - control_doc_mg_l_mean_boot) /
+        control_doc_mg_l_mean_boot,
+      NA_real_
+    )
+  )
+})
+
+bootstrap_summary <- bootstrap_replicates %>%
+  filter(is.finite(effect_size_boot)) %>%
+  group_by(bootstrap_row_id) %>%
+  summarise(
+    bootstrap_iterations = n(),
+    effect_size_boot_mean = mean(effect_size_boot),
+    effect_size_boot_sd = sd(effect_size_boot),
+    effect_size_boot_median = median(effect_size_boot),
+    effect_size_ci_lower = quantile(effect_size_boot, 0.025),
+    effect_size_ci_upper = quantile(effect_size_boot, 0.975),
+    effect_size_percent_boot_mean = 100 * effect_size_boot_mean,
+    effect_size_percent_ci_lower = 100 * effect_size_ci_lower,
+    effect_size_percent_ci_upper = 100 * effect_size_ci_upper,
+    prob_effect_size_gt_0 = mean(effect_size_boot > 0),
+    prob_effect_size_lt_0 = mean(effect_size_boot < 0),
+    .groups = "drop"
+  )
 
 ```
 
-```{r save doc precip}
-pw_doc_all_wprecip <- pw_doc_all %>%
-  left_join(precip, by = c("month", "year"))
+```{r bootstrap final data frame}
 
+effect_size_bootstrap_summary <- effect_size_bootstrap_input %>%
+  left_join(bootstrap_summary, by = "bootstrap_row_id") %>%
+  arrange(nominal_date, factor(treatment_plot, levels = c("Freshwater", "Saltwater"))) %>%
+  filter(bootstrap_status == "calculated") %>%
+  select(
+    nominal_date,
+    treatment_plot,
+    control_reference,
+    effect_size_boot_mean,
+    effect_size_ci_lower,
+    effect_size_ci_upper,
+    effect_size_percent_boot_mean,
+    effect_size_percent_ci_lower,
+    effect_size_percent_ci_upper,
+    estimation_method)
 
-write_csv(pw_doc_all_wprecip, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_allyrs_withprecip.csv")
+saveRDS(effect_size_bootstrap_summary, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_effectsizes.rds")
 
 ```
+
 
 
 
@@ -588,12 +688,15 @@ pw_plot_ec <- pw_grids_ec %>%
                   EC_uScm = mean(value, na.rm = TRUE),
                   .groups = "drop")
 
+pw_plot_sw <- pw_plot_ec %>%
+  
+
 # write out for plotting:
 saveRDS(pw_plot_ec, "~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
 
 ```
 
-Mean plot conductivity values when DOC has reached 10x SD of control plot. 
+Mean plot conductivity values when DOC has reached 3x SD of control plot. 
 
 ```{r cond threshold}
 dates_4_cond <- tmpdates_doc %>%
@@ -612,6 +715,163 @@ cond_doc_thres <- pw_plot_ec %>%
 cond_doc_thres
 
 ```
+
+### Threshold sensitivity analysis 
+
+```{r, sensitivity}
+
+library(tidyverse)
+library(lubridate)
+
+# Sensitivity values to test
+sd_multipliers <- seq(1.5, 5, by = 0.5)
+
+# 1. Control baseline by date
+baseline <- doc_l1_pw_grids %>%
+  filter(plot == "Control") %>%
+  group_by(evacuation_date) %>%
+  summarize(
+    baseline_mean = mean(doc_mg_l, na.rm = TRUE),
+    baseline_sd = sd(doc_mg_l, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+max_sd <- max(baseline$baseline_sd, na.rm = TRUE)
+
+# 2. Saltwater DOC summary by date
+salt_doc <- doc_l1_pw_grids %>%
+  filter(plot == "Saltwater") %>%
+  group_by(evacuation_date) %>%
+  summarize(
+    doc_median = median(doc_mg_l, na.rm = TRUE),
+    doc_mean = mean(doc_mg_l, na.rm = TRUE),
+    doc_sd = sd(doc_mg_l, na.rm = TRUE),
+    collection_datetime = min(collection_datetime, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  left_join(baseline, by = "evacuation_date") %>%
+  mutate(
+    baseline_mean = if_else(
+      is.na(baseline_mean),
+      mean(baseline_mean, na.rm = TRUE),
+      baseline_mean
+    ),
+    baseline_sd = if_else(
+      is.na(baseline_sd),
+      max_sd,
+      baseline_sd
+    ),
+    deviation = doc_median - baseline_mean
+  )
+
+# 3. Function to identify first exceedance dates by multiplier
+get_first_exceedance <- function(multiplier) {
+  
+  significant_dates <- salt_doc %>%
+    mutate(
+      sd_multiplier = multiplier,
+      flag_high_change = deviation > multiplier * baseline_sd,
+      year = year(evacuation_date)
+    ) %>%
+    filter(flag_high_change)
+  
+  tmp1 <- significant_dates %>%
+    filter(year == 2022) %>%
+    filter(evacuation_date == min(evacuation_date, na.rm = TRUE))
+  
+  tmp2 <- significant_dates %>%
+    filter(year == 2023) %>%
+    filter(evacuation_date > WaterDeliveryStop2) %>%
+    filter(evacuation_date == min(evacuation_date, na.rm = TRUE))
+  
+  tmp3 <- significant_dates %>%
+    filter(year > 2023) %>%
+    filter(evacuation_date > WaterDeliveryStart3_2024) %>%
+    filter(evacuation_date == min(evacuation_date, na.rm = TRUE))
+  
+  bind_rows(tmp1, tmp2, tmp3) %>%
+    mutate(
+      sd_multiplier = multiplier,
+      event_stop_date = case_when(
+        year == 2022 ~ as_date(WaterDeliveryStop2022),
+        year == 2023 ~ as_date(WaterDeliveryStop2),
+        year > 2023 ~ as_date(WaterDeliveryStop3_2024)
+      ),
+      elapsed_time_days = as.numeric(evacuation_date - event_stop_date)
+    )
+}
+
+# 4. Run sensitivity analysis
+sensitivity_dates <- map_dfr(sd_multipliers, get_first_exceedance)
+
+sensitivity_dates
+```
+
+# try this without the outlier, do outlier test on crazy control plot point
+```{r, cond sens}
+# Prepare daily conductivity data
+pw_plot_ec_daily <- pw_plot_ec %>%
+  filter(plot == "Saltwater") %>%
+  mutate(date = date(datetime_est)) %>%
+  group_by(plot, depth, research_name, date) %>%
+  summarize(
+    EC_uScm_mean_daily = mean(EC_uScm, na.rm = TRUE),
+    EC_uScm_sd_daily = sd(EC_uScm, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Join DOC exceedance dates with conductivity
+sensitivity_with_ec <- sensitivity_dates %>%
+  mutate(date = date(collection_datetime)) %>%
+  left_join(
+    pw_plot_ec_daily,
+    by = "date"
+  )
+
+sensitivity_with_ec
+
+sensitivity_summary <- sensitivity_with_ec %>%
+  group_by(sd_multiplier) %>%
+  summarize(
+    n_years_detected = n_distinct(year),
+    mean_elapsed_days = mean(elapsed_time_days, na.rm = TRUE),
+    sd_elapsed_days = sd(elapsed_time_days, na.rm = TRUE),
+    mean_EC_uScm = mean(EC_uScm_mean_daily, na.rm = TRUE),
+    sd_EC_uScm = sd(EC_uScm_mean_daily, na.rm = TRUE),
+    min_EC_uScm = min(EC_uScm_mean_daily, na.rm = TRUE),
+    max_EC_uScm = max(EC_uScm_mean_daily, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+sensitivity_summary
+
+ggplot(sensitivity_summary, aes(x = sd_multiplier, y = mean_EC_uScm)) +
+  geom_point(size = 3) +
+  geom_line() +
+  geom_errorbar(
+    aes(
+      ymin = mean_EC_uScm - sd_EC_uScm,
+      ymax = mean_EC_uScm + sd_EC_uScm
+    ),
+    width = 0.1
+  ) +
+  labs(
+    x = "DOC exceedance threshold multiplier",
+    y = "Mean conductivity at first DOC exceedance (uS/cm)",
+    title = "Sensitivity of conductivity threshold to DOC exceedance criterion"
+  ) +
+  theme_classic()
+
+ggplot(
+  sensitivity_with_ec,
+  aes(sd_multiplier, EC_uScm_mean_daily, color = factor(year))
+) +
+  geom_point(size = 3) +
+  geom_line() +
+  theme_classic()
+```
+
+
 
 
 ### pH: What is the relationship between pH and DOC after each event? 
@@ -1348,6 +1608,180 @@ sim_results <- replicate(n_sim, {
 # DOC increased markedly in the ASW soil columns after 6 successive washes of low ionic strength water following the initial ASW pulse, with no significant differences in DOC across washes in the control or freshwater column experiments (insert the stats for this) (SI Figure 2). 
 
 
+# Graveyard
+
+
+
+
+### Prep data for figure 1: Porewater DOC averages/std by plot and month
+Generate for easy comparison between event years and with laboratory data sets.
+Can simplify this from previous iterations (see `graveyard_analysis_code.Rmd`) because we just want a monthly timeframe. 
+```{r doc avg std by month YEAR 1}
+
+pw_doc_yr1 <- doc_l1_2022 %>%
+  mutate(date = as_date(date)) %>%
+  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(date, startstudydate_yr1, endstudydate)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  # fix the sampling dates in June before the event to the month before
+  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2022 ~ adj_month == 0,
+                               TRUE ~ adj_month)) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+pw_doc_yr1_2023 <- doc_l1_2023 %>%
+  mutate(date = as_date(date)) %>%
+  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(date, startstudydate_yr1, endstudydate_yr1)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               TRUE ~ adj_month )) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+pw_doc_y1_all <- pw_doc_yr1 %>%
+  full_join(pw_doc_yr1_2023) %>%
+  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
+                           adj_month > 7 ~ adj_month - 7))
+  
+
+saveRDS(pw_doc_y1_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP1_Figure1.rds")
+```
+
+```{r doc avg std by month YEAR 2}
+
+
+pw_doc_yr2 <- doc_l1_2023 %>%
+  mutate(date = as_date(evacuation_datetime)) %>%
+  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  # fix the sampling dates in June before the event to the month before
+  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
+                               TRUE ~ adj_month)) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+pw_doc_yr2_2024 <- doc_l1_2024 %>%
+  mutate(date = as_date(date)) %>%
+  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               TRUE ~ adj_month )) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+pw_doc_y2_all <- pw_doc_yr2 %>%
+  full_join(pw_doc_yr2_2024) %>%
+  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
+                           adj_month > 7 ~ adj_month - 7))
+
+  
+
+saveRDS(pw_doc_y2_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP2_Figure1.rds")
+```
+
+```{r doc avg std by month YEAR 3}
+
+
+pw_doc_yr3 <- doc_l1_2024 %>%
+  mutate(date = as_date(evacuation_datetime)) %>%
+  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  # fix the sampling dates in June before the event to the month before
+  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
+                               TRUE ~ adj_month)) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+  
+pw_doc_yr3_2025 <- doc_l1_2025 %>%
+  mutate(date = as_date(date)) %>%
+  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
+  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
+  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
+  mutate(year = lubridate::year(date), 
+         month = lubridate::month(date),
+           # Adjust months: May = 0, June = 1, ..., April = 11
+         adj_month = (month(date) - 5) %% 12 ) %>%
+  mutate(adj_month = case_when(adj_month == 0 ~ 12,
+                               TRUE ~ adj_month )) %>%
+  group_by(adj_month, year, plot) %>%
+  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+pw_doc_y3_all <- pw_doc_yr3 %>%
+  full_join(pw_doc_yr3_2025) %>%
+  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
+                           adj_month > 7 ~ adj_month - 7))
+
+  
+
+saveRDS(pw_doc_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP3_Figure1.rds")
+```
+
+```{r group all doc}
+
+pw_doc_all <- pw_doc_y1_all %>%
+  full_join(pw_doc_y2_all) %>%
+full_join(pw_doc_y3_all) %>%
+  mutate(stamp =lubridate::my(interaction(month, year, sep = " "))) 
+  
+
+saveRDS(pw_doc_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_ALLYEARS_Figure1.rds")
+
+```
+
+
+```{r bring in precip}
+
+precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/mean_monthly_precip_2006-2026.csv")
+
+```
+
+```{r save doc precip}
+pw_doc_all_wprecip <- pw_doc_all %>%
+  left_join(precip, by = c("month", "year"))
+
+
+write_csv(pw_doc_all_wprecip, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_allyrs_withprecip.csv")
+
+```
+
+
 
 # Experimental Data Analysis for mechanistic relationships
 Workflow 
@@ -1359,6 +1793,44 @@ Workflow
   3c) include mechanistic constraints (e.g., Fe/OC influence DOC)
   
 ### Exploratory data analysis
+```{r doc stats}
+
+hist(doc_l1_pw_grid_2022_2026$doc_mg_l)
+
+doc_comparison <- doc_l1_pw_grid_2022_2026 %>%
+  filter(plot != "Saltwater") %>%
+  mutate(logdoc = log(doc_mg_l),  #DOC is right skewed
+  gridID = interaction(plot, grid, sep = "_"),
+  month = lubridate::month(evacuation_date),
+  year = lubridate::year(evacuation_date),
+  dateID = interaction(month, year, sep = "_"))# create unique grid IDs (per plot)
+
+hist(doc_comparison$logdoc)
+
+doc_lme <- lme(
+  logdoc ~ plot ,
+  random = ~ 1 | gridID, # random effect of grids in the plot
+  correlation = corAR1(form = ~ 1 | gridID), # repeated monthly observations are temporally autocorrelated
+  data = doc_comparison 
+)
+
+summary(doc_lme)
+
+plot(doc_lme)
+
+qqnorm(resid(doc_lme))
+qqline(resid(doc_lme))
+
+#one factor model
+
+EMM <- emmeans(doc_lme, ~ plot)
+
+EMM
+
+### pairwise comparisons
+pairs(EMM)
+
+```
 
 ```{r load ColEx data}
 ColEx <- readxl::read_excel("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/ColEx_data_allreps_formatted.xlsx") %>% #drop initial for this

@@ -16,6 +16,7 @@ library(ggpubr)
 library(viridis)
 library(scales)
 library(tidyverse)
+library(ggnewscale)
 
 #clean out your environment 
 rm(list = ls())
@@ -35,9 +36,15 @@ time_order <- c('Pre', 'Mid','Post')
 
 Anyas_colors = c("springgreen2", "cyan2", "violetred2")
 
-Anyas_colors_figure1 =  c("violetred2", "cyan2","springgreen2")
+Anyas_colors_figure1 =  c( "cyan2","violetred2")
 
 Treatment_order <- c('Control', 'Artificial Freshwater','Artificial Saltwater')
+
+base_text_size <- 11
+axis_text_size <- 10
+axis_title_size <- 11
+legend_text_size <- 10
+panel_label_size <- 11
 
 #double check your wd
 getwd()
@@ -48,8 +55,13 @@ getwd()
 ### Set the study dates
 
 ```{r event and study dates}
-endstudydate = lubridate::as_date("2024-01-31")
+endstudydate = lubridate::as_date("2025-05-31")
 startstudydate = lubridate::as_date("2022-05-01")
+
+x_limits <- as.Date(c(startstudydate, endstudydate))
+
+plotting_end = as.POSIXct("2025-05-31 11:59:59", tz = "EST")
+plotting_start = as.POSIXct("2022-05-01 00:00:00", tz = "EST")
 
 endstudydate_yr1 = lubridate::as_date("2023-05-31")
 startstudydate_yr1 = lubridate::as_date("2022-05-01")
@@ -81,160 +93,35 @@ WaterDeliveryStart3_2024 = as.POSIXct("2024-06-13 06:21:00", tz = "EST")
 flood_event_datetime <- c(as_date("2022-06-22"))
 ```
 
-```{r import doc data}
 
-pw_doc_1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP1_Figure1.rds") %>%
-  mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
-                          TRUE ~ doc_mg_l_sd))
+# Figure 1: 
 
-pw_doc_2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP2_Figure1.rds") %>%
-  mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
-                          TRUE ~ doc_mg_l_sd))
+data: 
+```{r load doc data}
 
-pw_doc_3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP3_Figure1.rds") %>%
-  mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
-                          TRUE ~ doc_mg_l_sd))
+doc_all <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_FINAL.rds")
 
-#pw_tmp1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds")
+doc_sw <- doc_all %>%
+  filter(plot == "Saltwater") %>%
+   mutate(nominal_datetime = as.POSIXct(nominal_date)) %>%
+  filter(between(nominal_date, startstudydate, endstudydate))
 
-#doc_iqr <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") %>%
-#  mutate(collection_datetime = as.POSIXct("2022-05-18 15:59:00", tz= "EST" ),
-#         doc_mg_l = NA)
+doc_effect_size <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_effectsizes.rds") %>%
+   mutate(nominal_datetime = as.POSIXct(nominal_date))
 
 ```
 
-# Figure 1: Year 1, 2, 3 DOC Field
-Supporting Main Message: This phenomenon can be replicated in the laboratory; AND we can repeat it in the field the second year “reset” 
-
-```{r plot DOC}
-
-Figure1a <- pw_doc_1 %>%
-  group_by(adj_month) %>%
-  mutate(plot = factor(plot, levels = plot_order),
-         Timepoint = cur_group_id(),
-         year= as.character(year)) %>%
-  ungroup() %>%
-   ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
-   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
-    ylab(" ")+
-    xlab("Sampling Month Post-Event")+
-   # title("Field Manipulation") +
-    ylim(-10,100)+
-    scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    scale_shape_manual(values = c(2, 17))+ 
-    theme_classic() +
-    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16),  axis.title.x = element_blank() )+
-          #, axis.title.x = element_blank(), axis.text.x = element_blank() ) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field Year 1"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
-
-print(Figure1a)
-
-Figure1b <- pw_doc_2 %>%
-  group_by(adj_month) %>%
-  mutate(plot = factor(plot, levels = plot_order),
-         Timepoint = cur_group_id(),
-         year= as.character(year)) %>%
-  ungroup() %>%
-    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
-   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
-    ylab("DOC mgC/L")+
-    xlab("Sampling Month Post-Event")+
-   # title("Field Manipulation") +
-    ylim(-10,100)+
-    scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    scale_shape_manual(values = c(2, 17))+ 
-    theme_classic() +
-    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
-         text= element_text(size = 16) ) +
-       #  , axis.title.x = element_blank(), axis.text.x = element_blank() ) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
-
-print(Figure1b)
-
-Figure1c <- pw_doc_3 %>%
-  group_by(adj_month) %>%
-  mutate(plot = factor(plot, levels = plot_order),
-         Timepoint = cur_group_id(),
-         year= as.character(year)) %>%
-  ungroup() %>%
-    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
-   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
-    ylab(" ")+
-    xlab("Sampling Month Post-Event")+
-   # title("Field Manipulation") +
-    ylim(-10,100)+
-    scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    scale_shape_manual(values = c(2, 17))+ 
-    theme_classic() +
-    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16), 
-          axis.title.x = element_blank() ) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Field Year 3"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
-
-print(Figure1c)
-
-Figure1b_LEGEND <- pw_doc_2 %>%
-  group_by(adj_month) %>%
-  mutate(plot = factor(plot, levels = plot_order),
-         Timepoint = cur_group_id(),
-         year= as.character(year)) %>%
-  ungroup() %>%
-    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
-   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
-    ylab("DOC mgC/L")+
-    xlab("Sampling Month Post-Event")+
-   # title("Field Manipulation") +
-    ylim(-10,100)+
-    scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    scale_shape_manual(values = c(2, 17))+ 
-    theme_classic() +
-    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
-
-fig1_legend = get_legend(Figure1b_LEGEND)
-
-
-
-
- Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
-
-
- Figure1
-
-
- cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
-                   nrow = 3)
-
-all_hands_fig <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
-
-all_hands_fig
-
-```
-
-# Supplemental Figures
-1. SPC through year (SW plot, TMP 1 & 2)
-2. Column Experiment DOC
-2. pH through year (FW and SW plot, TMP 2)
-3. DO before/during/after event (FW and SW plot, TMP 1 & 2? Discuss with Peter)
-
-Water Isotopes (from Lindsey)
-
-
-# Supplemental Figure 1: SPC timeseries 
 ```{r bring in SPC}
 
-pw_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
+ec_to_doc_scale <- 100 / 1735.222 # doc max range vs ec max
+#ec_scaled_offset <- doc_range[1] - ec_range[1] * ec_to_doc_scale
 
-pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2025_L2.rds")
+pw_ec_plotting <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds") %>%
+  mutate(EC_scaled_to_doc_axis = EC_uScm * ec_to_doc_scale) %>% #scale EC to plot 
+  filter(plot =="Saltwater") %>%
+  filter(between(datetime_est, startstudydate, endstudydate))
+
+# pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2025_L2.rds")
 
 pw_doc_dates <- read_rds("~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
 
@@ -248,28 +135,285 @@ tmp3_doc_high = as.POSIXct("2025-01-31 20:52:00", tz = "EST")
 
 ```
 
-```{r spc timeseries}
+## a) DOC effect sizes 
+Supporting Main Message: This phenomenon can be replicated in the laboratory; AND we can repeat it in the field the second year “reset” (SI Figure X)
 
-#rectangles from cond_doc_threshold in `1_manuscript_anlaysis_porewaterDOC.Rmd`
 
-SI1 <- pw_ec %>%
-  mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = datetime_est, y = EC_uScm, color = plot)) +
-    geom_point()+
-    geom_vline(xintercept = tmp1_doc_high,linetype="dashed",color="black")+ 
-    geom_vline(xintercept = tmp2_doc_high,linetype="dashed",color="black")+ 
-    geom_vline(xintercept = tmp3_doc_high,linetype="dashed",color="black")+ 
-     annotate("rect", xmin= min(pw_ec$datetime_est) , xmax = max(pw_ec$datetime_est), ymin = (235.3203 - 28.85163), ymax = (235.3203 + 28.85163), fill= "grey", alpha = 0.2)+
-    ylab("mean Porewater Conductivity (uS/cm)")+
-    xlab("Date")+
-    scale_color_manual(values=Anyas_colors) +
-    theme_classic()
+```{r plot}
 
-SI1
+event_dates <- sort(as.Date(c(
+  WaterDeliveryStart2022,
+  WaterDeliveryStart1,
+  WaterDeliveryStart1_2024
+)))
 
- cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS1.png",SI1, dpi=600)
+Figure1a <- doc_effect_size %>%
+  filter(between(nominal_date, startstudydate, endstudydate)) %>%
+  select(
+    treatment_plot,
+    nominal_date,
+    effect_size_percent_boot_mean,
+    effect_size_percent_ci_lower,
+    effect_size_percent_ci_upper
+  ) %>%
+  mutate(
+    nominal_date = as.Date(nominal_date),
+    plot = factor(treatment_plot, levels = plot_order),
+    event_period = cut(
+      nominal_date,
+      breaks = c(as.Date("1900-01-01"), event_dates, as.Date("2100-01-01")),
+      labels = c(
+        "before_2022",
+        "after_2022_before_2023",
+        "after_2023_before_2024",
+        "after_2024"
+      ),
+      right = FALSE
+    )
+  ) %>%
+  ggplot(aes(
+    x = nominal_date,
+    y = effect_size_percent_boot_mean,
+    color = plot,
+    fill = plot
+  )) +
+  geom_vline(xintercept = WaterDeliveryStart2022, linetype = "dashed", color = "black") +
+  geom_vline(xintercept = WaterDeliveryStart1, linetype = "dashed", color = "black") +
+  geom_vline(xintercept = WaterDeliveryStart1_2024, linetype = "dashed", color = "black") +
+#  geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey") +
+  geom_ribbon(
+    aes(
+      ymin = effect_size_percent_ci_lower,
+      ymax = effect_size_percent_ci_upper,
+      group = plot
+    ),
+    alpha = 0.18,
+    color = NA
+  ) +
+  geom_line(
+    aes(group = plot),
+    linewidth = 0.6,
+    alpha = 0.30
+  ) +
+  geom_point(
+    shape = 17,
+    size = 1.8
+  ) +
+  labs(
+    x = NULL,
+    y = "DOC effect size \n (% difference from Control Plot)",
+    color = NULL,
+    fill = NULL
+  ) +
+  scale_color_manual(values = Anyas_colors_figure1) +
+  scale_fill_manual(values = Anyas_colors_figure1) +
+  guides(
+    color = guide_legend(nrow = 1),
+    fill = "none"
+  ) +
+  theme_classic() +
+  geom_text(
+    data = data.frame(x = -Inf, y = Inf, label = "  a) "),
+    aes(x, y, label = label),
+    hjust = -0.1,
+    vjust = 2,
+    inherit.aes = FALSE
+  )+
+    theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = legend_text_size),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+    text = element_text(size = base_text_size),
+    axis.text = element_text(size = axis_text_size),
+    axis.title = element_text(size = axis_title_size),
+    axis.title.x = element_blank(),
+    axis.title.y.right = element_text(color = "transparent", size = axis_title_size),
+    axis.text.y.right = element_blank(),
+    axis.ticks.y.right = element_blank(),
+    plot.margin = margin(5.5, 5.5, 2, 5.5)
+  )
+    
+    
+print(Figure1a)
+
 
 ```
+
+## b) Cond and DOC in SW plot only
+```{r fig 1b plot}
+
+library(ggnewscale)
+
+doc_event_dates <- sort(as.Date(c(
+  tmp1_doc_high,
+  tmp2_doc_high,
+  tmp3_doc_high
+)))
+
+doc_sw_plot <- doc_sw %>%
+  mutate(
+    nominal_date = as.Date(nominal_date),
+    nominal_datetime = as.POSIXct(nominal_date),
+    high_doc_window = case_when(
+      nominal_date >= as.Date("2022-07-16") &
+        nominal_date < as.Date(WaterDeliveryStart1) ~ "After conductivity threshold",
+
+      nominal_date >= as.Date("2023-08-07") &
+        nominal_date < as.Date(WaterDeliveryStart1_2024) ~ "After conductivity threshold",
+
+      nominal_date >= as.Date("2025-01-30")  ~ "After conductivity threshold",
+
+      TRUE ~ "Below 3x SD of Control Plot DOC"
+    ))
+
+fig1b <-
+  ggplot() +
+  geom_point(
+    data = pw_ec_plotting,
+    aes(x = datetime_est, y = EC_scaled_to_doc_axis, color = plot),
+    alpha = 0.45,
+    size = 1
+  ) +
+  scale_color_manual(values = c("Saltwater" = "grey")) +
+
+  geom_text(
+    data = data.frame(x = -Inf, y = Inf, label = "  b) "),
+    aes(x, y, label = label),
+    hjust = -0.1,
+    vjust = 2,
+    inherit.aes = FALSE
+  ) +
+  ggnewscale::new_scale_color() +
+
+  geom_vline(xintercept = WaterDeliveryStart2022, linetype = "dashed", color = "black") +
+  geom_vline(xintercept = WaterDeliveryStart1, linetype = "dashed", color = "black") +
+  geom_vline(xintercept = WaterDeliveryStart1_2024, linetype = "dashed", color = "black") +
+ # geom_vline(xintercept = tmp1_doc_high, linetype = "dashed", color = "black") +
+ # geom_vline(xintercept = tmp2_doc_high, linetype = "dashed", color = "black") +
+ # geom_vline(xintercept = tmp3_doc_high, linetype = "dashed", color = "black") +
+
+geom_pointrange(
+  data = doc_sw_plot,
+  aes(
+    x = nominal_datetime,
+    y = doc_mg_l_mean,
+    ymin = doc_mg_l_mean - doc_mg_l_sd,
+    ymax = doc_mg_l_mean + doc_mg_l_sd,
+    color = high_doc_window
+  ),
+  shape = 17,
+  size = 1
+) +
+scale_color_manual(
+  values = c(
+    "Below 3x SD of Control Plot DOC" = "black",
+    "After conductivity threshold" = "#B6854D"
+  )
+) +
+  xlab("Date") +
+  scale_y_continuous(
+    name = "DOC (mg/L)",
+    sec.axis = sec_axis(
+      ~ (. - 1) / ec_to_doc_scale,
+      name = "Plot mean porewater\nconductivity at 15 cm (uS/cm)"
+    )
+  ) +
+  theme_classic() +
+theme(
+    legend.position = "bottom",
+    legend.title = element_blank(),
+    legend.text = element_text(size = legend_text_size),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+    text = element_text(size = base_text_size),
+    axis.text = element_text(size = axis_text_size),
+    axis.title = element_text(size = axis_title_size),
+    axis.title.x = element_blank(),
+    plot.margin = margin(2, 5.5, 5.5, 5.5)
+  )
+
+
+fig1b
+
+
+```
+
+```{r figure 1}
+panel_a <- Figure1a +
+  theme(legend.position = "none")
+
+panel_b <- fig1b +
+  theme(legend.position = "none")
+
+legend_a_plot <- tibble(
+  x = c(0.42, 0.58),
+  label = c("Freshwater", "Saltwater"),
+  plot = factor(c("Freshwater", "Saltwater"), levels = plot_order)
+) %>%
+  ggplot(aes(x = x, y = 1, color = plot)) +
+  geom_segment(aes(x = x - 0.035, xend = x + 0.02, yend = 1), linewidth = 0.7, alpha = 0.45) +
+  geom_point(shape = 17, size = 3) +
+  geom_text(aes(x = x + 0.045, label = label), color = "black", hjust = 0, size = legend_text_size / ggplot2::.pt) +
+  scale_color_manual(values = Anyas_colors_figure1) +
+  coord_cartesian(xlim = c(0.28, 0.78), ylim = c(0.8, 1.2), clip = "off") +
+  theme_void() +
+  theme(legend.position = "none")
+
+legend_b_plot <- tibble(
+  x = c(0.18, 0.42, 0.72),
+  label = c("Saltwater", "After conductivity threshold", "Below 3x SD of Control Plot DOC"),
+  color_value = c("grey", "#B6854D", "black"),
+  point_shape = c(16, 17, 17),
+  point_size = c(1.4, 4.0, 4.0)
+) %>%
+  ggplot(aes(x = x, y = 1)) +
+  geom_point(aes(color = color_value, shape = factor(point_shape), size = point_size), show.legend = FALSE) +
+  geom_text(aes(x = x + 0.035, label = label), color = "black", hjust = 0, size = legend_text_size / ggplot2::.pt) +
+  scale_color_identity() +
+  scale_shape_manual(values = c("16" = 16, "17" = 17)) +
+  scale_size_identity() +
+  coord_cartesian(xlim = c(0.08, 1.02), ylim = c(0.8, 1.2), clip = "off") +
+  theme_void() +
+  theme(legend.position = "none")
+
+aligned_panels <- cowplot::align_plots(
+  panel_a,
+  panel_b,
+  align = "v",
+  axis = "lr"
+)
+
+Figure1 <- cowplot::plot_grid(
+  aligned_panels[[1]],
+  legend_a_plot,
+  aligned_panels[[2]],
+  legend_b_plot,
+  ncol = 1,
+  rel_heights = c(1, 0.16, 1, 0.20)
+)
+
+Figure1
+
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_updatedJune.png",Figure1, base_width = 8.5,
+  base_height = 7, dpi=600)
+
+```
+
+
+
+
+
+
+# Supplemental Figures
+1. SPC through year (SW plot, TMP 1 & 2)
+2. Column Experiment DOC
+2. pH through year (FW and SW plot, TMP 2)
+3. DO before/during/after event (FW and SW plot, TMP 1 & 2? Discuss with Peter)
+
+Water Isotopes (from Lindsey)
+
+
+# Supplemental Figure 1: SPC timeseries 
 
 pw_ec_all %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
@@ -675,6 +819,142 @@ precip_study <- precip %>%
 
 
 #graveyard 
+```{r import doc data}
+
+pw_doc_1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP1_Figure1.rds") %>%
+  mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
+                          TRUE ~ doc_mg_l_sd))
+
+pw_doc_2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP2_Figure1.rds") %>%
+  mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
+                          TRUE ~ doc_mg_l_sd))
+
+pw_doc_3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP3_Figure1.rds") %>%
+  mutate(doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0,
+                          TRUE ~ doc_mg_l_sd))
+
+#pw_tmp1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_grids_TMP1_forfig1.rds")
+
+#doc_iqr <- readRDS("~/GitHub/TEMPEST-1-porewater/data/doc_porewater_summarystats_forfig1.rds") %>%
+#  mutate(collection_datetime = as.POSIXct("2022-05-18 15:59:00", tz= "EST" ),
+#         doc_mg_l = NA)
+
+```
+
+```{r plot DOC}
+
+Figure1a <- pw_doc_1 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+   ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
+    ylab(" ")+
+    xlab("Sampling Month Post-Event")+
+   # title("Field Manipulation") +
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16),  axis.title.x = element_blank() )+
+          #, axis.title.x = element_blank(), axis.text.x = element_blank() ) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  a) Field Year 1"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(Figure1a)
+
+Figure1b <- pw_doc_2 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
+    ylab("DOC mgC/L")+
+    xlab("Sampling Month Post-Event")+
+   # title("Field Manipulation") +
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1),
+         text= element_text(size = 16) ) +
+       #  , axis.title.x = element_blank(), axis.text.x = element_blank() ) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(Figure1b)
+
+Figure1c <- pw_doc_3 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
+    ylab(" ")+
+    xlab("Sampling Month Post-Event")+
+   # title("Field Manipulation") +
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
+          text= element_text(size = 16), 
+          axis.title.x = element_blank() ) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  c) Field Year 3"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+print(Figure1c)
+
+Figure1b_LEGEND <- pw_doc_2 %>%
+  group_by(adj_month) %>%
+  mutate(plot = factor(plot, levels = plot_order),
+         Timepoint = cur_group_id(),
+         year= as.character(year)) %>%
+  ungroup() %>%
+    ggplot(aes(x = adj_month, y = doc_mg_l_mean, color = plot)) +
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
+   geom_pointrange(aes(ymin=doc_mg_l_mean-doc_mg_l_sd, ymax=doc_mg_l_mean+doc_mg_l_sd), shape=17, size = 1)+
+    ylab("DOC mgC/L")+
+    xlab("Sampling Month Post-Event")+
+   # title("Field Manipulation") +
+    ylim(-10,100)+
+    scale_color_manual(values=Anyas_colors) +
+    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_shape_manual(values = c(2, 17))+ 
+    theme_classic() +
+    theme(legend.position = "none", panel.border = element_rect(color = "black", fill = NA, size = 1)) +
+  geom_text(data = data.frame(x = -Inf, y = Inf, label = "  b) Field Year 2"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)
+
+fig1_legend = get_legend(Figure1b_LEGEND)
+
+
+
+
+ Figure1 <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 3, legend = "bottom", common.legend = TRUE, align = "hv")
+
+
+ Figure1
+
+
+ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1.png",Figure1, dpi=600,
+                   nrow = 3)
+
+all_hands_fig <- ggarrange(Figure1a, Figure1b, Figure1c, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
+
+all_hands_fig
+
+```
+
 ```{r graveyard}
 Figure1d <- exp_doc %>%
   mutate(Treatment = factor(Treatment, levels = Treatment_order)) %>%
