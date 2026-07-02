@@ -156,8 +156,11 @@ select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) %>%
   group_by(Group) %>%
   mutate(nominal_date = mean(evacuation_date) + (mean(collection_date) - mean(evacuation_date))/2) %>%
   #Fix some edge cases in 2023 sampling (straddling months)
+  #Fix edge cases during the events:
   mutate( nominal_date = case_when(Group == "2023-02-01" ~ Group,
                                   Group == "2023-10-01" ~ Group,
+                                  Group == "2023-06-06" ~ Group,
+                                  Group == "2024-06-11" ~ Group,
                                   TRUE ~ nominal_date)) %>% 
   ungroup()
 
@@ -195,7 +198,7 @@ saveRDS(doc_means_pw, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_FINAL.rds")
 # Main Message 1: One salinity exposure permanently changes the soil DOC component of the carbon cycle. 
 
 ### Stats for DOC paper
-no significant differences between freshwater DOC concentrations and control plot DOC concentrations have been observed 
+The municipal freshwater source did increase the conductivity of the freshwater plot slightly 17, however, no significant differences between freshwater DOC concentrations and control plot DOC concentrations have been observed 
 
 ```{r doc glm means}
 

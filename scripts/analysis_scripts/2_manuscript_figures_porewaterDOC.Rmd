@@ -147,11 +147,19 @@ event_dates <- sort(as.Date(c(
   WaterDeliveryStart1_2024
 )))
 
+event_labels <- data.frame(
+  x = event_dates,
+  label = c("T1", "T2", "T3")
+)
+
 Figure1a <- doc_effect_size %>%
   filter(between(nominal_date, startstudydate, endstudydate)) %>%
   select(
     treatment_plot,
     nominal_date,
+    effect_size_boot_mean,
+    effect_size_ci_lower,
+    effect_size_ci_upper,
     effect_size_percent_boot_mean,
     effect_size_percent_ci_lower,
     effect_size_percent_ci_upper
@@ -168,30 +176,30 @@ Figure1a <- doc_effect_size %>%
         "after_2023_before_2024",
         "after_2024"
       ),
-      right = FALSE
-    )
+      right = FALSE),
+  line_group = interaction(plot, event_period, drop = TRUE)
   ) %>%
   ggplot(aes(
     x = nominal_date,
-    y = effect_size_percent_boot_mean,
+    y = effect_size_boot_mean,
     color = plot,
     fill = plot
   )) +
   geom_vline(xintercept = WaterDeliveryStart2022, linetype = "dashed", color = "black") +
   geom_vline(xintercept = WaterDeliveryStart1, linetype = "dashed", color = "black") +
   geom_vline(xintercept = WaterDeliveryStart1_2024, linetype = "dashed", color = "black") +
-#  geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey") +
+  geom_hline(yintercept = 0, linetype = "solid", color = "darkgrey") +
   geom_ribbon(
     aes(
-      ymin = effect_size_percent_ci_lower,
-      ymax = effect_size_percent_ci_upper,
-      group = plot
+      ymin = effect_size_ci_lower,
+      ymax = effect_size_ci_upper,
+      group = line_group
     ),
     alpha = 0.18,
     color = NA
   ) +
   geom_line(
-    aes(group = plot),
+    aes(group = line_group),
     linewidth = 0.6,
     alpha = 0.30
   ) +
@@ -201,12 +209,22 @@ Figure1a <- doc_effect_size %>%
   ) +
   labs(
     x = NULL,
-    y = "DOC effect size \n (% difference from Control Plot)",
+    y = "DOC effect size \n (treatment-control) / control", #  \n (% difference from Control Plot)
     color = NULL,
     fill = NULL
   ) +
   scale_color_manual(values = Anyas_colors_figure1) +
   scale_fill_manual(values = Anyas_colors_figure1) +
+  scale_x_date(
+  breaks = seq(
+    from = as.Date(format(startstudydate, "%Y-01-01")),
+    to = endstudydate,
+    by = "3 months"
+  ),
+  labels = function(x) {
+    ifelse(format(x, "%m") == "01", format(x, "%Y"), "")
+  }
+)+
   guides(
     color = guide_legend(nrow = 1),
     fill = "none"
@@ -219,6 +237,18 @@ Figure1a <- doc_effect_size %>%
     vjust = 2,
     inherit.aes = FALSE
   )+
+  geom_label(
+  data = event_labels,
+  aes(x = event_dates, y = Inf, label = c("T1","T2","T3")),
+  inherit.aes = FALSE,
+  vjust = 1.5,
+  label.size = 0.25,
+  label.padding = unit(0.12, "lines"),
+  fill = "white",
+  color = "black",
+  fontface = "bold",
+  size = 4
+) +
     theme(
     legend.position = "bottom",
     legend.title = element_blank(),
@@ -229,14 +259,15 @@ Figure1a <- doc_effect_size %>%
     axis.title = element_text(size = axis_title_size),
     axis.title.x = element_blank(),
     axis.title.y.right = element_text(color = "transparent", size = axis_title_size),
+    axis.text.x = element_blank(),
     axis.text.y.right = element_blank(),
     axis.ticks.y.right = element_blank(),
+    axis.ticks.length = unit(0.2, "cm"),
     plot.margin = margin(5.5, 5.5, 2, 5.5)
   )
     
     
 print(Figure1a)
-
 
 ```
 
@@ -312,11 +343,22 @@ scale_color_manual(
   )
 ) +
   xlab("Date") +
+
+  scale_x_date(
+  breaks = seq(
+    from = as.Date(format(startstudydate, "%Y-01-01")),
+    to = endstudydate,
+    by = "3 months"
+  ),
+  labels = function(x) {
+    ifelse(format(x, "%m") == "01", format(x, "%Y"), "")
+  }
+)+
   scale_y_continuous(
     name = "DOC (mg/L)",
     sec.axis = sec_axis(
       ~ (. - 1) / ec_to_doc_scale,
-      name = "Plot mean porewater\nconductivity at 15 cm (uS/cm)"
+      name = "Saltwater plot mean soil \n conductivity at 15 cm (µS/cm)"
     )
   ) +
   theme_classic() +
@@ -329,6 +371,7 @@ theme(
     axis.text = element_text(size = axis_text_size),
     axis.title = element_text(size = axis_title_size),
     axis.title.x = element_blank(),
+     axis.ticks.length = unit(0.2, "cm"),
     plot.margin = margin(2, 5.5, 5.5, 5.5)
   )
 
@@ -347,7 +390,7 @@ panel_b <- fig1b +
 
 legend_a_plot <- tibble(
   x = c(0.42, 0.58),
-  label = c("Freshwater", "Saltwater"),
+  label = c("Freshwater plot", "Saltwater plot"),
   plot = factor(c("Freshwater", "Saltwater"), levels = plot_order)
 ) %>%
   ggplot(aes(x = x, y = 1, color = plot)) +
@@ -361,7 +404,7 @@ legend_a_plot <- tibble(
 
 legend_b_plot <- tibble(
   x = c(0.18, 0.42, 0.72),
-  label = c("Saltwater", "After conductivity threshold", "Below 3x SD of Control Plot DOC"),
+  label = c("Soil conductivity", "DOC after conductivity threshold", "DOC below 3x SD of Control plot DOC"),
   color_value = c("grey", "#B6854D", "black"),
   point_shape = c(16, 17, 17),
   point_size = c(1.4, 4.0, 4.0)
@@ -465,7 +508,7 @@ SI2 <- exp_doc %>%
    # title("Field Manipulation") +
     ylim(-10,100)+
     scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
+    scale_x_continuous(breaks = pretty_breaks(n=6), limits= c(0,12)) +
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
