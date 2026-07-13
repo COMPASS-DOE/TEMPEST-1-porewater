@@ -138,14 +138,40 @@ tmp3_doc_high = as.POSIXct("2025-01-31 20:52:00", tz = "EST")
 ## a) DOC effect sizes 
 Supporting Main Message: This phenomenon can be replicated in the laboratory; AND we can repeat it in the field the second year “reset” (SI Figure X)
 
-
-```{r plot}
+```{r fig 1a plot}
 
 event_dates <- sort(as.Date(c(
   WaterDeliveryStart2022,
   WaterDeliveryStart1,
   WaterDeliveryStart1_2024
 )))
+
+figure_x_limits <- c(
+  as.Date(format(startstudydate, "%Y-%m-01")),
+  as.Date(endstudydate)
+)
+
+figure_x_breaks <- seq(
+  from = figure_x_limits[1],
+  to = figure_x_limits[2],
+  by = "1 month"
+)
+
+figure_x_labels <- function(x) {
+  month_num <- format(x, "%m")
+  month_label <- format(x, "%b")
+
+  ifelse(
+    month_num %in% c("01", "06"),
+    paste0(month_label, "\n", format(x, "%Y")),
+    ""
+  )
+}
+
+plot_shapes <- c(
+  "Freshwater" = 16,
+  "Saltwater" = 17
+)
 
 event_labels <- data.frame(
   x = event_dates,
@@ -183,7 +209,8 @@ Figure1a <- doc_effect_size %>%
     x = nominal_date,
     y = effect_size_boot_mean,
     color = plot,
-    fill = plot
+    fill = plot,
+    shape = plot
   )) +
   geom_vline(xintercept = WaterDeliveryStart2022, linetype = "dashed", color = "black") +
   geom_vline(xintercept = WaterDeliveryStart1, linetype = "dashed", color = "black") +
@@ -204,31 +231,38 @@ Figure1a <- doc_effect_size %>%
     alpha = 0.30
   ) +
   geom_point(
-    shape = 17,
     size = 1.8
   ) +
   labs(
     x = NULL,
     y = "DOC effect size \n (treatment-control) / control", #  \n (% difference from Control Plot)
     color = NULL,
-    fill = NULL
+    fill = NULL,
+    shape = NULL
   ) +
-  scale_color_manual(values = Anyas_colors_figure1) +
-  scale_fill_manual(values = Anyas_colors_figure1) +
-  scale_x_date(
-  breaks = seq(
-    from = as.Date(format(startstudydate, "%Y-01-01")),
-    to = endstudydate,
-    by = "3 months"
-  ),
-  labels = function(x) {
-    ifelse(format(x, "%m") == "01", format(x, "%Y"), "")
-  }
-)+
-  guides(
-    color = guide_legend(nrow = 1),
-    fill = "none"
-  ) +
+  scale_color_manual(
+  values = Anyas_colors_figure1,
+  breaks = names(plot_shapes)
+) +
+scale_fill_manual(
+  values = Anyas_colors_figure1,
+  guide = "none"
+) +
+scale_shape_manual(
+  values = plot_shapes,
+  breaks = names(plot_shapes)
+) +
+guides(
+  color = guide_legend(nrow = 1),
+  shape = guide_legend(nrow = 1),
+  fill = "none"
+) +
+scale_x_date(
+  limits = figure_x_limits,
+  breaks = figure_x_breaks,
+  labels = figure_x_labels,
+  expand = expansion(mult = c(0, 0))
+) +
   theme_classic() +
   geom_text(
     data = data.frame(x = -Inf, y = Inf, label = "  a) "),
@@ -276,6 +310,8 @@ print(Figure1a)
 
 library(ggnewscale)
 
+ec_axis_col <- "#1F4E79"
+
 doc_event_dates <- sort(as.Date(c(
   tmp1_doc_high,
   tmp2_doc_high,
@@ -295,7 +331,7 @@ doc_sw_plot <- doc_sw %>%
 
       nominal_date >= as.Date("2025-01-30")  ~ "After conductivity threshold",
 
-      TRUE ~ "Below 3x SD of Control Plot DOC"
+      TRUE ~ "Before conductivity threshold"
     ))
 
 fig1b <-
@@ -306,7 +342,7 @@ fig1b <-
     alpha = 0.45,
     size = 1
   ) +
-  scale_color_manual(values = c("Saltwater" = "grey")) +
+  scale_color_manual(values = c("Saltwater" = ec_axis_col)) +
 
   geom_text(
     data = data.frame(x = -Inf, y = Inf, label = "  b) "),
@@ -331,31 +367,29 @@ geom_pointrange(
     y = doc_mg_l_mean,
     ymin = doc_mg_l_mean - doc_mg_l_sd,
     ymax = doc_mg_l_mean + doc_mg_l_sd,
-    color = high_doc_window
+    fill = high_doc_window
   ),
-  shape = 17,
-  size = 1
+  shape = 24,
+  size = 1,
+    stroke = 0.7,
+  linewidth = 0.6,
+  linetype = "solid"
 ) +
-scale_color_manual(
+scale_fill_manual(
   values = c(
-    "Below 3x SD of Control Plot DOC" = "black",
+    "Before conductivity threshold" = "black",
     "After conductivity threshold" = "#B6854D"
   )
 ) +
   xlab("Date") +
-
-  scale_x_date(
-  breaks = seq(
-    from = as.Date(format(startstudydate, "%Y-01-01")),
-    to = endstudydate,
-    by = "3 months"
-  ),
-  labels = function(x) {
-    ifelse(format(x, "%m") == "01", format(x, "%Y"), "")
-  }
+scale_x_date(
+  limits = figure_x_limits,
+  breaks = figure_x_breaks,
+  labels = figure_x_labels,
+  expand = expansion(mult = c(0, 0))
 )+
   scale_y_continuous(
-    name = "DOC (mg/L)",
+    name = "Saltwater plot DOC at 15 cm (mg/L)",
     sec.axis = sec_axis(
       ~ (. - 1) / ec_to_doc_scale,
       name = "Saltwater plot mean soil \n conductivity at 15 cm (µS/cm)"
@@ -372,7 +406,11 @@ theme(
     axis.title = element_text(size = axis_title_size),
     axis.title.x = element_blank(),
      axis.ticks.length = unit(0.2, "cm"),
-    plot.margin = margin(2, 5.5, 5.5, 5.5)
+    plot.margin = margin(2, 5.5, 5.5, 5.5),
+    axis.title.y.right = element_text(color = ec_axis_col),
+axis.text.y.right = element_text(color = ec_axis_col),
+axis.ticks.y.right = element_line(color = ec_axis_col),
+axis.line.y.right = element_line(color = ec_axis_col)
   )
 
 
@@ -381,6 +419,7 @@ fig1b
 
 ```
 
+## Combined Figure 1:    
 ```{r figure 1}
 panel_a <- Figure1a +
   theme(legend.position = "none")
@@ -388,26 +427,39 @@ panel_a <- Figure1a +
 panel_b <- fig1b +
   theme(legend.position = "none")
 
+plotting = c("Before conductivity threshold", "After conductivity threshold", "Saltwater")
+
+
 legend_a_plot <- tibble(
   x = c(0.42, 0.58),
   label = c("Freshwater plot", "Saltwater plot"),
   plot = factor(c("Freshwater", "Saltwater"), levels = plot_order)
 ) %>%
-  ggplot(aes(x = x, y = 1, color = plot)) +
+  ggplot(aes(x = x, y = 1, color = plot, shape = plot)) +
   geom_segment(aes(x = x - 0.035, xend = x + 0.02, yend = 1), linewidth = 0.7, alpha = 0.45) +
-  geom_point(shape = 17, size = 3) +
+  geom_point(size = 3) +
   geom_text(aes(x = x + 0.045, label = label), color = "black", hjust = 0, size = legend_text_size / ggplot2::.pt) +
-  scale_color_manual(values = Anyas_colors_figure1) +
+  scale_color_manual(values = Anyas_colors_figure1, breaks = names(plot_shapes))+
   coord_cartesian(xlim = c(0.28, 0.78), ylim = c(0.8, 1.2), clip = "off") +
   theme_void() +
   theme(legend.position = "none")
 
+
 legend_b_plot <- tibble(
-  x = c(0.18, 0.42, 0.72),
-  label = c("Soil conductivity", "DOC after conductivity threshold", "DOC below 3x SD of Control plot DOC"),
-  color_value = c("grey", "#B6854D", "black"),
-  point_shape = c(16, 17, 17),
-  point_size = c(1.4, 4.0, 4.0)
+  plot = factor(plotting, levels = plotting),
+  x = c(0.16, 0.46, 0.76),
+  label = c(
+    "DOC before conductivity threshold",
+    "DOC after conductivity threshold",
+    "Soil conductivity"
+  ),
+  color_value = c(
+    "black",
+    "#B6854D",
+    "#1F4E79"
+  ),
+  point_shape = c(17, 17, 16),
+  point_size = c(4.0, 4.0, 1.8)
 ) %>%
   ggplot(aes(x = x, y = 1)) +
   geom_point(aes(color = color_value, shape = factor(point_shape), size = point_size), show.legend = FALSE) +
@@ -415,7 +467,7 @@ legend_b_plot <- tibble(
   scale_color_identity() +
   scale_shape_manual(values = c("16" = 16, "17" = 17)) +
   scale_size_identity() +
-  coord_cartesian(xlim = c(0.08, 1.02), ylim = c(0.8, 1.2), clip = "off") +
+  coord_cartesian(xlim = c(0.1, 1.02), ylim = c(0.8, 1.2), clip = "off") +
   theme_void() +
   theme(legend.position = "none")
 
@@ -437,15 +489,10 @@ Figure1 <- cowplot::plot_grid(
 
 Figure1
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_updatedJune.png",Figure1, base_width = 8.5,
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_updated.png",Figure1, base_width = 8.5,
   base_height = 7, dpi=600)
 
 ```
-
-
-
-
-
 
 # Supplemental Figures
 1. SPC through year (SW plot, TMP 1 & 2)

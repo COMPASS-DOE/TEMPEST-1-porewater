@@ -198,7 +198,8 @@ saveRDS(doc_means_pw, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_FINAL.rds")
 # Main Message 1: One salinity exposure permanently changes the soil DOC component of the carbon cycle. 
 
 ### Stats for DOC paper
-The municipal freshwater source did increase the conductivity of the freshwater plot slightly 17, however, no significant differences between freshwater DOC concentrations and control plot DOC concentrations have been observed 
+
+"DOC concentrations did not differ significantly between the freshwater and control plots (GLS: t = 1.90, df = 5.13, p = 0.114; see extended data)."
 
 ```{r doc glm means}
 
@@ -510,7 +511,9 @@ saveRDS(effect_size_bootstrap_summary, "~/GitHub/TEMPEST-1-porewater/data/DOC_Fi
 # Main Message 2: The possible mechanisms at play here are all changing in concert, which clouds predictability across systems and scales.
 
 
-### ANALYSIS: When does saltwater plot DOC go out of "normal" variablity?  
+### ANALYSIS: When does saltwater plot DOC go out of "normal" variability?  
+
+"Therefore, we suggest that 235 +/- 29 µS/cm may serve as a broad conductivity threshold between depressed versus elevated soil porewater DOC concentrations (see methods for calculation). "
 
 ```{r doc change analysis}
 
@@ -617,6 +620,9 @@ These "significant dates" fall in the
 1st month post event 2022 (i.e. July)
 2nd month post event 2023 (i.e. August)
 8th month post event 2024 (i.e. January)
+
+### Dissolved organic carbon has a strong and delayed response to saltwater flooding
+"The first novel exposure of this temperate forest to saltwater from the nearby estuary across the three years caused lagged and markedly higher DOC concentrations in the saltwater plot (43.1 +/- 20.7 mg C/L) compared to the freshwater (11.5 +/- 5.9 mg C/L) and the control plots (17.9 +/- 8.2 mg C/L), which were relatively stable through time. DOC concentrations in the saltwater plot increased by an average of 140% in comparison to the control plot. "
 
 ```{r doc summaries paper}
 
@@ -904,6 +910,374 @@ precip_TMP3_sum <- precip %>%
 precip_TMP3_sum 
 
 ```
+
+# ColEx fluxes 
+
+```{r colex fluxes}
+
+colex_data <- readxl::read_excel("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/ColEx_data_allreps_alltreatments_formatted.xlsx")
+
+```
+
+```{r col ex doc flux}
+
+colex_flux <- colex_data %>%
+  group_by(Treatment, Column) %>%
+  mutate(across(doc_mgperL:S_ppm, ~ .x * (volume_added_mL/1000), .names = "mgtot_{.col}")) %>%
+  rename_with(~ str_remove(.x, "_[^_]+$"), starts_with("mgtot_")) %>%
+  filter(Timepoint != 1) %>%
+  filter(Column != "Treatment Water") %>%
+  summarise(across(starts_with("mgtot_"), sum, na.rm = TRUE), .groups = "drop")
+
+
+colex_flux_tot <- colex_flux%>%
+  ungroup() %>%
+  group_by(Treatment) %>%
+  summarise(across(starts_with("mgtot_"), list(mean = mean, sd = sd), na.rm = TRUE, .names = "{.col}_{.fn}"), .groups = "drop")
+
+```
+
+```{r column soil}
+
+soil_masses <- readxl::read_excel("~/GitHub/TEMPEST-1-porewater/data_do_not_commit/from ed/Column_data_Soil_masses.xlsx",skip=5) %>%
+  select(Column, soil_g) %>% drop_na()
+
+colex_soil <- colex_flux %>%
+  full_join(soil_masses, by="Column") %>%
+  drop_na()
+
+soil_c <- soil_data %>%
+  select(plot, C_mean, C_sd, N_mean, N_sd, Na_mean, Na_sd, K_mean, K_sd, Mg_mean, Mg_sd, Ca_mean, Ca_sd, Fe_mean, Fe_sd, Mn_mean, Mn_sd) %>%
+  mutate(Treatment = case_when(plot == "Saltwater" ~ "ASW",
+                               TRUE ~ plot)) 
+
+#save for BHM
+
+colex_soil_2 <- colex_soil %>%
+  select(Treatment, Column, soil_g)
+
+write_csv(colex_soil_2, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_ColEx_soil_masses.csv")
+
+```
+need a monte carlo to propagate uncertainty since we dont have exact soil carbon values for these cores. 
+```{r c flux vs c soil}
+n_sim <- 10000 #number of simulations 
+
+soils_colex <- colex_soil %>%
+  left_join(soil_c, by = "Treatment")
+
+#function to repeat simulation results, drawing on random C value per treatment from a normal distribution of the data.
+#Then, calculate C stock - C export 
+sim_results <- replicate(n_sim, {
+  
+  # one C draw per treatment
+  C_draws <- soils_colex %>%
+    distinct(Treatment, C_mean_mg, C_sd_mg) %>% #C is in % from the UGA values
+    mutate(C_draw = rnorm(n(), C_mean_mg, C_sd_mg))
+  
+  df_sim <- soils_colex %>%
+    select(Column, Treatment, soil_g, mgtot_doc) %>%
+    left_join(select(C_draws, Treatment, C_draw), by = "Treatment") %>%
+    mutate(
+      soil_stock_g = soil_g * C_draw, # g soil x g C / 100g soil 
+      net_C_g = soil_stock_g - (mgtot_doc/1000)
+    )
+  
+# summarize 
+
+ df_sim %>%
+    group_by(Treatment) %>%
+    summarise(mean_net_C = mean(net_C), .groups = "drop") %>%
+    pull(mean_net_C)
+
+})
+
+
+```
+
+### Column experiments stats 
+
+"DOC increased markedly in the ASW soil columns after 6 successive washes of low ionic strength water following the initial ASW pulse, with no significant differences in DOC across washes in the control or freshwater column experiments (insert the stats for this) (SI Figure 2)." 
+
+See: soil_column_doc_wash_statistical_test.Rmd (created with Codex)
+
+# Supplemental Materials 
+
+### The changes in concentration observed are coupled with a dramatic shift in the organic matter chemistry (both during and after the event). 
+
+```{r load cdom data}
+
+cdom_yr1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP1.rds")
+cdom_yr2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP2.rds")
+cdom_yr3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP3.rds")
+
+cdom_allyrs <- readRDS("~/GitHub/TEMPEST-1-porewater/data/cdom_indicies_porewater_2022-2025.rds")
+```
+
+```{r load abs data}
+
+abs_allyears <- readRDS("~/GitHub/TEMPEST-1-porewater/data/absorbance_docnormalized_porewater_2022-2025.rds")
+```
+
+2022 cdom was collected at the pooled level but DOC was at the grid level. Take the plot level doc averages for the collection dates where this is the case for SUVA.
+
+```{r abs data}
+
+averaged_DOC_2022 <- doc_l1_2022 %>%
+  select(plot, grid, collection_datetime, doc_mg_l) %>%
+  drop_na() %>%
+  mutate(collection_date = lubridate::as_date(collection_datetime)) %>%
+  select(-collection_datetime, -grid) %>%
+  group_by(collection_date, plot) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup() %>%
+  select(-doc_mg_l_sd)
+
+abs_allyears_1 <- abs_allyears %>%
+  left_join(averaged_DOC_2022, by=c("collection_date", "plot")) %>%
+  mutate(doc_mg_l_filled = coalesce(doc_mg_l, doc_mg_l_mean),
+         SUVA254 = case_when(is.na(SUVA254) ~ Abs_254nm / doc_mg_l_filled * 100,
+                             TRUE ~ SUVA254),
+         SUVA280 = case_when(is.na(SUVA280) ~ Abs_280nm / doc_mg_l_filled * 100,
+                             TRUE ~ SUVA280), 
+         SUVA350 = case_when(is.na(SUVA350) ~ Abs_350nm / doc_mg_l_filled * 100,
+                             TRUE ~ SUVA350),
+         SVA412 = case_when(is.na(SVA412) ~ Abs_412nm / doc_mg_l_filled * 100,
+                             TRUE ~ SVA412),
+         SVA440 = case_when(is.na(SVA440) ~ Abs_440nm / doc_mg_l_filled * 100,
+                             TRUE ~ SVA440)) %>%
+  select(sample_name, plot, grid, collection_date, S275_295:Sr, SUVA254:SVA440) %>%
+  drop_na()
+  
+saveRDS(abs_allyears_1, "~/GitHub/TEMPEST-1-porewater/data/absorbance_porewater_2022-2025_withpooled.rds")
+
+```
+
+
+```{r abs eems}
+
+abs_eems_all_years <- cdom_allyrs %>%
+  mutate(collection_date = as_date(collection_datetime)) %>%
+  select(-S275_295, - S350_400, -Sr) %>%
+  left_join(abs_allyears_1, by = c("sample_name", "collection_date", "plot")) %>%
+  distinct(sample_name, .keep_all = TRUE)
+```
+
+Separate data by system level analysis bins: 
+```{r load functions for analysis}
+
+source("~/GitHub/tempest-system-level-analysis/data_package_prep/scripts/tmp_test_functions.R")
+
+#set doc increase dates 
+
+tmpdates_doc1 <- tmpdates_doc %>%
+  filter(date_type == "Year1_date") %>%
+  select(evacuation_date, collection_datetime) %>%
+  rename(datetime = evacuation_date,
+         datetime2 = collection_datetime) %>%
+  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
+
+tmpdates_doc2 <- tmpdates_doc %>%
+  filter(date_type == "Year2_date") %>%
+  select(evacuation_date, collection_datetime) %>%
+  rename(datetime = evacuation_date,
+         datetime2 = collection_datetime) %>%
+  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
+
+tmpdates_doc3 <- tmpdates_doc %>%
+  filter(date_type == "Year3_date") %>%
+  select(evacuation_date, collection_datetime) %>%
+  rename(datetime = evacuation_date,
+         datetime2 = collection_datetime) %>%
+  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
+
+```
+
+NOTE:::: there are some issues with time zones messing up the dates slightly here!!!!
+```{r divide data for cdom}
+
+cdom_tmp1 <- abs_eems_all_years  %>%
+  rename(datetime = collection_datetime) %>%
+  filter(between(datetime, startstudydate_yr1, endstudydate_yr1))
+
+cdom_tmp1_dd <- divide_data(cdom_tmp1, datetime, flood_event_datetime_1, eventB = c(tmpdates_doc1$datetime, tmpdates_doc1$datetime2), eventB_name = "Post") %>%
+    mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
+                                  TRUE ~ timedate_bin)) %>%
+    mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))
+
+cdom_tmp2 <- abs_eems_all_years  %>%
+  rename(datetime = collection_datetime) %>%
+  filter(between(datetime, startstudydate_yr2, endstudydate_yr2))
+
+cdom_tmp2_dd <- divide_data(cdom_tmp2, datetime, flood_event_datetime_2, eventB = c(tmpdates_doc2$datetime, tmpdates_doc2$datetime2), eventB_name = "Post") %>%
+     mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
+                                  TRUE ~ timedate_bin)) %>%
+  mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))%>%
+  mutate(timedate_bin = case_when(timedate_bin == "Pre" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))
+
+cdom_tmp3 <- abs_eems_all_years %>%
+  rename(datetime = collection_datetime) %>%
+  filter(between(datetime, startstudydate_yr3, endstudydate_yr3))  
+
+cdom_tmp3_dd <- divide_data(cdom_tmp3, datetime, flood_event_datetime_3, eventB = c(tmpdates_doc3$datetime, tmpdates_doc3$datetime2), eventB_name = "Post") %>%
+     mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
+                                  TRUE ~ timedate_bin)) %>%
+  mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))%>%
+  mutate(timedate_bin = case_when(timedate_bin == "Pre" ~ "Post Cond Threshold",
+                                  TRUE ~ timedate_bin))
+
+
+cdom_indicies_divided_all <- cdom_tmp1_dd %>%
+  full_join(cdom_tmp2_dd) %>%
+  full_join(cdom_tmp3_dd) %>%
+  drop_na()
+
+```
+
+
+```{r try multivariate eems analysis}
+
+eems4multi <- cdom_indicies_divided_all %>%
+  select(-sample_name, -grid, -plot, -timedate_bin, -datetime, -collection_date) 
+
+
+eemspca = prcomp(eems4multi , retx = TRUE, center = TRUE, scale. = TRUE)
+
+library(vegan)
+
+#nmds = vegan::metaMDS(eems4multi, distance="bray", 
+#          k = 3,
+ #         maxit = 999, 
+ #         trymax = 500,
+ #         wascores = TRUE)
+
+```
+
+```{r gllm prep}
+cdom_stats <- cdom_indicies_divided_all %>%
+  mutate(date = as_date(datetime),
+         timedate_bin = factor(timedate_bin),
+         date = factor(date),
+         grid = factor(grid),
+         plot = factor(plot),
+       spatial_rep = case_when(grid =="POOL" ~ NA,
+                               TRUE ~ grid),
+        spatial_rep = factor(spatial_rep),
+       plot_time = interaction(plot, date, drop = TRUE)) %>%
+  filter(
+    !is.na(SUVA254),
+    !is.na(timedate_bin),
+    !is.na(plot),
+    !is.na(grid),
+    SUVA254 > 0
+  )
+
+# Check replication before modeling
+table(cdom_stats$plot, cdom_stats$timedate_bin)
+table(cdom_stats$plot_time)
+
+```
+
+```{r glmm model}
+
+  # Packages
+library(glmmTMB)
+library(emmeans)
+library(DHARMa)
+
+# Example assumes your data frame is called dat
+# Columns:
+# y              response variable
+# timedate_bin           4-category bin factor
+# datetime          sampling timepoint
+# grid       repeated sampler ID
+# plot           plot ID
+# spatial_rep    spatial replicate ID, NA for pooled samples
+
+
+# GLMM
+m1 <- glmmTMB(
+  SUVA254 ~ timedate_bin +
+    (1 | plot) +
+    (1 | grid),
+  family = Gamma(link = "log"),
+  data = cdom_stats
+)
+
+# Model diagnostics
+sim <- simulateResiduals(m1)
+plot(sim)
+testDispersion(sim)
+testZeroInflation(sim)
+
+# Test overall bin effect
+drop1(m1, test = "Chisq")
+
+# look at responses
+emmeans(m1, ~ timedate_bin, type = "response")
+pairs(emmeans(m1, ~ timedate_bin), adjust = "tukey", type = "response")
+
+```
+
+```{r prelim plots}
+
+
+cdom_indicies_divided_all %>%
+    group_by(plot, timedate_bin) %>%
+    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
+   ungroup() %>%
+  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
+               y=A_T_mean)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = A_T_mean - A_T_sd, ymax= A_T_mean + A_T_sd), width = 0.2) +
+  facet_wrap( ~ plot)
+
+cdom_indicies_divided_all %>%
+    group_by(plot, timedate_bin) %>%
+    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
+   ungroup() %>%
+  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
+               y=SUVA254_mean)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = SUVA254_mean - SUVA254_sd, ymax= SUVA254_mean + SUVA254_sd), width = 0.2) +
+  facet_wrap( ~ plot) +
+  xlab("Sampling Timeframe") +
+  ylab("SUVA254")+
+  theme_classic()
+
+biplot(eemspca)
+
+library(dplyr)
+library(ggplot2)
+library(ggfortify)
+library("wesanderson")
+
+pal <- wes_palette("Darjeeling2",5, type = "discrete")
+
+graphy <-autoplot(eemspca, data = cdom_indicies_divided_all, shape= 'plot', colour= 'timedate_bin',
+  size=2,
+  loadings = TRUE, loadings.colour = 'black',
+  loadings.label = TRUE, loadings.label.size = 2)+
+ # scale_colour_manual(values = pal) + 
+  scale_shape_manual( values = c("Control" = 2, "Freshwater" = 1, "Saltwater" = 16)  )+
+  cowplot::theme_cowplot()
+
+print(graphy)
+
+```
+
+loc <- cdom_indicies_divided_all %>% select(plot, timedate_bin)
+
+env1 <- vegan::envfit(nmds, loc, permu = 999)
+
+vegan::ordiplot(nmds, display = 'si', type = 'n')
+points(nmds, pch = 19)
+vegan::ordiellipse(nmds, groups= cdom_indicies_divided_all$timedate_bin )
+
 
 
 ### pH: What is the relationship between pH and DOC after each event? 
@@ -1205,283 +1579,11 @@ ph_y3_all <- ph_yr3 %>%
 saveRDS(ph_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP3.rds")
 ```
 
-### The changes in concentration observed are coupled with a dramatic shift in the organic matter chemistry (both during and after the event). 
 
-```{r load cdom data}
 
-cdom_yr1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP1.rds")
-cdom_yr2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP2.rds")
-cdom_yr3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP3.rds")
 
-cdom_allyrs <- readRDS("~/GitHub/TEMPEST-1-porewater/data/cdom_indicies_porewater_2022-2025.rds")
-```
 
-```{r load abs data}
-
-abs_allyears <- readRDS("~/GitHub/TEMPEST-1-porewater/data/absorbance_docnormalized_porewater_2022-2025.rds")
-```
-
-2022 cdom was collected at the pooled level but DOC was at the grid level. Take the plot level doc averages for the collection dates where this is the case for SUVA.
-
-```{r abs data}
-
-averaged_DOC_2022 <- doc_l1_2022 %>%
-  select(plot, grid, collection_datetime, doc_mg_l) %>%
-  drop_na() %>%
-  mutate(collection_date = lubridate::as_date(collection_datetime)) %>%
-  select(-collection_datetime, -grid) %>%
-  group_by(collection_date, plot) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup() %>%
-  select(-doc_mg_l_sd)
-
-abs_allyears_1 <- abs_allyears %>%
-  left_join(averaged_DOC_2022, by=c("collection_date", "plot")) %>%
-  mutate(doc_mg_l_filled = coalesce(doc_mg_l, doc_mg_l_mean),
-         SUVA254 = case_when(is.na(SUVA254) ~ Abs_254nm / doc_mg_l_filled * 100,
-                             TRUE ~ SUVA254),
-         SUVA280 = case_when(is.na(SUVA280) ~ Abs_280nm / doc_mg_l_filled * 100,
-                             TRUE ~ SUVA280), 
-         SUVA350 = case_when(is.na(SUVA350) ~ Abs_350nm / doc_mg_l_filled * 100,
-                             TRUE ~ SUVA350),
-         SVA412 = case_when(is.na(SVA412) ~ Abs_412nm / doc_mg_l_filled * 100,
-                             TRUE ~ SVA412),
-         SVA440 = case_when(is.na(SVA440) ~ Abs_440nm / doc_mg_l_filled * 100,
-                             TRUE ~ SVA440)) %>%
-  select(sample_name, plot, grid, collection_date, S275_295:Sr, SUVA254:SVA440) %>%
-  drop_na()
-  
-saveRDS(abs_allyears_1, "~/GitHub/TEMPEST-1-porewater/data/absorbance_porewater_2022-2025_withpooled.rds")
-
-```
-
-
-```{r abs eems}
-
-abs_eems_all_years <- cdom_allyrs %>%
-  mutate(collection_date = as_date(collection_datetime)) %>%
-  select(-S275_295, - S350_400, -Sr) %>%
-  left_join(abs_allyears_1, by = c("sample_name", "collection_date", "plot")) %>%
-  distinct(sample_name, .keep_all = TRUE)
-```
-
-# system level anlaysis 
-```{r load functions for analysis}
-
-source("~/GitHub/tempest-system-level-analysis/data_package_prep/scripts/tmp_test_functions.R")
-
-#set doc increase dates 
-
-tmpdates_doc1 <- tmpdates_doc %>%
-  filter(date_type == "Year1_date") %>%
-  select(evacuation_date, collection_datetime) %>%
-  rename(datetime = evacuation_date,
-         datetime2 = collection_datetime) %>%
-  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
-
-tmpdates_doc2 <- tmpdates_doc %>%
-  filter(date_type == "Year2_date") %>%
-  select(evacuation_date, collection_datetime) %>%
-  rename(datetime = evacuation_date,
-         datetime2 = collection_datetime) %>%
-  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
-
-tmpdates_doc3 <- tmpdates_doc %>%
-  filter(date_type == "Year3_date") %>%
-  select(evacuation_date, collection_datetime) %>%
-  rename(datetime = evacuation_date,
-         datetime2 = collection_datetime) %>%
-  mutate(datetime = as.POSIXct(datetime, tz= "EST"))
-
-```
-
-#NOTE there are some issues with time zones messing up the dates slightly here!!!!
-```{r divide data for cdom}
-
-cdom_tmp1 <- abs_eems_all_years  %>%
-  rename(datetime = collection_datetime) %>%
-  filter(between(datetime, startstudydate_yr1, endstudydate_yr1))
-
-cdom_tmp1_dd <- divide_data(cdom_tmp1, datetime, flood_event_datetime_1, eventB = c(tmpdates_doc1$datetime, tmpdates_doc1$datetime2), eventB_name = "Post") %>%
-    mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
-                                  TRUE ~ timedate_bin)) %>%
-    mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
-                                  TRUE ~ timedate_bin))
-
-cdom_tmp2 <- abs_eems_all_years  %>%
-  rename(datetime = collection_datetime) %>%
-  filter(between(datetime, startstudydate_yr2, endstudydate_yr2))
-
-cdom_tmp2_dd <- divide_data(cdom_tmp2, datetime, flood_event_datetime_2, eventB = c(tmpdates_doc2$datetime, tmpdates_doc2$datetime2), eventB_name = "Post") %>%
-     mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
-                                  TRUE ~ timedate_bin)) %>%
-  mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
-                                  TRUE ~ timedate_bin))%>%
-  mutate(timedate_bin = case_when(timedate_bin == "Pre" ~ "Post Cond Threshold",
-                                  TRUE ~ timedate_bin))
-
-cdom_tmp3 <- abs_eems_all_years %>%
-  rename(datetime = collection_datetime) %>%
-  filter(between(datetime, startstudydate_yr3, endstudydate_yr3))  
-
-cdom_tmp3_dd <- divide_data(cdom_tmp3, datetime, flood_event_datetime_3, eventB = c(tmpdates_doc3$datetime, tmpdates_doc3$datetime2), eventB_name = "Post") %>%
-     mutate(timedate_bin = case_when(timedate_bin == "Btwn Events" ~ "Pre Cond Threshold",
-                                  TRUE ~ timedate_bin)) %>%
-  mutate(timedate_bin = case_when(timedate_bin == "Post" ~ "Post Cond Threshold",
-                                  TRUE ~ timedate_bin))%>%
-  mutate(timedate_bin = case_when(timedate_bin == "Pre" ~ "Post Cond Threshold",
-                                  TRUE ~ timedate_bin))
-
-
-cdom_indicies_divided_all <- cdom_tmp1_dd %>%
-  full_join(cdom_tmp2_dd) %>%
-  full_join(cdom_tmp3_dd) %>%
-  drop_na()
-
-```
-
-
-```{r try multivariate eems analysis}
-
-eems4multi <- cdom_indicies_divided_all %>%
-  select(-sample_name, -grid, -plot, -timedate_bin, -datetime, -collection_date) 
-
-
-eemspca = prcomp(eems4multi , retx = TRUE, center = TRUE, scale. = TRUE)
-
-library(vegan)
-
-#nmds = vegan::metaMDS(eems4multi, distance="bray", 
-#          k = 3,
- #         maxit = 999, 
- #         trymax = 500,
- #         wascores = TRUE)
-
-```
-
-```{r gllm prep}
-cdom_stats <- cdom_indicies_divided_all %>%
-  mutate(date = as_date(datetime),
-         timedate_bin = factor(timedate_bin),
-         date = factor(date),
-         grid = factor(grid),
-         plot = factor(plot),
-       spatial_rep = case_when(grid =="POOL" ~ NA,
-                               TRUE ~ grid),
-        spatial_rep = factor(spatial_rep),
-       plot_time = interaction(plot, date, drop = TRUE)) %>%
-  filter(
-    !is.na(SUVA254),
-    !is.na(timedate_bin),
-    !is.na(plot),
-    !is.na(grid),
-    SUVA254 > 0
-  )
-
-# Check replication before modeling
-table(cdom_stats$plot, cdom_stats$timedate_bin)
-table(cdom_stats$plot_time)
-
-```
-
-```{r glmm model}
-
-  # Packages
-library(glmmTMB)
-library(emmeans)
-library(DHARMa)
-
-# Example assumes your data frame is called dat
-# Columns:
-# y              response variable
-# timedate_bin           4-category bin factor
-# datetime          sampling timepoint
-# grid       repeated sampler ID
-# plot           plot ID
-# spatial_rep    spatial replicate ID, NA for pooled samples
-
-
-# GLMM
-m1 <- glmmTMB(
-  SUVA254 ~ timedate_bin +
-    (1 | plot) +
-    (1 | grid),
-  family = Gamma(link = "log"),
-  data = cdom_stats
-)
-
-# Model diagnostics
-sim <- simulateResiduals(m1)
-plot(sim)
-testDispersion(sim)
-testZeroInflation(sim)
-
-# Test overall bin effect
-drop1(m1, test = "Chisq")
-
-# look at responses
-emmeans(m1, ~ timedate_bin, type = "response")
-pairs(emmeans(m1, ~ timedate_bin), adjust = "tukey", type = "response")
-
-```
-
-```{r prelim plots}
-
-
-cdom_indicies_divided_all %>%
-    group_by(plot, timedate_bin) %>%
-    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
-   ungroup() %>%
-  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
-               y=A_T_mean)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = A_T_mean - A_T_sd, ymax= A_T_mean + A_T_sd), width = 0.2) +
-  facet_wrap( ~ plot)
-
-cdom_indicies_divided_all %>%
-    group_by(plot, timedate_bin) %>%
-    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
-   ungroup() %>%
-  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
-               y=SUVA254_mean)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = SUVA254_mean - SUVA254_sd, ymax= SUVA254_mean + SUVA254_sd), width = 0.2) +
-  facet_wrap( ~ plot) +
-  xlab("Sampling Timeframe") +
-  ylab("SUVA254")+
-  theme_classic()
-
-biplot(eemspca)
-
-library(dplyr)
-library(ggplot2)
-library(ggfortify)
-library("wesanderson")
-
-pal <- wes_palette("Darjeeling2",5, type = "discrete")
-
-graphy <-autoplot(eemspca, data = cdom_indicies_divided_all, shape= 'plot', colour= 'timedate_bin',
-  size=2,
-  loadings = TRUE, loadings.colour = 'black',
-  loadings.label = TRUE, loadings.label.size = 2)+
- # scale_colour_manual(values = pal) + 
-  scale_shape_manual( values = c("Control" = 2, "Freshwater" = 1, "Saltwater" = 16)  )+
-  cowplot::theme_cowplot()
-
-print(graphy)
-
-```
-
-loc <- cdom_indicies_divided_all %>% select(plot, timedate_bin)
-
-env1 <- vegan::envfit(nmds, loc, permu = 999)
-
-vegan::ordiplot(nmds, display = 'si', type = 'n')
-points(nmds, pch = 19)
-vegan::ordiellipse(nmds, groups= cdom_indicies_divided_all$timedate_bin )
-
-
-
+# Graveyard
 
 
 ## CEC from pre event soils
@@ -1548,100 +1650,6 @@ write_csv(soil_data_bhm, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_soild
 
   
 ```
-
-
-# ColEx fluxes 
-
-```{r colex fluxes}
-
-colex_data <- readxl::read_excel("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/ColEx_data_allreps_alltreatments_formatted.xlsx")
-
-```
-
-
-```{r col ex doc flux}
-
-colex_flux <- colex_data %>%
-  group_by(Treatment, Column) %>%
-  mutate(across(doc_mgperL:S_ppm, ~ .x * (volume_added_mL/1000), .names = "mgtot_{.col}")) %>%
-  rename_with(~ str_remove(.x, "_[^_]+$"), starts_with("mgtot_")) %>%
-  filter(Timepoint != 1) %>%
-  filter(Column != "Treatment Water") %>%
-  summarise(across(starts_with("mgtot_"), sum, na.rm = TRUE), .groups = "drop")
-
-
-colex_flux_tot <- colex_flux%>%
-  ungroup() %>%
-  group_by(Treatment) %>%
-  summarise(across(starts_with("mgtot_"), list(mean = mean, sd = sd), na.rm = TRUE, .names = "{.col}_{.fn}"), .groups = "drop")
-
-```
-
-```{r column soil}
-
-soil_masses <- readxl::read_excel("~/GitHub/TEMPEST-1-porewater/data_do_not_commit/from ed/Column_data_Soil_masses.xlsx",skip=5) %>%
-  select(Column, soil_g) %>% drop_na()
-
-colex_soil <- colex_flux %>%
-  full_join(soil_masses, by="Column") %>%
-  drop_na()
-
-soil_c <- soil_data %>%
-  select(plot, C_mean, C_sd, N_mean, N_sd, Na_mean, Na_sd, K_mean, K_sd, Mg_mean, Mg_sd, Ca_mean, Ca_sd, Fe_mean, Fe_sd, Mn_mean, Mn_sd) %>%
-  mutate(Treatment = case_when(plot == "Saltwater" ~ "ASW",
-                               TRUE ~ plot)) 
-
-#save for BHM
-
-colex_soil_2 <- colex_soil %>%
-  select(Treatment, Column, soil_g)
-
-write_csv(colex_soil_2, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_ColEx_soil_masses.csv")
-
-```
-need a monte carlo to propagate uncertainty since we dont have exact soil carbon values for these cores. 
-```{r c flux vs c soil}
-n_sim <- 10000 #number of simulations 
-
-soils_colex <- colex_soil %>%
-  left_join(soil_c, by = "Treatment")
-
-#function to repeat simulation results, drawing on random C value per treatment from a normal distribution of the data.
-#Then, calculate C stock - C export 
-sim_results <- replicate(n_sim, {
-  
-  # one C draw per treatment
-  C_draws <- soils_colex %>%
-    distinct(Treatment, C_mean_mg, C_sd_mg) %>% #C is in % from the UGA values
-    mutate(C_draw = rnorm(n(), C_mean_mg, C_sd_mg))
-  
-  df_sim <- soils_colex %>%
-    select(Column, Treatment, soil_g, mgtot_doc) %>%
-    left_join(select(C_draws, Treatment, C_draw), by = "Treatment") %>%
-    mutate(
-      soil_stock_g = soil_g * C_draw, # g soil x g C / 100g soil 
-      net_C_g = soil_stock_g - (mgtot_doc/1000)
-    )
-  
-# summarize 
-
- df_sim %>%
-    group_by(Treatment) %>%
-    summarise(mean_net_C = mean(net_C), .groups = "drop") %>%
-    pull(mean_net_C)
-
-})
-
-
-```
-
-
-
-# DOC increased markedly in the ASW soil columns after 6 successive washes of low ionic strength water following the initial ASW pulse, with no significant differences in DOC across washes in the control or freshwater column experiments (insert the stats for this) (SI Figure 2). 
-
-
-# Graveyard
-
 
 
 
