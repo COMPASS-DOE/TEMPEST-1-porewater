@@ -28,6 +28,11 @@ precip_raw <- aoi_ext("Annapolis", units = "km", bbox = TRUE) %>%
   as_tibble() %>% 
   mutate(precip_cm = pr / 10)
 toc()
+
+precip <- precip_raw %>%
+  select(date, precip_cm)
+ 
+write_csv(precip, "~/GitHub/TEMPEST-1-porewater/data/daily_precip_2021-2026.csv")
 ```
 
 ```{r}
@@ -49,16 +54,25 @@ return_levels <- return.level(gev_fit, return.period = return_periods)
 ```
 
 ```{r plot}
- 
-ggplot(precip_raw, aes(x = date, y = precip_cm)) + 
-  geom_line(color = "lightblue") +   
-  geom_point(data = precip_raw %>% filter(as_date(date) == "2012-10-29"), color = "red") + 
-  geom_hline(aes(yintercept = return_levels[[1]]), color = "gray40", linetype = "dashed") + 
-  geom_hline(aes(yintercept = return_levels[[2]]), color = "gray40", linetype = "dashed") + 
-  geom_hline(aes(yintercept = return_levels[[3]]), color = "gray40", linetype = "dashed") + 
-  annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[1]] - 0.75, label = "10-year storm", color = "gray40") + 
-  annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[2]] - 0.75, label = "100-year storm", color = "gray40") + 
-  annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[3]] - 0.75, label = "1000-year storm", color = "gray40") + 
-  annotate(geom = "text", x = as.POSIXct("2012-11-29"), y = 18, label = "Hurricane Sandy", color = "red") + 
-  labs(x = "", y = "Daily total precip. (cm)")
+
+
+rain <- ggplot(precip, aes(x = date, y = precip_cm)) + 
+  geom_line(color = "lightblue")    +
+  geom_vline(xintercept = WaterDeliveryStart2022, linetype = "dashed", color = "black") +
+  geom_vline(xintercept = WaterDeliveryStart1, linetype = "dashed", color = "black") +
+  geom_vline(xintercept = WaterDeliveryStart1_2024, linetype = "dashed", color = "black") +
+   geom_vline(xintercept = tmp1_doc_high, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = tmp2_doc_high, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = tmp3_doc_high, linetype = "dashed", color = "red") 
+ # geom_point(data = precip_raw %>% filter(as_date(date) == "2012-10-29"), color = "red") + 
+#  geom_hline(aes(yintercept = return_levels[[1]]), color = "gray40", linetype = "dashed") + 
+ # geom_hline(aes(yintercept = return_levels[[2]]), color = "gray40", linetype = "dashed") + 
+#  geom_hline(aes(yintercept = return_levels[[3]]), color = "gray40", linetype = "dashed") + 
+ # annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[1]] - 0.75, label = "10-year storm", color = "gray40") + 
+ # annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[2]] - 0.75, label = "100-year storm", color = "gray40") + 
+ # annotate(geom = "text", x = as.POSIXct("2022-11-29"), y = return_levels[[3]] - 0.75, label = "1000-year storm", color = "gray40") + 
+#  annotate(geom = "text", x = as.POSIXct("2012-11-29"), y = 18, label = "Hurricane Sandy", color = "red") + 
+#  labs(x = "", y = "Daily total precip. (cm)")
+
+rain
 ```

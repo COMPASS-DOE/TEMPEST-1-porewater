@@ -874,7 +874,36 @@ ggplot(
   theme_classic()
 ```
 
+```{r set dates based on pw_doc_dates}
+tmp1_doc_high = as.POSIXct("2022-07-21 15:59:00", tz = "EST")
+tmp2_doc_high = as.POSIXct("2023-08-10 15:53:00", tz = "EST")
+tmp3_doc_high = as.POSIXct("2025-01-31 20:52:00", tz = "EST")
 
+```
+
+```{r bring in precip}
+
+precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/daily_precip_2021-2026.csv")
+
+precip_TMP1_sum <- precip %>%
+  filter(between(date, EventStart2022, tmp1_doc_high)) %>%
+  summarize(precip_cm_sum = sum(precip_cm))
+
+precip_TMP1_sum 
+
+precip_TMP2_sum <- precip %>%
+  filter(between(date, EventStart2023, tmp2_doc_high)) %>%
+  summarize(precip_cm_sum = sum(precip_cm))
+
+precip_TMP2_sum 
+
+precip_TMP3_sum <- precip %>%
+  filter(between(date, EventStart2024, tmp3_doc_high)) %>%
+  summarize(precip_cm_sum = sum(precip_cm))
+
+precip_TMP3_sum 
+
+```
 
 
 ### pH: What is the relationship between pH and DOC after each event? 
@@ -1769,11 +1798,6 @@ saveRDS(pw_doc_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_AL
 ```
 
 
-```{r bring in precip}
-
-precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/mean_monthly_precip_2006-2026.csv")
-
-```
 
 ```{r save doc precip}
 pw_doc_all_wprecip <- pw_doc_all %>%
