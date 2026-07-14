@@ -275,7 +275,7 @@ scale_x_date(
   data = event_labels,
   aes(x = event_dates, y = Inf, label = c("T1","T2","T3")),
   inherit.aes = FALSE,
-  vjust = 1.5,
+  vjust = 3,
   label.size = 0.25,
   label.padding = unit(0.12, "lines"),
   fill = "white",
@@ -377,7 +377,7 @@ geom_pointrange(
 ) +
 scale_fill_manual(
   values = c(
-    "Before conductivity threshold" = "black",
+    "Before conductivity threshold" = "white",
     "After conductivity threshold" = "#B6854D"
   )
 ) +
@@ -458,14 +458,14 @@ legend_b_plot <- tibble(
     "#B6854D",
     "#1F4E79"
   ),
-  point_shape = c(17, 17, 16),
+  point_shape = c(24, 17, 16),
   point_size = c(4.0, 4.0, 1.8)
 ) %>%
   ggplot(aes(x = x, y = 1)) +
   geom_point(aes(color = color_value, shape = factor(point_shape), size = point_size), show.legend = FALSE) +
   geom_text(aes(x = x + 0.035, label = label), color = "black", hjust = 0, size = legend_text_size / ggplot2::.pt) +
   scale_color_identity() +
-  scale_shape_manual(values = c("16" = 16, "17" = 17)) +
+  scale_shape_manual(values = c("24" = 24, "16" = 16, "17" = 17)) +
   scale_size_identity() +
   coord_cartesian(xlim = c(0.1, 1.02), ylim = c(0.8, 1.2), clip = "off") +
   theme_void() +
