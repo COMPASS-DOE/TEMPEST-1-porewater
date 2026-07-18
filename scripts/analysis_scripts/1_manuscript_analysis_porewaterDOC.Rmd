@@ -102,6 +102,7 @@ doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_
 doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2023_L1.csv")
 
 doc_l1_2024 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2024_L1_updated.csv")
+# C_C6_DOC_20241003 still looks sus
 
 doc_l1_2025 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2025_L1_updated.csv")
 
@@ -151,6 +152,7 @@ select(plot, grid, evacuation_date, collection_datetime, doc_mg_l) %>%
     sampling_interval = paste(evacuation_date, collection_date, sep = "_to_"),
     crosses_month = evacuation_month != collection_month,
     Group = case_when(Group == "2022-12-01" ~ lubridate::as_date("2022-11-01"),
+                      Group == "2025-02-01" ~ lubridate::as_date("2025-01-01"),
                            TRUE ~ Group)) %>%
   select(-evacuation_month, -collection_month) %>%
   group_by(Group) %>%
@@ -191,6 +193,16 @@ saveRDS(doc_pw_studydates, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids
   # ungroup() %>%
 
 saveRDS(doc_means_pw, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_FINAL.rds")
+
+
+ doc_means_pw_all <- doc_l1_pw_grid_2022_2026 %>% 
+  group_by(nominal_date, plot) %>%
+  dplyr::select(plot, doc_mg_l, nominal_date) %>%
+  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
+   ungroup()
+
+saveRDS(doc_means_pw_all, "~/GitHub/TEMPEST-1-porewater/data/DOC_FigureS8.rds")
+
 
 ```
 
@@ -697,7 +709,7 @@ pw_plot_ec <- pw_grids_ec %>%
                   EC_uScm = mean(value, na.rm = TRUE),
                   .groups = "drop")
 
-pw_plot_sw <- pw_plot_ec %>%
+# pw_plot_sw <- pw_plot_ec %>%
   
 
 # write out for plotting:
@@ -997,9 +1009,9 @@ sim_results <- replicate(n_sim, {
 
 ### Column experiments stats 
 
-"DOC increased markedly in the ASW soil columns after 6 successive washes of low ionic strength water following the initial ASW pulse, with no significant differences in DOC across washes in the control or freshwater column experiments (insert the stats for this) (SI Figure 2)." 
+"DOC increased markedly in the ASW soil columns after 6 successive washes of low ionic strength water following the initial ASW pulse, with no significant differences in DOC across washes in the control or freshwater column experiments." 
 
-See: soil_column_doc_wash_statistical_test.Rmd (created with Codex)
+See markdown: soil_column_doc_wash_statistical_test.Rmd (created with Codex)
 
 # Supplemental Materials 
 
@@ -1136,6 +1148,22 @@ cdom_indicies_divided_all <- cdom_tmp1_dd %>%
   full_join(cdom_tmp3_dd) %>%
   drop_na()
 
+colnames(cdom_indicies_divided_all)[match(
+  c("FRESH", "A_T", "C_A", "C_M", "C_T", "S275_295", "S350_400", "Sr"),
+  colnames(cdom_indicies_divided_all)
+)] <- c(
+  "β:α",
+  "A:T",
+  "C:A",
+  "C:M",
+  "C:T",
+  "S275–295",
+  "S350–400",
+  "SR"
+)
+
+saveRDS(cdom_indicies_divided_all, "~/GitHub/TEMPEST-1-porewater/data/cdom_all_forplotting.rds" )
+
 ```
 
 
@@ -1144,16 +1172,11 @@ cdom_indicies_divided_all <- cdom_tmp1_dd %>%
 eems4multi <- cdom_indicies_divided_all %>%
   select(-sample_name, -grid, -plot, -timedate_bin, -datetime, -collection_date) 
 
-
 eemspca = prcomp(eems4multi , retx = TRUE, center = TRUE, scale. = TRUE)
 
-library(vegan)
+eemspca
 
-#nmds = vegan::metaMDS(eems4multi, distance="bray", 
-#          k = 3,
- #         maxit = 999, 
- #         trymax = 500,
- #         wascores = TRUE)
+saveRDS(eemspca, "~/GitHub/TEMPEST-1-porewater/data/cdom_pca.rds")
 
 ```
 
@@ -1223,52 +1246,6 @@ pairs(emmeans(m1, ~ timedate_bin), adjust = "tukey", type = "response")
 
 ```
 
-```{r prelim plots}
-
-
-cdom_indicies_divided_all %>%
-    group_by(plot, timedate_bin) %>%
-    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
-   ungroup() %>%
-  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
-               y=A_T_mean)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = A_T_mean - A_T_sd, ymax= A_T_mean + A_T_sd), width = 0.2) +
-  facet_wrap( ~ plot)
-
-cdom_indicies_divided_all %>%
-    group_by(plot, timedate_bin) %>%
-    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
-   ungroup() %>%
-  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
-               y=SUVA254_mean)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = SUVA254_mean - SUVA254_sd, ymax= SUVA254_mean + SUVA254_sd), width = 0.2) +
-  facet_wrap( ~ plot) +
-  xlab("Sampling Timeframe") +
-  ylab("SUVA254")+
-  theme_classic()
-
-biplot(eemspca)
-
-library(dplyr)
-library(ggplot2)
-library(ggfortify)
-library("wesanderson")
-
-pal <- wes_palette("Darjeeling2",5, type = "discrete")
-
-graphy <-autoplot(eemspca, data = cdom_indicies_divided_all, shape= 'plot', colour= 'timedate_bin',
-  size=2,
-  loadings = TRUE, loadings.colour = 'black',
-  loadings.label = TRUE, loadings.label.size = 2)+
- # scale_colour_manual(values = pal) + 
-  scale_shape_manual( values = c("Control" = 2, "Freshwater" = 1, "Saltwater" = 16)  )+
-  cowplot::theme_cowplot()
-
-print(graphy)
-
-```
 
 loc <- cdom_indicies_divided_all %>% select(plot, timedate_bin)
 
@@ -1930,6 +1907,36 @@ dag <- hc(data, whitelist = whitelist)
 plot(dag)
 ```
 
+
+```{r prelim plots}
+
+
+cdom_indicies_divided_all %>%
+    group_by(plot, timedate_bin) %>%
+    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
+   ungroup() %>%
+  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
+               y=A_T_mean)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = A_T_mean - A_T_sd, ymax= A_T_mean + A_T_sd), width = 0.2) +
+  facet_wrap( ~ plot)
+
+cdom_indicies_divided_all %>%
+    group_by(plot, timedate_bin) %>%
+    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
+   ungroup() %>%
+  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
+               y=SUVA254_mean)) +
+  geom_col() +
+  geom_errorbar(aes(ymin = SUVA254_mean - SUVA254_sd, ymax= SUVA254_mean + SUVA254_sd), width = 0.2) +
+  facet_wrap( ~ plot) +
+  xlab("Sampling Timeframe") +
+  ylab("SUVA254")+
+  theme_classic()
+
+biplot(eemspca)
+
+```
 
 ##
 
