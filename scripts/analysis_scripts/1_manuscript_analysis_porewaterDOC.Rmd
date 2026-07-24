@@ -101,8 +101,8 @@ doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_
   
 doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2023_L1.csv")
 
-doc_l1_2024 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2024_L1_updated.csv")
-# C_C6_DOC_20241003 still looks sus
+doc_l1_2024 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2024_L1_updated.csv") %>%
+  filter(sample_name != "C_C6_DOC_20241003") #see github issue: https://github.com/COMPASS-DOE/TEMPEST_Porewater/issues/184 
 
 doc_l1_2025 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2025_L1_updated.csv")
 
@@ -211,7 +211,7 @@ saveRDS(doc_means_pw_all, "~/GitHub/TEMPEST-1-porewater/data/DOC_FigureS8.rds")
 
 ### Stats for DOC paper
 
-"DOC concentrations did not differ significantly between the freshwater and control plots (GLS: t = 1.90, df = 5.13, p = 0.114; see extended data)."
+"DOC concentrations did not differ significantly between the freshwater and control plots (GLS: t = 1.72, df = 5.82, p = 0.137)."
 
 ```{r doc glm means}
 
@@ -515,6 +515,8 @@ effect_size_bootstrap_summary <- effect_size_bootstrap_input %>%
 
 saveRDS(effect_size_bootstrap_summary, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_effectsizes.rds")
 
+head(effect_size_bootstrap_summary)
+
 ```
 
 
@@ -634,7 +636,7 @@ These "significant dates" fall in the
 8th month post event 2024 (i.e. January)
 
 ### Dissolved organic carbon has a strong and delayed response to saltwater flooding
-"The first novel exposure of this temperate forest to saltwater from the nearby estuary across the three years caused lagged and markedly higher DOC concentrations in the saltwater plot (43.1 +/- 20.7 mg C/L) compared to the freshwater (11.5 +/- 5.9 mg C/L) and the control plots (17.9 +/- 8.2 mg C/L), which were relatively stable through time. DOC concentrations in the saltwater plot increased by an average of 140% in comparison to the control plot. "
+"The first novel exposure of this temperate forest to saltwater from the nearby estuary across the three years caused lagged and markedly higher DOC concentrations in the saltwater plot (43.1 +/- 20.7 mg C/L) compared to the freshwater (11.5 +/- 5.9 mg C/L) and the control plots (17.6 +/- 7.0 mg C/L), which were relatively stable through time. DOC concentrations in the saltwater plot increased by an average of 140% in comparison to the control plot. "
 
 ```{r doc summaries paper}
 
@@ -828,6 +830,7 @@ sensitivity_dates <- map_dfr(sd_multipliers, get_first_exceedance)
 sensitivity_dates
 ```
 
+
 # try this without the outlier, do outlier test on crazy control plot point
 ```{r, cond sens}
 # Prepare daily conductivity data
@@ -891,7 +894,7 @@ ggplot(
   geom_line() +
   theme_classic()
 ```
-
+Set sampling dates (collection_datetime) based on the evacuation dates from `tmpdates_doc`
 ```{r set dates based on pw_doc_dates}
 tmp1_doc_high = as.POSIXct("2022-07-21 15:59:00", tz = "EST")
 tmp2_doc_high = as.POSIXct("2023-08-10 15:53:00", tz = "EST")
@@ -948,6 +951,56 @@ colex_flux_tot <- colex_flux%>%
   summarise(across(starts_with("mgtot_"), list(mean = mean, sd = sd), na.rm = TRUE, .names = "{.col}_{.fn}"), .groups = "drop")
 
 ```
+```{r soil data for modeling}
+
+soil_data <- readxl::read_excel("~/GitHub/TEMPEST-1-Porewater/data_do_not_commit//UGA_soils_analysis_2020.xlsx", skip = 8) %>%
+  mutate(plot = case_when(stringr::str_detect(Sample, "C:") ~ "Control",
+                          stringr::str_detect(Sample, "F:") ~ "Freshwater",
+                          stringr::str_detect(Sample, "S:") ~ "Saltwater",
+                          TRUE ~ NA),
+         depth = case_when(stringr::str_detect(Sample, " 0-5") ~ "0-5",
+                           stringr::str_detect(Sample, "5-10") ~ "5-10",
+                           stringr::str_detect(Sample, "10-15") ~ "10-15",
+                           TRUE ~ "deeper than 15cm"))  %>%
+  filter(depth != "deeper than 15cm") %>%
+  select(-Lab, - Sample) %>%
+    group_by(plot) %>%
+      dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
+   ungroup() %>%
+  mutate(depth_mean = "0-15cm") %>%
+  select(-depth_sd)
+
+soil_data_bhm <- soil_data %>%
+  filter(plot == "Control") %>%
+  select(plot, depth_mean, `Base
+Saturation_mean`, `Base
+Saturation_sd`, CEC_mean, CEC_sd, `pH 2_mean`, `pH 2_sd`, C_mean, C_sd, Na_mean, Na_sd, 
+         K_mean, K_sd, Ca_mean, Ca_sd, Mg_mean, Mg_sd, Fe_mean, Fe_sd) %>%
+  rename(Base_Saturation_percent = `Base
+Saturation_mean`,
+         Base_Saturation_percent_stdev = `Base
+Saturation_sd`,
+         CEC_meqper100g = CEC_mean,
+         CEC_meqper100g_stdev = CEC_sd,
+         pH = `pH 2_mean`, 
+         pH_stdev = `pH 2_sd`,
+         SoilC_percent = C_mean, 
+         SoilC_percent_stdev = C_sd, 
+         Na_ppm = Na_mean, 
+         Na_ppm_stdev = Na_sd, 
+         K_ppm = K_mean, 
+         K_ppm_stdev = K_sd, 
+         Ca_ppm = Ca_mean, 
+         Ca_ppm_stdev = Ca_sd, 
+         Mg_ppm = Mg_mean, 
+         Mg_ppm_stdev = Mg_sd, 
+         Fe_ppm = Fe_mean, 
+         Fe_ppm_stdev = Fe_sd)
+
+write_csv(soil_data_bhm, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_soildata_2020.csv")
+
+  
+```
 
 ```{r column soil}
 
@@ -984,8 +1037,8 @@ sim_results <- replicate(n_sim, {
   
   # one C draw per treatment
   C_draws <- soils_colex %>%
-    distinct(Treatment, C_mean_mg, C_sd_mg) %>% #C is in % from the UGA values
-    mutate(C_draw = rnorm(n(), C_mean_mg, C_sd_mg))
+    distinct(Treatment, C_mean, C_sd) %>% #C is in % from the UGA values
+    mutate(C_draw = rnorm(n(), C_mean, C_sd))
   
   df_sim <- soils_colex %>%
     select(Column, Treatment, soil_g, mgtot_doc) %>%
@@ -999,7 +1052,7 @@ sim_results <- replicate(n_sim, {
 
  df_sim %>%
     group_by(Treatment) %>%
-    summarise(mean_net_C = mean(net_C), .groups = "drop") %>%
+    summarise(mean_net_C = mean(net_C_g), .groups = "drop") %>%
     pull(mean_net_C)
 
 })
@@ -1555,390 +1608,3 @@ ph_y3_all <- ph_yr3 %>%
 
 saveRDS(ph_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP3.rds")
 ```
-
-
-
-
-
-# Graveyard
-
-
-## CEC from pre event soils
-
-```{r cec}
-
-
-soils_directory <- "https://docs.google.com/spreadsheets/d/1a-4Nt7jorO301bi3NF9ebGhwNx_hVjPG/edit?gid=456381663#gid=456381663"
-
-directory= file.path(here::here() %>% dirname(), 'TEMPEST-1-Porewater/data_do_not_commit/')
-
-file_path = file.path(directory,"UGA_soils_analysis_2020.xlsx")
-
-googledrive::drive_download(soils_directory, path= file_path, overwrite = TRUE)
-```
-
-```{r cec 2}
-
-soil_data <- readxl::read_excel("~/GitHub/TEMPEST-1-Porewater/data_do_not_commit//UGA_soils_analysis_2020.xlsx", skip = 8) %>%
-  mutate(plot = case_when(stringr::str_detect(Sample, "C:") ~ "Control",
-                          stringr::str_detect(Sample, "F:") ~ "Freshwater",
-                          stringr::str_detect(Sample, "S:") ~ "Saltwater",
-                          TRUE ~ NA),
-         depth = case_when(stringr::str_detect(Sample, " 0-5") ~ "0-5",
-                           stringr::str_detect(Sample, "5-10") ~ "5-10",
-                           stringr::str_detect(Sample, "10-15") ~ "10-15",
-                           TRUE ~ "deeper than 15cm"))  %>%
-  filter(depth != "deeper than 15cm") %>%
-  select(-Lab, - Sample) %>%
-    group_by(plot) %>%
-      dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
-   ungroup() %>%
-  mutate(depth_mean = "0-15cm") %>%
-  select(-depth_sd)
-
-soil_data_bhm <- soil_data %>%
-  filter(plot == "Control") %>%
-  select(plot, depth_mean, `Base
-Saturation_mean`, `Base
-Saturation_sd`, CEC_mean, CEC_sd, `pH 2_mean`, `pH 2_sd`, C_mean, C_sd, Na_mean, Na_sd, 
-         K_mean, K_sd, Ca_mean, Ca_sd, Mg_mean, Mg_sd, Fe_mean, Fe_sd) %>%
-  rename(Base_Saturation_percent = `Base
-Saturation_mean`,
-         Base_Saturation_percent_stdev = `Base
-Saturation_sd`,
-         CEC_meqper100g = CEC_mean,
-         CEC_meqper100g_stdev = CEC_sd,
-         pH = `pH 2_mean`, 
-         pH_stdev = `pH 2_sd`,
-         SoilC_percent = C_mean, 
-         SoilC_percent_stdev = C_sd, 
-         Na_ppm = Na_mean, 
-         Na_ppm_stdev = Na_sd, 
-         K_ppm = K_mean, 
-         K_ppm_stdev = K_sd, 
-         Ca_ppm = Ca_mean, 
-         Ca_ppm_stdev = Ca_sd, 
-         Mg_ppm = Mg_mean, 
-         Mg_ppm_stdev = Mg_sd, 
-         Fe_ppm = Fe_mean, 
-         Fe_ppm_stdev = Fe_sd)
-
-write_csv(soil_data_bhm, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_soildata_2020.csv")
-
-  
-```
-
-
-
-### Prep data for figure 1: Porewater DOC averages/std by plot and month
-Generate for easy comparison between event years and with laboratory data sets.
-Can simplify this from previous iterations (see `graveyard_analysis_code.Rmd`) because we just want a monthly timeframe. 
-```{r doc avg std by month YEAR 1}
-
-pw_doc_yr1 <- doc_l1_2022 %>%
-  mutate(date = as_date(date)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr1, endstudydate)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  # fix the sampling dates in June before the event to the month before
-  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2022 ~ adj_month == 0,
-                               TRUE ~ adj_month)) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_yr1_2023 <- doc_l1_2023 %>%
-  mutate(date = as_date(date)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr1, endstudydate_yr1)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(adj_month == 0 ~ 12,
-                               TRUE ~ adj_month )) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_y1_all <- pw_doc_yr1 %>%
-  full_join(pw_doc_yr1_2023) %>%
-  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
-                           adj_month > 7 ~ adj_month - 7))
-  
-
-saveRDS(pw_doc_y1_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP1_Figure1.rds")
-```
-
-```{r doc avg std by month YEAR 2}
-
-
-pw_doc_yr2 <- doc_l1_2023 %>%
-  mutate(date = as_date(evacuation_datetime)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  # fix the sampling dates in June before the event to the month before
-  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
-                               TRUE ~ adj_month)) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_yr2_2024 <- doc_l1_2024 %>%
-  mutate(date = as_date(date)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(adj_month == 0 ~ 12,
-                               TRUE ~ adj_month )) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_y2_all <- pw_doc_yr2 %>%
-  full_join(pw_doc_yr2_2024) %>%
-  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
-                           adj_month > 7 ~ adj_month - 7))
-
-  
-
-saveRDS(pw_doc_y2_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP2_Figure1.rds")
-```
-
-```{r doc avg std by month YEAR 3}
-
-
-pw_doc_yr3 <- doc_l1_2024 %>%
-  mutate(date = as_date(evacuation_datetime)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  # fix the sampling dates in June before the event to the month before
-  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
-                               TRUE ~ adj_month)) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-  
-pw_doc_yr3_2025 <- doc_l1_2025 %>%
-  mutate(date = as_date(date)) %>%
-  select(plot, grid, date, doc_mg_l, tdn_mg_l) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(adj_month == 0 ~ 12,
-                               TRUE ~ adj_month )) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, doc_mg_l, tdn_mg_l, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-pw_doc_y3_all <- pw_doc_yr3 %>%
-  full_join(pw_doc_yr3_2025) %>%
-  mutate(month = case_when(adj_month <= 7 ~ adj_month + 5,
-                           adj_month > 7 ~ adj_month - 7))
-
-  
-
-saveRDS(pw_doc_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_TMP3_Figure1.rds")
-```
-
-```{r group all doc}
-
-pw_doc_all <- pw_doc_y1_all %>%
-  full_join(pw_doc_y2_all) %>%
-full_join(pw_doc_y3_all) %>%
-  mutate(stamp =lubridate::my(interaction(month, year, sep = " "))) 
-  
-
-saveRDS(pw_doc_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_ALLYEARS_Figure1.rds")
-
-```
-
-
-
-```{r save doc precip}
-pw_doc_all_wprecip <- pw_doc_all %>%
-  left_join(precip, by = c("month", "year"))
-
-
-write_csv(pw_doc_all_wprecip, "~/GitHub/TEMPEST-1-porewater/data/averaged_doc_porewater_allyrs_withprecip.csv")
-
-```
-
-
-
-# Experimental Data Analysis for mechanistic relationships
-Workflow 
-1) Exploratory Data Analysis: look at DOC vs driver variable relationships in the ColEx data 
-2) Bring in a priori hypothesis-based knowledge from table of mechanisms to reduce variable numbers.  https://docs.google.com/spreadsheets/d/1DHOeCKPpyUJbPBAVBy6-vegGymVbECd7rN9bFWm7Y0M/edit?usp=sharing
-3) Try Bayesian Networks to discover probabilistic causal structures with bnlearn 
-  3a) scale data (try z-scores)
-  3b) check multicollinearity with VIFs
-  3c) include mechanistic constraints (e.g., Fe/OC influence DOC)
-  
-### Exploratory data analysis
-```{r doc stats}
-
-hist(doc_l1_pw_grid_2022_2026$doc_mg_l)
-
-doc_comparison <- doc_l1_pw_grid_2022_2026 %>%
-  filter(plot != "Saltwater") %>%
-  mutate(logdoc = log(doc_mg_l),  #DOC is right skewed
-  gridID = interaction(plot, grid, sep = "_"),
-  month = lubridate::month(evacuation_date),
-  year = lubridate::year(evacuation_date),
-  dateID = interaction(month, year, sep = "_"))# create unique grid IDs (per plot)
-
-hist(doc_comparison$logdoc)
-
-doc_lme <- lme(
-  logdoc ~ plot ,
-  random = ~ 1 | gridID, # random effect of grids in the plot
-  correlation = corAR1(form = ~ 1 | gridID), # repeated monthly observations are temporally autocorrelated
-  data = doc_comparison 
-)
-
-summary(doc_lme)
-
-plot(doc_lme)
-
-qqnorm(resid(doc_lme))
-qqline(resid(doc_lme))
-
-#one factor model
-
-EMM <- emmeans(doc_lme, ~ plot)
-
-EMM
-
-### pairwise comparisons
-pairs(EMM)
-
-```
-
-```{r load ColEx data}
-ColEx <- readxl::read_excel("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/ColEx_data_allreps_formatted.xlsx") %>% #drop initial for this
-  filter(Timepoint != 0)
-
-```
-
-```{r exploratory data analysis}
-library(ggcorrplot)
-
-ColEx_corr <- ColEx %>%
-  select(-Treatment, -Column, - Timepoint)
-
-cor_matrix <- cor(ColEx_corr, use = "complete.obs")
-
-ggcorrplot(cor_matrix)
-
-```
-There are no other variables that stick out than the ones we'd pick a priori that are highly correlated to DOC. 
-
-
-```{r check lags}
-# Check lagged correlations
-library(tseries)
-ccf(ColEx$pH, ColEx$doc_mgperL, lag.max = 12)
-ccf(ColEx$conductivity_uSpercm, ColEx$doc_mgperL, lag.max = 12)
-
-```
- Interpretation:
- - Check lag 0: Strong direct correlation between variable and DOC at the same time point.
- - Lags > 0: Positive correlations here mean variable changes precede DOC changes by the lag amount.
- - Lags < 0: Negative correlations here mean DOC changes precede variable changes by the lag amount.
- - Dashed horizontal lines = confidence bounds, significant correlations occur when values go beyond those lines.
-
-This analysis might be really cool to do with the actual plot data and not the experiment- going to leave out of the model here. 
-
-Narrow down to final variables
-
-
-```{r check colinearity}
-library(car)
-
-# Fit a linear model to check VIF
-lm_model <- lm(DOC ~ pH + Fe_OC_ratio + Conductivity, data = scaled_data)
-car::vif(lm_model)
-
-# General guideline: VIF > 10 indicates problematic multicollinearity
-```
-
-
-```{r do the Dynamic Bayesian Networks}
-
-library(bnlearn)
-
-# Whitelist specific relationships based on prior knowledge
-whitelist <- data.frame(
-  from = c("Fe_OC_ratio", "pH"),
-  to = c("DOC", "DOC")
-)
-
-dag <- hc(data, whitelist = whitelist)
-plot(dag)
-```
-
-
-```{r prelim plots}
-
-
-cdom_indicies_divided_all %>%
-    group_by(plot, timedate_bin) %>%
-    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
-   ungroup() %>%
-  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
-               y=A_T_mean)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = A_T_mean - A_T_sd, ymax= A_T_mean + A_T_sd), width = 0.2) +
-  facet_wrap( ~ plot)
-
-cdom_indicies_divided_all %>%
-    group_by(plot, timedate_bin) %>%
-    dplyr::summarise(across(everything(), list(mean = ~mean(., na.rm=TRUE), sd = ~sd(., na.rm=TRUE))), .groups = "keep") %>%
-   ungroup() %>%
-  ggplot(aes(x=factor(timedate_bin, levels = c("Pre","Mid","Pre Cond Threshold", "Post Cond Threshold")), 
-               y=SUVA254_mean)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = SUVA254_mean - SUVA254_sd, ymax= SUVA254_mean + SUVA254_sd), width = 0.2) +
-  facet_wrap( ~ plot) +
-  xlab("Sampling Timeframe") +
-  ylab("SUVA254")+
-  theme_classic()
-
-biplot(eemspca)
-
-```
-
-##
-
-
-
