@@ -669,14 +669,14 @@ exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experimen
 ```{r col ex}
 SI2 <- exp_doc %>%
    ggplot(aes(x = Wash, y = doc_mgperL_avg, color = Treatment)) +
-   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
    geom_pointrange(aes(ymin=doc_mgperL_avg-doc_mgperL_sd, ymax=doc_mgperL_avg+doc_mgperL_sd), shape=17, size = 1)+
+   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
     ylab("DOC mg/L")+
-    xlab("Treatment Wash Number")+
+    xlab("Treatment Number")+
    # title("Field Manipulation") +
     ylim(-10,100)+
     scale_color_manual(values=Anyas_colors) +
-    scale_x_continuous(breaks = pretty_breaks(n=6), limits= c(0,12)) +
+    scale_x_continuous(breaks = pretty_breaks(n=6), limits= c(1,12)) +
     scale_shape_manual(values = c(2, 17))+ 
     theme_classic() +
     theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
@@ -804,7 +804,7 @@ exp_asw_dat <- read_csv("~/GitHub/tempest_ionic_strength/Data/Exp 1 Ionic Streng
 
 batch_exps <- exp_nacl_dat %>% full_join(exp_asw_dat) %>%
    separate(group, into = c("Experiment", "Level"), sep = "_") %>%
-  filter(Level %in% c(0.1, 5, 25)) %>%
+  filter(Level %in% c(25)) %>%
   mutate(doc_mg_l_mean = case_when(is.na(doc_mg_l_mean) ~ 0, 
                                   TRUE ~ doc_mg_l_mean),
          doc_mg_l_sd = case_when(is.na(doc_mg_l_sd) ~ 0, 
@@ -827,14 +827,14 @@ batch_exps <- exp_nacl_dat %>% full_join(exp_asw_dat) %>%
 
 ```{r SI4}
 SI4 <- batch_exps %>%
-  filter(Wash != 0) %>%
+  filter(Wash %in% c(1,2,3)) %>%
    ggplot() +
   scale_color_manual(values = c("Ca" = "#DCDCDA", "Al" = "#4F6D8A", "Fe" = "#8C4A2F", "DOC" = "black" ), guide = guide_legend(override.aes = list(
       linetype = 1,
       linewidth = 0.8,
       size = .5))) +
   scale_shape_manual(values = c("Ca" = 18, "Al" = 16, "Fe" = 15, "DOC" = 17), guide = "none") +
-geom_vline(xintercept = 1, linetype = "dashed", color = "darkgrey") +
+geom_vline(xintercept = 1, linetype = "dashed", color = "black") +
   geom_pointrange(aes(x = Wash, y = Ca_ppm,
         ymin = Ca_ppm - Ca_ppm_stdev,
         ymax = Ca_ppm + Ca_ppm_stdev,
@@ -856,10 +856,11 @@ geom_line(aes(x = Wash, y = Al_ppm, color = "Al"), linetype = "dotted") +
         color = "DOC", shape = "DOC") ) +
   geom_line(aes(x = Wash, y = doc_mg_l_mean, color = "DOC") ) + 
     ylab("Al, Ca, DOC, or Fe concentration (mg/L)")+
-    xlab("Treatment Wash Number")+
-    scale_x_continuous(breaks = pretty_breaks(n=6), limits= c(1,6)) +
+    xlab("Treatment Number")+
+    scale_x_continuous(breaks = pretty_breaks(n=3), limits= c(1,3)) +
+    coord_cartesian(ylim = c(0, 50), clip = "on") +
     theme_classic() +
-  facet_grid(Experiment ~ Level)+
+   facet_grid(Experiment ~ .)+
     theme(
     legend.position = "bottom",
     legend.title = element_blank(),
@@ -878,7 +879,7 @@ geom_line(aes(x = Wash, y = Al_ppm, color = "Al"), linetype = "dotted") +
 
 print(SI4)
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure4.png",SI4, dpi=600)
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure4.png",SI4, base_asp= 1, dpi=600)
 ```
 
 
@@ -915,11 +916,11 @@ figure_y_limits <- c(as.Date(format(startstudydate2, "%Y-%m-01")), as.Date(endst
 SI_5a <- ph %>%
   mutate(plot = factor(plot, levels = plot_order)) %>%
     ggplot(aes(x = datetime, y = pH, color = plot)) +
-  geom_vline(xintercept = WaterDeliveryStart1, linetype = "dashed", color = "black") +
+   geom_pointrange(aes(ymin=pH-pH_sd, ymax=pH+pH_sd), shape=17, size=1)+
+    geom_vline(xintercept = WaterDeliveryStart1, linetype = "dashed", color = "black") +
   geom_vline(xintercept =  tmp2_doc_high, linetype = "dashed", color = "#B6854D") +
   geom_vline(xintercept = WaterDeliveryStart1_2024, linetype = "dashed", color = "black") +
   geom_vline(xintercept = tmp3_doc_high, linetype = "dashed", color = "#B6854D") +
-   geom_pointrange(aes(ymin=pH-pH_sd, ymax=pH+pH_sd), shape=17, size=1)+
     scale_x_date(
   limits = figure_y_limits ,
   breaks = figure_x_breaks,
@@ -1000,7 +1001,6 @@ SI5_b <- exp_col_dat %>%
       linewidth = 0.8,
       size = .5))) +
   scale_shape_manual(values = c("Ca" = 18, "Al" = 16, "Fe" = 15, "DOC" = 17), guide = "none") +
-geom_vline(xintercept = 1, linetype = "dashed", color = "darkgrey") +
   geom_pointrange(aes(x = Wash, y = Ca_ppm_avg,
         ymin = Ca_ppm_avg - Ca_ppm_sd,
         ymax = Ca_ppm_avg + Ca_ppm_sd,
@@ -1021,7 +1021,8 @@ geom_line(aes(x = Wash, y = Al_ppm_avg, color = "Al"), linetype = "dotted") +
         ymax = doc_mgperL_avg + doc_mgperL_sd,
         color = "DOC", shape = "DOC") ) +
   geom_line(aes(x = Wash, y = doc_mgperL_avg, color = "DOC") ) +
-   scale_x_continuous(breaks = pretty_breaks(n=6), limits= c(0,12)) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "grey") +
+   scale_x_continuous(breaks = pretty_breaks(n=6), limits= c(1,12)) +
   geom_text(
     data = data.frame(x = -Inf, y = Inf, label = "  b) "),
     aes(x, y, label = label),
@@ -1030,7 +1031,16 @@ geom_line(aes(x = Wash, y = Al_ppm_avg, color = "Al"), linetype = "dotted") +
     inherit.aes = FALSE
   )+
     ylab("Al, Ca, DOC, or Fe concentration (mg/L)")+
-    xlab("Treatment Wash Number")+
+    xlab("Treatment Number")+
+  annotate(
+  "text",
+  x = 1.08,
+  y = 98,
+  label = "ASW",
+  hjust = 0,
+  vjust = 0,
+  size = 4
+)+
       theme_classic() +
     theme(
     legend.position = "bottom",
