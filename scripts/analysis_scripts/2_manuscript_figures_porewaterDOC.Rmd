@@ -477,6 +477,17 @@ legend_b_plot <- tibble(
   theme_void() +
   theme(legend.position = "none")
 
+blank_background <- theme(
+  panel.background = element_rect(fill = "white", color = NA),
+  plot.background  = element_rect(fill = "white", color = NA)
+)
+
+panel_a      <- panel_a + blank_background
+panel_b      <- panel_b + blank_background
+legend_a_plot <- legend_a_plot + blank_background
+legend_b_plot <- legend_b_plot + blank_background
+
+
 aligned_panels <- cowplot::align_plots(
   panel_a,
   panel_b,
