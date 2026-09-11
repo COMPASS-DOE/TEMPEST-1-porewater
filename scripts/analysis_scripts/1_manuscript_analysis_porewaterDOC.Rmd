@@ -97,9 +97,9 @@ time_order <- c('Pre', 'Mid','Post')
 
 #Porewater DOC data, from L1 google drive: 
 
-doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2022_L1.csv")
+doc_l1_2022 <- read_csv("~/GitHub/TEMPEST-1-porewater/data/inputs/TMP_PW_GRIDSONLY_NPOCTDN_2022_L1.csv")
   
-doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_GRIDSONLY_NPOCTDN_2023_L1.csv")
+doc_l1_2023 <- read_csv("~/GitHub/TEMPEST-1-porewater/data/inputs/TMP_PW_GRIDSONLY_NPOCTDN_2023_L1.csv")
 
 doc_l1_2024 <- read_csv("~/GitHub/TEMPEST_Porewater/processing_scripts/DOC/TEMPORARY/01_TMP_PW_NPOCTDN_2024_L1_updated.csv") %>%
   filter(sample_name != "C_C6_DOC_20241003") #see github issue: https://github.com/COMPASS-DOE/TEMPEST_Porewater/issues/184 
@@ -170,15 +170,10 @@ nrow(doc_l1_pw_grid_2022_2026)
 
 nrow(unique(doc_l1_pw_grid_2022_2026))
 
-saveRDS(doc_l1_pw_grid_2022_2026, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_2022-2026.rds")
-
 doc_pw_studydates <-  doc_l1_pw_grid_2022_2026 %>%
   filter(between(collection_date, startstudydate, endstudydate))
-  
-
-saveRDS(doc_pw_studydates, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids_STUDYPERIOD_may2022-may2025.rds")
-
 ```
+
 ```{r means DOC}
 
  doc_means_pw <- doc_pw_studydates %>% 
@@ -192,7 +187,7 @@ saveRDS(doc_pw_studydates, "~/GitHub/TEMPEST-1-porewater/data/doc_porewatergrids
   #dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
   # ungroup() %>%
 
-saveRDS(doc_means_pw, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_FINAL.rds")
+saveRDS(doc_means_pw, "~/GitHub/TEMPEST-1-porewater/data/figure_data/DOC_Figure1_FINAL.rds")
 
 
  doc_means_pw_all <- doc_l1_pw_grid_2022_2026 %>% 
@@ -201,7 +196,7 @@ saveRDS(doc_means_pw, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_FINAL.rds")
   dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
    ungroup()
 
-saveRDS(doc_means_pw_all, "~/GitHub/TEMPEST-1-porewater/data/DOC_FigureS8.rds")
+saveRDS(doc_means_pw_all, "~/GitHub/TEMPEST-1-porewater/data/figure_data/DOC_FigureS8.rds")
 
 
 ```
@@ -252,10 +247,10 @@ pairs(EMM)
 ### calculate effect sizes for figure 1 
 
 DOC effect-size workflow:
-1. Split data frames; Drop DOC outliers in the control plot. 
-2. Collapse repeated samples to Group/plot/grid means.
-3. Get datasets ready (unique columns for control and treatment plots). Use same-Group Control when available. If no same-Group Control exists, gapfill from previous mean value and global standard deviation for the plot. if no standard deviation for the treatment plots, use the plot average across all time points. Drop timepoints when data only in control and not in the treatment plots. 
-4. Bootstrap spatial variability and write a plotting-ready CSV.
+1. Summarize DOC by nominal observation date and plot, excluding Control observations with absolute modified z-scores greater than 3.5.
+2. Calculate mean DOC, standard deviation, observation count, and standard error for each date and plot.
+3. Pair treatment and Control summaries by nominal date. Fill missing values using available summaries within the same calendar month across years; omit dates without treatment observations or valid inputs for uncertainty estimation.
+4. Simulate treatment and Control means using normal distributions with their estimated standard errors. Calculate relative DOC differences and 95% simulation intervals, then export the figure-ready summary as an RDS file.
 
 ```{r split data frame}
 
@@ -410,7 +405,7 @@ sw_effect <- sw_c_foreffect %>%
 
 ## bootstrapping 
 
-save_bootstrap_replicates <- FALSE
+
 estimation_method <- "parametric_normal_plot_mean_uncertainty"
 
 #inputs
@@ -513,7 +508,7 @@ effect_size_bootstrap_summary <- effect_size_bootstrap_input %>%
     effect_size_percent_ci_upper,
     estimation_method)
 
-saveRDS(effect_size_bootstrap_summary, "~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_effectsizes.rds")
+saveRDS(effect_size_bootstrap_summary, "~/GitHub/TEMPEST-1-porewater/data/figure_data/DOC_Figure1_effectsizes.rds")
 
 head(effect_size_bootstrap_summary)
 
@@ -612,7 +607,7 @@ tmpdates_doc <-  tmpdates_doc.1 %>%
 
 tmpdates_doc 
 
- saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
+ saveRDS(tmpdates_doc, "~/GitHub/TEMPEST-1-porewater/data/figure_data/dates_DOC_higher_than_variance.rds")
 ```
 
 ```{r time elapsed}
@@ -703,7 +698,7 @@ What is the conductivity when this happens?
 
 ```{r teros EC}
 
-pw_grids_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2025_L2.rds")
+pw_grids_ec <- read_rds("~/GitHub/TEMPEST-1-porewater/data/inputs/TMP_PW_EC_15cm_2021-2025_L2.rds")
 
 pw_plot_ec <- pw_grids_ec %>%
   group_by(plot, depth, research_name, datetime_est, yday(datetime_est)) %>%
@@ -715,7 +710,7 @@ pw_plot_ec <- pw_grids_ec %>%
   
 
 # write out for plotting:
-saveRDS(pw_plot_ec, "~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
+saveRDS(pw_plot_ec, "~/GitHub/TEMPEST-1-porewater/data/figure_data/averaged_by_plot_ec_teros_porewater.rds")
 
 ```
 
@@ -904,7 +899,7 @@ tmp3_doc_high = as.POSIXct("2025-01-31 20:52:00", tz = "EST")
 
 ```{r bring in precip}
 
-precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/daily_precip_2021-2026.csv")
+precip <- read_csv("~/GitHub/TEMPEST-1-porewater/data/inputs/daily_precip_2021-2026.csv")
 
 precip_TMP1_sum <- precip %>%
   filter(between(date, EventStart2022, tmp1_doc_high)) %>%
@@ -953,7 +948,7 @@ colex_flux_tot <- colex_flux%>%
 ```
 ```{r soil data for modeling}
 
-soil_data <- readxl::read_excel("~/GitHub/TEMPEST-1-Porewater/data_do_not_commit//UGA_soils_analysis_2020.xlsx", skip = 8) %>%
+soil_data <- readxl::read_excel("~/GitHub/TEMPEST-1-porewater/data/inputs/UGASoilAnalyses_TEMPEST_082020.xlsx", skip = 8) %>%
   mutate(plot = case_when(stringr::str_detect(Sample, "C:") ~ "Control",
                           stringr::str_detect(Sample, "F:") ~ "Freshwater",
                           stringr::str_detect(Sample, "S:") ~ "Saltwater",
@@ -997,14 +992,14 @@ Saturation_sd`,
          Fe_ppm = Fe_mean, 
          Fe_ppm_stdev = Fe_sd)
 
-write_csv(soil_data_bhm, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_soildata_2020.csv")
+write_csv(soil_data_bhm, "~/GitHub/TEMPEST-1-porewater/BHM/Data/TEMPEST_soildata_2020.csv")
 
   
 ```
 
 ```{r column soil}
 
-soil_masses <- readxl::read_excel("~/GitHub/TEMPEST-1-porewater/data_do_not_commit/from ed/Column_data_Soil_masses.xlsx",skip=5) %>%
+soil_masses <- readxl::read_excel("~/GitHub/TEMPEST-1-porewater/data/inputs/Column_data_Soil_masses.xlsx",skip=5) %>%
   select(Column, soil_g) %>% drop_na()
 
 colex_soil <- colex_flux %>%
@@ -1021,7 +1016,7 @@ soil_c <- soil_data %>%
 colex_soil_2 <- colex_soil %>%
   select(Treatment, Column, soil_g)
 
-write_csv(colex_soil_2, "~/GitHub/tempest_ionic_strength/BHM/Data/TEMPEST_ColEx_soil_masses.csv")
+write_csv(colex_soil_2, "~/GitHub/TEMPEST-1-porewater/BHM/Data/TEMPEST_ColEx_soil_masses.csv")
 
 ```
 need a monte carlo to propagate uncertainty since we dont have exact soil carbon values for these cores. 
@@ -1037,14 +1032,14 @@ sim_results <- replicate(n_sim, {
   
   # one C draw per treatment
   C_draws <- soils_colex %>%
-    distinct(Treatment, C_mean, C_sd) %>% #C is in % from the UGA values
+    distinct(Treatment, C_mean, C_sd) %>% # C is in % from the UGA values
     mutate(C_draw = rnorm(n(), C_mean, C_sd))
   
   df_sim <- soils_colex %>%
     select(Column, Treatment, soil_g, mgtot_doc) %>%
     left_join(select(C_draws, Treatment, C_draw), by = "Treatment") %>%
     mutate(
-      soil_stock_g = soil_g * C_draw, # g soil x g C / 100g soil 
+      soil_stock_g = soil_g * C_draw / 100, # g soil x g C / 100g soil 
       net_C_g = soil_stock_g - (mgtot_doc/1000)
     )
   
@@ -1062,7 +1057,7 @@ sim_results <- replicate(n_sim, {
 
 ### Column experiments stats 
 
-"DOC increased markedly in the ASW soil columns after 6 successive washes of low ionic strength water following the initial ASW pulse, with no significant differences in DOC across washes in the control or freshwater column experiments." 
+“DOC increased markedly in the ASW soil columns from the sixth low-ionic-strength wash onward (timepoint 7, with timepoint 1 representing the initial application), whereas no significant differences in DOC across washes were observed in the freshwater columns.”
 
 See markdown: soil_column_doc_wash_statistical_test.Rmd (created with Codex)
 
@@ -1072,16 +1067,12 @@ See markdown: soil_column_doc_wash_statistical_test.Rmd (created with Codex)
 
 ```{r load cdom data}
 
-cdom_yr1 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP1.rds")
-cdom_yr2 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP2.rds")
-cdom_yr3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/averaged_cdom_indicies_porewater_TMP3.rds")
-
-cdom_allyrs <- readRDS("~/GitHub/TEMPEST-1-porewater/data/cdom_indicies_porewater_2022-2025.rds")
+cdom_allyrs <- readRDS("~/GitHub/TEMPEST-1-porewater/data/inputs/cdom_indicies_porewater_2022-2025.rds")
 ```
 
 ```{r load abs data}
 
-abs_allyears <- readRDS("~/GitHub/TEMPEST-1-porewater/data/absorbance_docnormalized_porewater_2022-2025.rds")
+abs_allyears <- readRDS("~/GitHub/TEMPEST-1-porewater/data/inputs/absorbance_docnormalized_porewater_2022-2025.rds")
 ```
 
 2022 cdom was collected at the pooled level but DOC was at the grid level. Take the plot level doc averages for the collection dates where this is the case for SUVA.
@@ -1114,7 +1105,7 @@ abs_allyears_1 <- abs_allyears %>%
   select(sample_name, plot, grid, collection_date, S275_295:Sr, SUVA254:SVA440) %>%
   drop_na()
   
-saveRDS(abs_allyears_1, "~/GitHub/TEMPEST-1-porewater/data/absorbance_porewater_2022-2025_withpooled.rds")
+
 
 ```
 
@@ -1131,7 +1122,7 @@ abs_eems_all_years <- cdom_allyrs %>%
 Separate data by system level analysis bins: 
 ```{r load functions for analysis}
 
-source("~/GitHub/tempest-system-level-analysis/data_package_prep/scripts/tmp_test_functions.R")
+source("~/GitHub/TEMPEST-1-porewater/scripts/tmp_test_functions.R")
 
 #set doc increase dates 
 
@@ -1158,7 +1149,7 @@ tmpdates_doc3 <- tmpdates_doc %>%
 
 ```
 
-NOTE:::: there are some issues with time zones messing up the dates slightly here!!!!
+
 ```{r divide data for cdom}
 
 cdom_tmp1 <- abs_eems_all_years  %>%
@@ -1215,7 +1206,7 @@ colnames(cdom_indicies_divided_all)[match(
   "SR"
 )
 
-saveRDS(cdom_indicies_divided_all, "~/GitHub/TEMPEST-1-porewater/data/cdom_all_forplotting.rds" )
+saveRDS(cdom_indicies_divided_all, "~/GitHub/TEMPEST-1-porewater/data/figure_data/cdom_all_forplotting.rds" )
 
 ```
 
@@ -1229,7 +1220,7 @@ eemspca = prcomp(eems4multi , retx = TRUE, center = TRUE, scale. = TRUE)
 
 eemspca
 
-saveRDS(eemspca, "~/GitHub/TEMPEST-1-porewater/data/cdom_pca.rds")
+saveRDS(eemspca, "~/GitHub/TEMPEST-1-porewater/data/figure_data/cdom_pca.rds")
 
 ```
 
@@ -1300,16 +1291,6 @@ pairs(emmeans(m1, ~ timedate_bin), adjust = "tukey", type = "response")
 ```
 
 
-loc <- cdom_indicies_divided_all %>% select(plot, timedate_bin)
-
-env1 <- vegan::envfit(nmds, loc, permu = 999)
-
-vegan::ordiplot(nmds, display = 'si', type = 'n')
-points(nmds, pch = 19)
-vegan::ordiellipse(nmds, groups= cdom_indicies_divided_all$timedate_bin )
-
-
-
 ### pH: What is the relationship between pH and DOC after each event? 
 
 We can do this analysis a bit differently than conductivity since we should have directly paired datasets.
@@ -1317,9 +1298,9 @@ We can do this analysis a bit differently than conductivity since we should have
 1. Plot level pH averages and stds
 ```{r load pH data}
 
-ph_2023 <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_2023_L1.csv") 
-ph_2024 <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_2024_L1.csv") 
-ph_2025 <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_pH_2025_L1.csv") 
+ph_2023 <-  read_csv("~/GitHub/TEMPEST-1-porewater/data/inputs/TMP_PW_pH_2023_L1.csv") 
+ph_2024 <-  read_csv("~/GitHub/TEMPEST-1-porewater/data/inputs/TMP_PW_pH_2024_L1.csv") 
+ph_2025 <-  read_csv("~/GitHub/TEMPEST-1-porewater/data/inputs/TMP_PW_pH_2025_L1.csv") 
 
 ```
 
@@ -1334,7 +1315,7 @@ ph_l1_pw_grids <- ph_2023 %>%
   
 ```
 
-Mean plot pH values when DOC has reached 10x SD of control plot. 
+Mean plot pH values when DOC has reached 3x SD of control plot. 
 
 ```{r ph threshold}
 dates_4_ph <- tmpdates_doc %>%
@@ -1513,98 +1494,7 @@ pw_ph <- purrr::reduce(merging_dfs, full_join) %>%
    dplyr::select(-date)
 
 # write out for plotting:
-saveRDS(pw_ph, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater.rds")
+saveRDS(pw_ph, "~/GitHub/TEMPEST-1-porewater/data/figure_data/averaged_ph_porewater.rds")
 
-#note this has two dates close in 2025 that we might need to merge together at some point 
 ```
 
-2 b. Now, get pH at the level as the DOC in terms of per month 
-
-```{r ph avg std by month YEAR 2}
-
-
-ph_yr2 <-  ph_2023 %>%
-  mutate(date = as_date(datetime)) %>%
-  select(plot, grid, date, pH) %>%
-  drop_na() %>% 
-  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  # fix the sampling dates in June before the event to the month before
-  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
-                               TRUE ~ adj_month)) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, pH, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-ph_yr2_2024 <- ph_2024 %>%
-  mutate(date = as_date(datetime)) %>%
-  select(plot, grid, date, pH) %>%
-  drop_na() %>% #
-  filter(between(date, startstudydate_yr2, endstudydate_yr2)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(adj_month == 0 ~ 12,
-                               TRUE ~ adj_month )) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, pH, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-ph_y2_all <- ph_yr2 %>%
-  full_join(ph_yr2_2024)
-
-  
-
-saveRDS(ph_y2_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP2.rds")
-```
-
-```{r ph avg std by month YEAR 3}
-
-
-ph_yr3 <- ph_2024 %>%
-  mutate(date = as_date(datetime)) %>%
-  select(plot, grid, date, pH) %>%
-  drop_na() %>% 
-  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  # fix the sampling dates in June before the event to the month before
-  mutate(adj_month = case_when(adj_month == 1 & date < EventStart2023 ~ adj_month == 0,
-                               TRUE ~ adj_month)) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, pH, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-  
-ph_yr3_2025 <- ph_2025 %>%
-  mutate(date = as_date(datetime)) %>%
-  select(plot, grid, date, pH) %>%
-  drop_na() %>% #dont need to specify column here because the only ones with NAs are DOC or TDN and they are both NA at the same time.
-  filter(between(date, startstudydate_yr3, endstudydate_yr3)) %>%
-  mutate(year = lubridate::year(date), 
-         month = lubridate::month(date),
-           # Adjust months: May = 0, June = 1, ..., April = 11
-         adj_month = (month(date) - 5) %% 12 ) %>%
-  mutate(adj_month = case_when(adj_month == 0 ~ 12,
-                               TRUE ~ adj_month )) %>%
-  group_by(adj_month, year, plot) %>%
-  dplyr::select(plot, pH, adj_month, year) %>%
-  dplyr::summarise(across(everything(), list(mean = ~mean(.), sd = ~sd(.))), .groups = "keep") %>%
-   ungroup()
-
-ph_y3_all <- ph_yr3 %>%
-  full_join(ph_yr3_2025)
-
-  
-
-saveRDS(ph_y3_all, "~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater_TMP3.rds")
-```

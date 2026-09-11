@@ -1,0 +1,635 @@
+---
+title: "Soil Column DOC Wash Statistical Test"
+date: "`r format(Sys.Date(), '%Y-%m-%d')`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.width = 10,
+  fig.height = 5.5
+)
+
+required_packages <- c(
+  "readxl",
+  "dplyr",
+  "ggplot2",
+  "lmerTest",
+  "emmeans",
+  "knitr"
+)
+
+missing_packages <- required_packages[
+  !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
+]
+
+if (length(missing_packages) > 0) {
+  stop(
+    "Install these packages before running this R Markdown file: ",
+    paste(missing_packages, collapse = ", ")
+  )
+}
+
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(lmerTest)
+library(emmeans)
+library(knitr)
+
+emmeans::emm_options(lmer.df = "satterthwaite")
+
+format_p_value <- function(p_value) {
+  ifelse(
+    is.na(p_value),
+    NA_character_,
+    ifelse(p_value < 0.001, "< 0.001", paste0("= ", format(round(p_value, 3), nsmall = 3)))
+  )
+}
+```
+
+## Analysis Goal
+
+This analysis tests the statement:
+
+> DOC increased markedly in the ASW soil columns after 6 successive washes of low ionic strength water following the initial ASW pulse, with no significant differences in DOC across washes in the control or freshwater column experiments.
+
+The primary analysis treats the dataset as repeated measures, because each soil column was measured across multiple washes. The model is fit separately for each treatment:
+
+```text
+DOC ~ wash timepoint + random intercept for Column
+```
+
+This assumes `Timepoint == 1` is the initial replicated column wash and that `Timepoint == 7` corresponds to the sixth low-ionic-strength wash after the initial ASW pulse. If the timepoint coding changes, update `post_six_start_timepoint`.
+
+```{r paths-and-inputs}
+data_candidates <- c(
+  "~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/ColEx_data_allreps_alltreatments_formatted.xlsx"
+)
+
+data_path <- data_candidates[file.exists(data_candidates)][1]
+
+if (is.na(data_path)) {
+  stop("Could not find ColEx_data_allreps_alltreatments_formatted.xlsx.")
+}
+
+output_dir <- if (dir.exists("vibe_coding")) {
+  file.path("vibe_coding", "outputs")
+} else {
+  "outputs"
+}
+
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+post_six_start_timepoint <- 7
+
+raw_doc <- read_excel(data_path)
+
+doc_data <- raw_doc %>%
+  filter(Column != "Treatment Water") %>%
+  filter(Timepoint >= 1) %>%
+  mutate(
+    Treatment = factor(Treatment, levels = c("ASW", "Control", "Freshwater")),
+    Timepoint = as.integer(Timepoint),
+    Timepoint_f = factor(Timepoint),
+    wash_phase = if_else(
+      Timepoint >= post_six_start_timepoint,
+      "Low-ionic wash 6 onward",
+      "Initial pulse through low-ionic wash 5"
+    ),
+    wash_phase = factor(
+      wash_phase,
+      levels = c(
+        "Initial pulse through low-ionic wash 5",
+        "Low-ionic wash 6 onward"
+      )
+    ),
+    log_doc_mgperL = log(doc_mgperL)
+  )
+
+doc_data %>%
+  count(Treatment, Timepoint) %>%
+  kable(caption = "Replicate count by treatment and wash timepoint.")
+```
+
+## Wash Summaries
+
+```{r wash-summary}
+wash_summary <- doc_data %>%
+  group_by(Treatment, Timepoint) %>%
+  summarise(
+    n_columns = n(),
+    mean_doc_mgperL = mean(doc_mgperL),
+    sd_doc_mgperL = sd(doc_mgperL),
+    se_doc_mgperL = sd_doc_mgperL / sqrt(n_columns),
+    min_doc_mgperL = min(doc_mgperL),
+    max_doc_mgperL = max(doc_mgperL),
+    .groups = "drop"
+  )
+
+write.csv(
+  wash_summary,
+  file.path(output_dir, "soil_column_DOC_wash_summary.csv"),
+  row.names = FALSE
+)
+
+wash_summary %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>%
+  kable(caption = "Observed DOC summary by treatment and wash.")
+```
+
+## Figure 1. DOC Across Successive Washes
+
+```{r wash-figure}
+treatment_colors <- c(
+  "ASW" = "#B04A5A",
+  "Control" = "#4B5563",
+  "Freshwater" = "#1F9E89"
+)
+
+phase_shade <- data.frame(
+  Treatment = factor(levels(doc_data$Treatment), levels = levels(doc_data$Treatment)),
+  xmin = post_six_start_timepoint - 0.5,
+  xmax = Inf,
+  ymin = -Inf,
+  ymax = Inf
+)
+
+doc_timecourse_plot <- ggplot() +
+  geom_rect(
+    data = phase_shade,
+    aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax),
+    fill = "#EEE8D5",
+    alpha = 0.6
+  ) +
+  geom_line(
+    data = doc_data,
+    aes(x = Timepoint, y = doc_mgperL, group = Column, color = Treatment),
+    alpha = 0.35,
+    linewidth = 0.5
+  ) +
+  geom_point(
+    data = doc_data,
+    aes(x = Timepoint, y = doc_mgperL, color = Treatment),
+    alpha = 0.65,
+    size = 1.9
+  ) +
+  geom_errorbar(
+    data = wash_summary,
+    aes(
+      x = Timepoint,
+      ymin = mean_doc_mgperL - se_doc_mgperL,
+      ymax = mean_doc_mgperL + se_doc_mgperL,
+      color = Treatment
+    ),
+    width = 0.18,
+    linewidth = 0.7
+  ) +
+  geom_line(
+    data = wash_summary,
+    aes(x = Timepoint, y = mean_doc_mgperL, group = Treatment, color = Treatment),
+    linewidth = 1.2
+  ) +
+  geom_point(
+    data = wash_summary,
+    aes(x = Timepoint, y = mean_doc_mgperL, color = Treatment),
+    size = 2.8
+  ) +
+  geom_vline(
+    xintercept = post_six_start_timepoint - 0.5,
+    linetype = "dashed",
+    linewidth = 0.5,
+    color = "#555555"
+  ) +
+  facet_wrap(~ Treatment, nrow = 1) +
+  scale_color_manual(values = treatment_colors, guide = "none") +
+  scale_x_continuous(breaks = sort(unique(doc_data$Timepoint))) +
+  labs(
+    x = "Wash timepoint",
+    y = "DOC (mg/L)",
+    title = "DOC across successive soil-column washes",
+    subtitle = "Thin lines are individual columns; larger points and error bars are treatment means +/- SE.\nShading starts at low-ionic wash 6 onward."
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 11),
+    plot.margin = margin(8, 14, 8, 8),
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "#F3F4F6", color = "#D1D5DB"),
+    strip.text = element_text(face = "bold")
+  )
+
+doc_timecourse_plot
+
+ggsave(
+  file.path(output_dir, "soil_column_DOC_by_wash_repeated_columns.png"),
+  doc_timecourse_plot,
+  width = 10,
+  height = 5.5,
+  dpi = 300
+)
+
+ggsave(
+  file.path(output_dir, "soil_column_DOC_by_wash_repeated_columns.pdf"),
+  doc_timecourse_plot,
+  width = 10,
+  height = 5.5
+)
+```
+
+## Figure 2. Planned Phase Contrast
+
+```{r phase-figure}
+phase_column_means <- doc_data %>%
+  group_by(Treatment, Column, wash_phase) %>%
+  summarise(
+    mean_doc_mgperL = mean(doc_mgperL),
+    .groups = "drop"
+  )
+
+phase_summary <- phase_column_means %>%
+  group_by(Treatment, wash_phase) %>%
+  summarise(
+    n_columns = n(),
+    phase_mean_doc_mgperL = mean(mean_doc_mgperL),
+    phase_sd_doc_mgperL = sd(mean_doc_mgperL),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    mean_doc_mgperL = phase_mean_doc_mgperL,
+    sd_doc_mgperL = phase_sd_doc_mgperL,
+    se_doc_mgperL = sd_doc_mgperL / sqrt(n_columns),
+    phase_mean_doc_mgperL = NULL,
+    phase_sd_doc_mgperL = NULL
+  )
+
+write.csv(
+  phase_summary,
+  file.path(output_dir, "soil_column_DOC_phase_summary.csv"),
+  row.names = FALSE
+)
+
+doc_phase_plot <- ggplot() +
+  geom_line(
+    data = phase_column_means,
+    aes(x = wash_phase, y = mean_doc_mgperL, group = Column, color = Treatment),
+    alpha = 0.35,
+    linewidth = 0.6
+  ) +
+  geom_point(
+    data = phase_column_means,
+    aes(x = wash_phase, y = mean_doc_mgperL, color = Treatment),
+    alpha = 0.75,
+    size = 2
+  ) +
+  geom_errorbar(
+    data = phase_summary,
+    aes(
+      x = wash_phase,
+      ymin = mean_doc_mgperL - se_doc_mgperL,
+      ymax = mean_doc_mgperL + se_doc_mgperL,
+      color = Treatment
+    ),
+    width = 0.12,
+    linewidth = 0.8
+  ) +
+  geom_point(
+    data = phase_summary,
+    aes(x = wash_phase, y = mean_doc_mgperL, color = Treatment),
+    size = 3.2
+  ) +
+  facet_wrap(~ Treatment, nrow = 1) +
+  scale_color_manual(values = treatment_colors, guide = "none") +
+  scale_x_discrete(
+    labels = c(
+      "Initial pulse through low-ionic wash 5" = "Initial pulse\nthrough wash 5",
+      "Low-ionic wash 6 onward" = "Low-ionic wash 6\nonward"
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = "Column mean DOC (mg/L)",
+    title = "DOC phase contrast before and after the sixth low-ionic-strength wash",
+    subtitle = "Thin lines connect same-column phase means; larger points and error bars are treatment means +/- SE."
+  ) +
+  theme_bw(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 11),
+    axis.text.x = element_text(lineheight = 0.95),
+    plot.margin = margin(8, 14, 8, 8),
+    panel.grid.minor = element_blank(),
+    strip.background = element_rect(fill = "#F3F4F6", color = "#D1D5DB"),
+    strip.text = element_text(face = "bold")
+  )
+
+doc_phase_plot
+
+ggsave(
+  file.path(output_dir, "soil_column_DOC_phase_contrast.png"),
+  doc_phase_plot,
+  width = 10,
+  height = 5.5,
+  dpi = 300
+)
+
+ggsave(
+  file.path(output_dir, "soil_column_DOC_phase_contrast.pdf"),
+  doc_phase_plot,
+  width = 10,
+  height = 5.5
+)
+```
+
+## Primary Repeated-Measures Tests
+
+These models account for repeated measurements from the same column by including a random intercept for `Column`. The raw-scale model keeps the units interpretable as mg/L DOC.
+
+```{r repeated-measures-tests}
+response_specs <- data.frame(
+  response_column = c("doc_mgperL", "log_doc_mgperL"),
+  response_scale = c("raw_mg_per_L", "log_mg_per_L"),
+  stringsAsFactors = FALSE
+)
+
+timepoint_tests <- data.frame()
+phase_tests <- data.frame()
+phase_emmeans <- data.frame()
+phase_contrasts <- data.frame()
+
+for (response_index in seq_len(nrow(response_specs))) {
+  current_response <- response_specs$response_column[response_index]
+  current_scale <- response_specs$response_scale[response_index]
+
+  for (current_treatment in levels(doc_data$Treatment)) {
+    current_data <- doc_data %>%
+      filter(Treatment == current_treatment)
+
+    timepoint_formula <- as.formula(
+      paste(current_response, "~ Timepoint_f + (1 | Column)")
+    )
+
+    timepoint_fit <- lmer(
+      timepoint_formula,
+      data = current_data,
+      REML = FALSE
+    )
+
+    timepoint_anova <- as.data.frame(anova(timepoint_fit, type = 3))
+    timepoint_row <- which(rownames(timepoint_anova) == "Timepoint_f")
+
+    timepoint_tests <- bind_rows(
+      timepoint_tests,
+      data.frame(
+        Treatment = current_treatment,
+        response_scale = current_scale,
+        model = paste(current_response, "~ factor(Timepoint) + (1 | Column)"),
+        test = "overall_wash_timepoint_effect",
+        numerator_df = timepoint_anova$NumDF[timepoint_row],
+        denominator_df = timepoint_anova$DenDF[timepoint_row],
+        f_value = timepoint_anova$`F value`[timepoint_row],
+        p_value = timepoint_anova$`Pr(>F)`[timepoint_row]
+      )
+    )
+
+    phase_formula <- as.formula(
+      paste(current_response, "~ wash_phase + (1 | Column)")
+    )
+
+    phase_fit <- lmer(
+      phase_formula,
+      data = current_data,
+      REML = FALSE
+    )
+
+    phase_anova <- as.data.frame(anova(phase_fit, type = 3))
+    phase_row <- which(rownames(phase_anova) == "wash_phase")
+
+    phase_tests <- bind_rows(
+      phase_tests,
+      data.frame(
+        Treatment = current_treatment,
+        response_scale = current_scale,
+        model = paste(current_response, "~ wash_phase + (1 | Column)"),
+        test = "planned_phase_effect",
+        numerator_df = phase_anova$NumDF[phase_row],
+        denominator_df = phase_anova$DenDF[phase_row],
+        f_value = phase_anova$`F value`[phase_row],
+        p_value = phase_anova$`Pr(>F)`[phase_row]
+      )
+    )
+
+    current_phase_emmeans <- as.data.frame(emmeans(phase_fit, ~ wash_phase)) %>%
+      mutate(
+        Treatment = current_treatment,
+        response_scale = current_scale
+      )
+
+    phase_emmeans <- bind_rows(phase_emmeans, current_phase_emmeans)
+
+    current_phase_contrast <- as.data.frame(
+      pairs(emmeans(phase_fit, ~ wash_phase), adjust = "none")
+    ) %>%
+      mutate(
+        Treatment = current_treatment,
+        response_scale = current_scale,
+        post_six_minus_early_estimate = -estimate,
+        post_six_to_early_ratio = if_else(
+          current_scale == "log_mg_per_L",
+          exp(post_six_minus_early_estimate),
+          NA_real_
+        )
+      )
+
+    phase_contrasts <- bind_rows(phase_contrasts, current_phase_contrast)
+  }
+}
+
+timepoint_tests <- timepoint_tests %>%
+  group_by(response_scale) %>%
+  mutate(p_value_bh = p.adjust(p_value, method = "BH")) %>%
+  ungroup()
+
+phase_tests <- phase_tests %>%
+  group_by(response_scale) %>%
+  mutate(p_value_bh = p.adjust(p_value, method = "BH")) %>%
+  ungroup()
+
+phase_contrasts <- phase_contrasts %>%
+  group_by(response_scale) %>%
+  mutate(p_value_bh = p.adjust(p.value, method = "BH")) %>%
+  ungroup()
+
+write.csv(
+  timepoint_tests,
+  file.path(output_dir, "soil_column_DOC_lmer_timepoint_tests.csv"),
+  row.names = FALSE
+)
+
+write.csv(
+  phase_tests,
+  file.path(output_dir, "soil_column_DOC_lmer_phase_tests.csv"),
+  row.names = FALSE
+)
+
+write.csv(
+  phase_emmeans,
+  file.path(output_dir, "soil_column_DOC_lmer_phase_emmeans.csv"),
+  row.names = FALSE
+)
+
+write.csv(
+  phase_contrasts,
+  file.path(output_dir, "soil_column_DOC_lmer_phase_contrasts.csv"),
+  row.names = FALSE
+)
+
+timepoint_tests %>%
+  filter(response_scale == "raw_mg_per_L") %>%
+  mutate(
+    f_value = round(f_value, 3),
+    p_value = format_p_value(p_value),
+    p_value_bh = format_p_value(p_value_bh)
+  ) %>%
+  kable(caption = "Primary repeated-measures test: raw DOC wash-timepoint effect within each treatment.")
+
+phase_contrasts %>%
+  filter(response_scale == "raw_mg_per_L") %>%
+  transmute(
+    Treatment,
+    contrast,
+    post_six_minus_early_mg_per_L = round(post_six_minus_early_estimate, 3),
+    SE = round(SE, 3),
+    df = round(df, 1),
+    t_ratio = round(t.ratio, 3),
+    p_value = format_p_value(p.value),
+    p_value_bh = format_p_value(p_value_bh)
+  ) %>%
+  kable(caption = "Planned phase contrast from the repeated-measures model. Positive estimates mean DOC was higher at low-ionic wash 6 onward.")
+```
+
+## Sensitivity Check: Log-DOC Repeated-Measures Tests
+
+The log-DOC model checks whether the conclusions are sensitive to the strong mean-variance relationship visible in the ASW data.
+
+```{r log-sensitivity}
+timepoint_tests %>%
+  filter(response_scale == "log_mg_per_L") %>%
+  mutate(
+    f_value = round(f_value, 3),
+    p_value = format_p_value(p_value),
+    p_value_bh = format_p_value(p_value_bh)
+  ) %>%
+  kable(caption = "Sensitivity test: log-DOC repeated-measures wash-timepoint effect within each treatment.")
+
+phase_contrasts %>%
+  filter(response_scale == "log_mg_per_L") %>%
+  transmute(
+    Treatment,
+    contrast,
+    post_six_minus_early_log_difference = round(post_six_minus_early_estimate, 3),
+    post_six_to_early_ratio = round(post_six_to_early_ratio, 3),
+    SE = round(SE, 3),
+    df = round(df, 1),
+    t_ratio = round(t.ratio, 3),
+    p_value = format_p_value(p.value),
+    p_value_bh = format_p_value(p_value_bh)
+  ) %>%
+  kable(caption = "Sensitivity test: log-DOC planned phase contrast. Ratios above 1 mean DOC was higher at low-ionic wash 6 onward.")
+```
+
+## Sensitivity Check: Ordinary One-Way ANOVA
+
+The table below repeats the across-wash test with a simpler one-way ANOVA that treats each measurement as independent. This matches a common visual summary test, but it does not account for repeated measurements from the same column.
+
+```{r ordinary-anova-sensitivity}
+ordinary_anova_tests <- data.frame()
+
+for (current_treatment in levels(doc_data$Treatment)) {
+  current_data <- doc_data %>%
+    filter(Treatment == current_treatment)
+
+  ordinary_fit <- aov(doc_mgperL ~ Timepoint_f, data = current_data)
+  ordinary_anova <- summary(ordinary_fit)[[1]]
+  ordinary_row <- which(rownames(ordinary_anova) == "Timepoint_f")
+
+  ordinary_anova_tests <- bind_rows(
+    ordinary_anova_tests,
+    data.frame(
+      Treatment = current_treatment,
+      model = "doc_mgperL ~ factor(Timepoint)",
+      test = "ordinary_one_way_anova_timepoint_effect",
+      numerator_df = ordinary_anova$Df[ordinary_row],
+      denominator_df = ordinary_anova$Df[ordinary_row + 1],
+      f_value = ordinary_anova$`F value`[ordinary_row],
+      p_value = ordinary_anova$`Pr(>F)`[ordinary_row]
+    )
+  )
+}
+
+ordinary_anova_tests <- ordinary_anova_tests %>%
+  mutate(p_value_bh = p.adjust(p_value, method = "BH"))
+
+write.csv(
+  ordinary_anova_tests,
+  file.path(output_dir, "soil_column_DOC_ordinary_anova_timepoint_tests.csv"),
+  row.names = FALSE
+)
+
+ordinary_anova_tests %>%
+  mutate(
+    f_value = round(f_value, 3),
+    p_value = format_p_value(p_value),
+    p_value_bh = format_p_value(p_value_bh)
+  ) %>%
+  kable(caption = "Sensitivity check: ordinary one-way ANOVA across washes within each treatment.")
+```
+
+## Interpretation for the Manuscript Sentence
+
+```{r interpretation-table}
+raw_timepoint_results <- timepoint_tests %>%
+  filter(response_scale == "raw_mg_per_L") %>%
+  select(Treatment, repeated_measures_wash_p = p_value, repeated_measures_wash_p_bh = p_value_bh)
+
+raw_phase_results <- phase_contrasts %>%
+  filter(response_scale == "raw_mg_per_L") %>%
+  transmute(
+    Treatment,
+    post_six_minus_early_mg_per_L = post_six_minus_early_estimate,
+    repeated_measures_phase_p = p.value,
+    repeated_measures_phase_p_bh = p_value_bh
+  )
+
+ordinary_results <- ordinary_anova_tests %>%
+  select(Treatment, ordinary_anova_wash_p = p_value, ordinary_anova_wash_p_bh = p_value_bh)
+
+interpretation_table <- raw_timepoint_results %>%
+  left_join(raw_phase_results, by = "Treatment") %>%
+  left_join(ordinary_results, by = "Treatment") %>%
+  mutate(
+    post_six_minus_early_mg_per_L = round(post_six_minus_early_mg_per_L, 3),
+    repeated_measures_wash_p = format_p_value(repeated_measures_wash_p),
+    repeated_measures_wash_p_bh = format_p_value(repeated_measures_wash_p_bh),
+    repeated_measures_phase_p = format_p_value(repeated_measures_phase_p),
+    repeated_measures_phase_p_bh = format_p_value(repeated_measures_phase_p_bh),
+    ordinary_anova_wash_p = format_p_value(ordinary_anova_wash_p),
+    ordinary_anova_wash_p_bh = format_p_value(ordinary_anova_wash_p_bh)
+  )
+
+interpretation_table %>%
+  kable(caption = "Summary of evidence relevant to the manuscript sentence.")
+```
+
+The repeated-measures model supports a strong ASW increase after the sixth low-ionic-strength wash. Freshwater shows no significant repeated-measures wash effect. The Control result depends on the wording of the claim: the planned pre/post phase contrast is not significant, but the full repeated-measures test across all individual washes is significant. Therefore, the sentence should not say that Control had no significant differences across individual washes if the repeated-measures model is the primary test.
+
+A statistically safer version is:
+
+> DOC increased markedly in the ASW soil columns at low-ionic-strength wash 6 onward after the initial ASW pulse. In contrast, the analogous pre/post phase comparison was not significant in the control or freshwater column experiments, although the full repeated-measures test across individual washes detected smaller wash-to-wash variation in the control columns.
