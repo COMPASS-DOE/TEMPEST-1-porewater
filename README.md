@@ -10,7 +10,7 @@ Contact: allison.myers-pigg@pnnl.gov. License: see [LICENSE](LICENSE).
 
 The self-contained demo was successfully run on **macOS 26.6.2 (build 25G83), Apple Silicon arm64, R 4.6.1 (2026-06-24)**. It uses only the base/standard R packages distributed with that version of R. Its nine output rows matched independently calculated reference values within a tolerance of `1e-10`.
 
-The manuscript analysis and figure R Markdown code passed syntax parsing in this environment, but the full workflows have **not** been validated end to end here. No Windows or Linux version has been tested for this release; no minimum compatible R version has been established. The version inventory below describes the inspected environment, not a claim that all manuscript results were reproduced with these versions.
+No Windows or Linux version has been tested for this release; no minimum compatible R version has been established. The version inventory below describes the inspected environment, not a claim that all manuscript results were reproduced with these versions.
 
 No GPU, cluster, or other non-standard hardware is required for the demo. A standard desktop/laptop is the intended platform. Full Bayesian fitting is more demanding; its memory requirements and runtime have not been benchmarked.
 
