@@ -179,4 +179,7 @@ Run BHM scripts from the repository root; generate model outputs before sensitiv
 
 GIS/spatial analysis code supporting Figure 3 is in [gis/](gis/).
 
+## AI-assisted development disclosure
+
+This README and the demonstration materials in `demo/` were developed with assistance from OpenAI Codex using GPT-6. Assistance included drafting documentation, selecting a subset of existing real data, writing the demo script, generating independently calculated reference outputs, and running the demo validation. The demo data were drawn from the repository's existing measurements; they are not AI-generated observations. This disclosure describes the README and demo only, not the authorship of the manuscript analyses.
 
