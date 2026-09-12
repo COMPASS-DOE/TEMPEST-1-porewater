@@ -38,7 +38,6 @@ Direct R dependencies identified in the manuscript scripts, helper, column-stati
 | arrow | Not installed; version unverified | ggmcmc | Not installed; version unverified |
 | janitor | Not installed; version unverified | jags | Unresolved package call; see below |
 
-R's package installer also resolves transitive dependencies. This is a direct-dependency inventory, not a complete environment lockfile. `BHM/1 Data Vis.R` currently contains `library(jags)`; the verified JAGS interface is `rjags`, and the intended package call requires author confirmation before a clean-session run. JAGS itself and an R package named `jags` are not interchangeable.
 
 ## 2. Installation guide
 
@@ -143,8 +142,6 @@ External data sources:
 | Extended Data Figure 6 | `BHM/3 Sensitivity Analysis.R` consumes those files and writes `BHM/output/BHM Parameter Importance Figure.jpg` |
 | Extended Data Figure 7 | `BHM/1 Data Vis.R` writes `BHM/output/Init Versus Final Cond.jpg` |
 | Posterior parameter summary | `BHM/4 Summary.R` writes `BHM/output/posterior_summary.csv`; its `View()` call is interactive |
-
-Run BHM scripts from the repository root; generate model outputs before sensitivity and summary analyses. Existing posterior files allow sensitivity work without refitting, but matching published numbers requires the appropriate posterior version and random seeds. Full BHM runtime is not benchmarked. Resolve the `library(jags)` call noted above before running the data-visualization script end to end.
 
 GIS/spatial analysis code supporting Figure 3 is in [gis/](gis/).
 
