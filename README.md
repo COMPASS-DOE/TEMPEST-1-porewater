@@ -129,6 +129,7 @@ In your copy of `run_demo.R`, point the import to your CSV and remove or replace
 | `scripts/tmp_test_functions.R` | Shared analysis helper functions |
 | `scripts/soil_column_doc_wash_statistical_test.Rmd` | Repeated-measures column DOC tests supporting Extended Data Figure 2 |
 | `BHM/` | Laboratory model, sensitivity, and associated figure scripts |
+| `gis/` | GIS/spatial analysis code supporting manuscript Figure 3 |
 | `figures/` | Manuscript figure files |
 | `demo/` | Independently runnable example |
 
@@ -176,4 +177,6 @@ Rendering executes file writes: analysis-generated RDS files and figure exports 
 
 Run BHM scripts from the repository root; generate model outputs before sensitivity and summary analyses. Existing posterior files allow sensitivity work without refitting, but matching published numbers requires the appropriate posterior version and random seeds. Full BHM runtime is not benchmarked. Resolve the `library(jags)` call noted above before running the data-visualization script end to end.
 
-This README provides a partial reproduction map, not a claim of complete numerical validation. Figure 2 is a conceptual illustration. Exact production-script references for the spatial Figure 3, isotope Extended Data Figure 9, and application-water Extended Data Table 1 still need documenting. Full clean-session rendering, external data version pinning, and comparison against the manuscript's reported statistics remain release checks. The demo's successful test does not establish that every manuscript workflow runs unchanged.
+GIS/spatial analysis code supporting Figure 3 is in [gis/](gis/).
+
+
