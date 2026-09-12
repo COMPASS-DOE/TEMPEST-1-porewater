@@ -6,14 +6,6 @@ Contact: allison.myers-pigg@pnnl.gov. License: see [LICENSE](LICENSE).
 
 ## 1. System requirements
 
-### Tested environment and scope
-
-The self-contained demo was successfully run on **macOS 26.6.2 (build 25G83), Apple Silicon arm64, R 4.6.1 (2026-06-24)**. It uses only the base/standard R packages distributed with that version of R. Its nine output rows matched independently calculated reference values within a tolerance of `1e-10`.
-
-No Windows or Linux version has been tested for this release; no minimum compatible R version has been established. The version inventory below describes the inspected environment, not a claim that all manuscript results were reproduced with these versions.
-
-No GPU, cluster, or other non-standard hardware is required for the demo. A standard desktop/laptop is the intended platform. Full Bayesian fitting is more demanding; its memory requirements and runtime have not been benchmarked.
-
 ### Software dependencies
 
 | Component | Version inspected | Use |
@@ -133,7 +125,7 @@ In your copy of `run_demo.R`, point the import to your CSV and remove or replace
 | `figures/` | Manuscript figure files |
 | `demo/` | Independently runnable example |
 
-### Data locations and execution order
+### Data locations 
 
 The full scripts contain paths under `~/GitHub/TEMPEST-1-porewater/` and require sibling repositories named `TEMPEST_Porewater` and `tempest_ionic_strength`. Place checkouts there or adapt the paths in your working copies. BHM paths are relative to the **repository root**, not to the BHM folder.
 
@@ -142,29 +134,6 @@ External data sources:
 - `COMPASS-DOE/TEMPEST_Porewater`: 2024–2026 DOC inputs under `processing_scripts/DOC/`.
 - `COMPASS-DOE/tempest_ionic_strength`: batch and column datasets under `Data/Exp 1 Ionic Strength ASW Data/`, `Data/Exp 2 Ionic Strength NaCl Data/`, and `Data/Exp 3 Column Experiment ColEx Data/`.
 
-Record the exact repository commits and input versions used for a reproduction. The external data versions are not yet pinned in this README. Preserve file names, workbook sheet layouts, and units used by the scripts. In particular, `UGASoilAnalyses_TEMPEST_082020.xlsx` is read with `skip = 8`, the soil-mass workbook with `skip = 5`, and `kent_ph_data.xlsx` from sheet 2. Soil carbon is represented as percentage points (5 means 5%), as assumed by the `/ 100` stock conversion.
-
-Before full execution, ensure `Column_data_Soil_masses.xlsx` and `kent_ph_data.xlsx` are available at their referenced paths. They were pending during documentation preparation. Also note that the analysis script writes two BHM input CSVs into the sibling `tempest_ionic_strength/BHM/Data/` directory, while local BHM scripts use this repository's `BHM/Data/`. Do not assume these copies synchronize automatically.
-
-In a fresh R session with the repository root as working directory, render the analysis before the figures:
-
-```r
-root <- normalizePath(".")
-rmarkdown::render(
-  "scripts/analysis_scripts/1_manuscript_analysis_porewaterDOC.Rmd",
-  knit_root_dir = root
-)
-rmarkdown::render(
-  "scripts/analysis_scripts/2_manuscript_figures_porewaterDOC.Rmd",
-  knit_root_dir = root
-)
-rmarkdown::render(
-  "scripts/soil_column_doc_wash_statistical_test.Rmd",
-  knit_root_dir = root
-)
-```
-
-Rendering executes file writes: analysis-generated RDS files and figure exports are replaced. The column-statistics script also writes summary tables and diagnostic figures to its selected output directory. Inspect outputs in a working checkout.
 
 ### Additional quantitative results and figures
 
@@ -179,7 +148,7 @@ Run BHM scripts from the repository root; generate model outputs before sensitiv
 
 GIS/spatial analysis code supporting Figure 3 is in [gis/](gis/).
 
-## AI-assisted development disclosure
+## AI-assistance disclosure
 
-This README and the demonstration materials in `demo/` were developed with assistance from OpenAI Codex using GPT-6. Assistance included drafting documentation, selecting a subset of existing real data, writing the demo script, generating independently calculated reference outputs, and running the demo validation. The demo data were drawn from the repository's existing measurements; they are not AI-generated observations. This disclosure describes the README and demo only, not the authorship of the manuscript analyses.
+This README and the demonstration materials in `demo/` were developed with assistance from OpenAI Codex using GPT-6. Assistance included drafting documentation, selecting a subset of existing real data, writing the demo script, generating independently calculated reference outputs, and running the demo validation. The demo data were drawn from the repository's existing measurements; they are not AI-generated observations. This disclosure describes the README and demo only.
 
