@@ -1,0 +1,838 @@
+Exp_Type,Treatment,Column,treatment_id,Timepoint,analyte,value
+ASW,0,"Average of Reps A, B, C",1,0,conductivity_uSpercm,0.05
+ASW,0,"Average of Reps A, B, C",1,0,Ca_ppm,0.1
+ASW,0,"Average of Reps A, B, C",1,0,doc_mgperL,0
+ASW,0,"Average of Reps A, B, C",1,1,conductivity_uSpercm,19.01
+ASW,0,"Average of Reps A, B, C",1,1,Ca_ppm,2.29
+ASW,0,"Average of Reps A, B, C",1,1,doc_mgperL,18.45
+ASW,0,"Average of Reps A, B, C",1,2,conductivity_uSpercm,12.36
+ASW,0,"Average of Reps A, B, C",1,2,Ca_ppm,0.53
+ASW,0,"Average of Reps A, B, C",1,2,doc_mgperL,15.18
+ASW,0,"Average of Reps A, B, C",1,3,conductivity_uSpercm,9.24
+ASW,0,"Average of Reps A, B, C",1,3,Ca_ppm,0.54
+ASW,0,"Average of Reps A, B, C",1,3,doc_mgperL,12.67
+ASW,0,"Average of Reps A, B, C",1,4,conductivity_uSpercm,7.28
+ASW,0,"Average of Reps A, B, C",1,4,Ca_ppm,0.2
+ASW,0,"Average of Reps A, B, C",1,4,doc_mgperL,7.95
+ASW,0,"Average of Reps A, B, C",1,5,conductivity_uSpercm,6.96
+ASW,0,"Average of Reps A, B, C",1,5,Ca_ppm,0.2
+ASW,0,"Average of Reps A, B, C",1,5,doc_mgperL,7.65
+ASW,0,"Average of Reps A, B, C",1,6,conductivity_uSpercm,6.52
+ASW,0,"Average of Reps A, B, C",1,6,Ca_ppm,0.2
+ASW,0,"Average of Reps A, B, C",1,6,doc_mgperL,7.04
+ASW,0.1,"Average of Reps A, B, C",2,0,conductivity_uSpercm,80.27
+ASW,0.1,"Average of Reps A, B, C",2,0,Ca_ppm,0.2
+ASW,0.1,"Average of Reps A, B, C",2,0,doc_mgperL,0
+ASW,0.1,"Average of Reps A, B, C",2,1,conductivity_uSpercm,90.74
+ASW,0.1,"Average of Reps A, B, C",2,1,Ca_ppm,3.05
+ASW,0.1,"Average of Reps A, B, C",2,1,doc_mgperL,11.91
+ASW,0.1,"Average of Reps A, B, C",2,2,conductivity_uSpercm,16.15
+ASW,0.1,"Average of Reps A, B, C",2,2,Ca_ppm,0.53
+ASW,0.1,"Average of Reps A, B, C",2,2,doc_mgperL,17.9
+ASW,0.1,"Average of Reps A, B, C",2,3,conductivity_uSpercm,10.03
+ASW,0.1,"Average of Reps A, B, C",2,3,Ca_ppm,0.22
+ASW,0.1,"Average of Reps A, B, C",2,3,doc_mgperL,16.14
+ASW,0.1,"Average of Reps A, B, C",2,4,conductivity_uSpercm,7.69
+ASW,0.1,"Average of Reps A, B, C",2,4,Ca_ppm,0.2
+ASW,0.1,"Average of Reps A, B, C",2,4,doc_mgperL,9.46
+ASW,0.1,"Average of Reps A, B, C",2,5,conductivity_uSpercm,7.19
+ASW,0.1,"Average of Reps A, B, C",2,5,Ca_ppm,0.2
+ASW,0.1,"Average of Reps A, B, C",2,5,doc_mgperL,7.95
+ASW,0.1,"Average of Reps A, B, C",2,6,conductivity_uSpercm,6.84
+ASW,0.1,"Average of Reps A, B, C",2,6,Ca_ppm,0.2
+ASW,0.1,"Average of Reps A, B, C",2,6,doc_mgperL,7.08
+ASW,1,"Average of Reps A, B, C",3,0,conductivity_uSpercm,784.5
+ASW,1,"Average of Reps A, B, C",3,0,Ca_ppm,2.1
+ASW,1,"Average of Reps A, B, C",3,0,doc_mgperL,0
+ASW,1,"Average of Reps A, B, C",3,1,conductivity_uSpercm,782.8
+ASW,1,"Average of Reps A, B, C",3,1,Ca_ppm,9.59
+ASW,1,"Average of Reps A, B, C",3,1,doc_mgperL,5.87
+ASW,1,"Average of Reps A, B, C",3,2,conductivity_uSpercm,69.61
+ASW,1,"Average of Reps A, B, C",3,2,Ca_ppm,0.53
+ASW,1,"Average of Reps A, B, C",3,2,doc_mgperL,16.82
+ASW,1,"Average of Reps A, B, C",3,3,conductivity_uSpercm,17.44
+ASW,1,"Average of Reps A, B, C",3,3,Ca_ppm,0.23
+ASW,1,"Average of Reps A, B, C",3,3,doc_mgperL,23.36
+ASW,1,"Average of Reps A, B, C",3,4,conductivity_uSpercm,11.2
+ASW,1,"Average of Reps A, B, C",3,4,Ca_ppm,0.2
+ASW,1,"Average of Reps A, B, C",3,4,doc_mgperL,13.29
+ASW,1,"Average of Reps A, B, C",3,5,conductivity_uSpercm,9.55
+ASW,1,"Average of Reps A, B, C",3,5,Ca_ppm,0.2
+ASW,1,"Average of Reps A, B, C",3,5,doc_mgperL,10.27
+ASW,1,"Average of Reps A, B, C",3,6,conductivity_uSpercm,8.86
+ASW,1,"Average of Reps A, B, C",3,6,Ca_ppm,0.19
+ASW,1,"Average of Reps A, B, C",3,6,doc_mgperL,7.53
+ASW,5,"Average of Reps A, B, C",4,0,conductivity_uSpercm,2899
+ASW,5,"Average of Reps A, B, C",4,0,Ca_ppm,10.7
+ASW,5,"Average of Reps A, B, C",4,0,doc_mgperL,0
+ASW,5,"Average of Reps A, B, C",4,1,conductivity_uSpercm,2837
+ASW,5,"Average of Reps A, B, C",4,1,Ca_ppm,24.24
+ASW,5,"Average of Reps A, B, C",4,1,doc_mgperL,5.6
+ASW,5,"Average of Reps A, B, C",4,2,conductivity_uSpercm,214.47
+ASW,5,"Average of Reps A, B, C",4,2,Ca_ppm,0.76
+ASW,5,"Average of Reps A, B, C",4,2,doc_mgperL,13.43
+ASW,5,"Average of Reps A, B, C",4,3,conductivity_uSpercm,30.14
+ASW,5,"Average of Reps A, B, C",4,3,Ca_ppm,0.56
+ASW,5,"Average of Reps A, B, C",4,3,doc_mgperL,28.02
+ASW,5,"Average of Reps A, B, C",4,4,conductivity_uSpercm,15.06
+ASW,5,"Average of Reps A, B, C",4,4,Ca_ppm,0.21
+ASW,5,"Average of Reps A, B, C",4,4,doc_mgperL,16.99
+ASW,5,"Average of Reps A, B, C",4,5,conductivity_uSpercm,12.64
+ASW,5,"Average of Reps A, B, C",4,5,Ca_ppm,0.2
+ASW,5,"Average of Reps A, B, C",4,5,doc_mgperL,12.35
+ASW,5,"Average of Reps A, B, C",4,6,conductivity_uSpercm,11.37
+ASW,5,"Average of Reps A, B, C",4,6,Ca_ppm,0.19
+ASW,5,"Average of Reps A, B, C",4,6,doc_mgperL,8.53
+ASW,25,"Average of Reps A, B, C",5,0,conductivity_uSpercm,16140
+ASW,25,"Average of Reps A, B, C",5,0,Ca_ppm,53.4
+ASW,25,"Average of Reps A, B, C",5,0,doc_mgperL,0
+ASW,25,"Average of Reps A, B, C",5,1,conductivity_uSpercm,15746.67
+ASW,25,"Average of Reps A, B, C",5,1,Ca_ppm,78.99
+ASW,25,"Average of Reps A, B, C",5,1,doc_mgperL,7.12
+ASW,25,"Average of Reps A, B, C",5,2,conductivity_uSpercm,1481.33
+ASW,25,"Average of Reps A, B, C",5,2,Ca_ppm,4.61
+ASW,25,"Average of Reps A, B, C",5,2,doc_mgperL,3.96
+ASW,25,"Average of Reps A, B, C",5,3,conductivity_uSpercm,111
+ASW,25,"Average of Reps A, B, C",5,3,Ca_ppm,0.54
+ASW,25,"Average of Reps A, B, C",5,3,doc_mgperL,31.24
+ASW,25,"Average of Reps A, B, C",5,4,conductivity_uSpercm,29.15
+ASW,25,"Average of Reps A, B, C",5,4,Ca_ppm,0.21
+ASW,25,"Average of Reps A, B, C",5,4,doc_mgperL,26.43
+ASW,25,"Average of Reps A, B, C",5,5,conductivity_uSpercm,19.32
+ASW,25,"Average of Reps A, B, C",5,5,Ca_ppm,0.2
+ASW,25,"Average of Reps A, B, C",5,5,doc_mgperL,17.83
+ASW,25,"Average of Reps A, B, C",5,6,conductivity_uSpercm,16.56
+ASW,25,"Average of Reps A, B, C",5,6,Ca_ppm,0.2
+ASW,25,"Average of Reps A, B, C",5,6,doc_mgperL,11.77
+ASW,100,"Average of Reps A, B, C",6,0,conductivity_uSpercm,56350
+ASW,100,"Average of Reps A, B, C",6,0,Ca_ppm,213.6
+ASW,100,"Average of Reps A, B, C",6,0,doc_mgperL,0
+ASW,100,"Average of Reps A, B, C",6,1,conductivity_uSpercm,55180
+ASW,100,"Average of Reps A, B, C",6,1,Ca_ppm,240.3
+ASW,100,"Average of Reps A, B, C",6,1,doc_mgperL,8.29
+ASW,100,"Average of Reps A, B, C",6,2,conductivity_uSpercm,5673
+ASW,100,"Average of Reps A, B, C",6,2,Ca_ppm,14.38
+ASW,100,"Average of Reps A, B, C",6,2,doc_mgperL,3.76
+ASW,100,"Average of Reps A, B, C",6,3,conductivity_uSpercm,428.43
+ASW,100,"Average of Reps A, B, C",6,3,Ca_ppm,0.53
+ASW,100,"Average of Reps A, B, C",6,3,doc_mgperL,27.83
+ASW,100,"Average of Reps A, B, C",6,4,conductivity_uSpercm,55.31
+ASW,100,"Average of Reps A, B, C",6,4,Ca_ppm,0.43
+ASW,100,"Average of Reps A, B, C",6,4,doc_mgperL,29.61
+ASW,100,"Average of Reps A, B, C",6,5,conductivity_uSpercm,29.67
+ASW,100,"Average of Reps A, B, C",6,5,Ca_ppm,0.19
+ASW,100,"Average of Reps A, B, C",6,5,doc_mgperL,20.56
+ASW,100,"Average of Reps A, B, C",6,6,conductivity_uSpercm,23.84
+ASW,100,"Average of Reps A, B, C",6,6,Ca_ppm,0.19
+ASW,100,"Average of Reps A, B, C",6,6,doc_mgperL,14.63
+NaCl,0,"Average of Reps A, B, C",22,0,conductivity_uSpercm,1.021
+NaCl,0,"Average of Reps A, B, C",22,0,Ca_ppm,0
+NaCl,0,"Average of Reps A, B, C",22,0,doc_mgperL,0
+NaCl,0,"Average of Reps A, B, C",22,1,conductivity_uSpercm,19.4
+NaCl,0,"Average of Reps A, B, C",22,1,Ca_ppm,0.13
+NaCl,0,"Average of Reps A, B, C",22,1,doc_mgperL,18.04
+NaCl,0,"Average of Reps A, B, C",22,2,conductivity_uSpercm,11.53
+NaCl,0,"Average of Reps A, B, C",22,2,Ca_ppm,0
+NaCl,0,"Average of Reps A, B, C",22,2,doc_mgperL,13.08
+NaCl,0,"Average of Reps A, B, C",22,3,conductivity_uSpercm,11.95
+NaCl,0,"Average of Reps A, B, C",22,3,Ca_ppm,0
+NaCl,0,"Average of Reps A, B, C",22,3,doc_mgperL,9.2
+NaCl,0,"Average of Reps A, B, C",22,4,conductivity_uSpercm,10.7
+NaCl,0,"Average of Reps A, B, C",22,4,Ca_ppm,0
+NaCl,0,"Average of Reps A, B, C",22,4,doc_mgperL,8.25
+NaCl,0,"Average of Reps A, B, C",22,5,conductivity_uSpercm,14.86
+NaCl,0,"Average of Reps A, B, C",22,5,Ca_ppm,0
+NaCl,0,"Average of Reps A, B, C",22,5,doc_mgperL,7.11
+NaCl,0,"Average of Reps A, B, C",22,6,conductivity_uSpercm,6.9
+NaCl,0,"Average of Reps A, B, C",22,6,Ca_ppm,0
+NaCl,0,"Average of Reps A, B, C",22,6,doc_mgperL,7
+NaCl,0.1,"Average of Reps A, B, C",23,0,conductivity_uSpercm,91.7
+NaCl,0.1,"Average of Reps A, B, C",23,0,Ca_ppm,0
+NaCl,0.1,"Average of Reps A, B, C",23,0,doc_mgperL,0
+NaCl,0.1,"Average of Reps A, B, C",23,1,conductivity_uSpercm,104.3
+NaCl,0.1,"Average of Reps A, B, C",23,1,Ca_ppm,0.72
+NaCl,0.1,"Average of Reps A, B, C",23,1,doc_mgperL,10.83
+NaCl,0.1,"Average of Reps A, B, C",23,2,conductivity_uSpercm,20.77
+NaCl,0.1,"Average of Reps A, B, C",23,2,Ca_ppm,0.21
+NaCl,0.1,"Average of Reps A, B, C",23,2,doc_mgperL,16.51
+NaCl,0.1,"Average of Reps A, B, C",23,3,conductivity_uSpercm,12.28
+NaCl,0.1,"Average of Reps A, B, C",23,3,Ca_ppm,0.16
+NaCl,0.1,"Average of Reps A, B, C",23,3,doc_mgperL,12.66
+NaCl,0.1,"Average of Reps A, B, C",23,4,conductivity_uSpercm,9.62
+NaCl,0.1,"Average of Reps A, B, C",23,4,Ca_ppm,0.1
+NaCl,0.1,"Average of Reps A, B, C",23,4,doc_mgperL,9.92
+NaCl,0.1,"Average of Reps A, B, C",23,5,conductivity_uSpercm,8.61
+NaCl,0.1,"Average of Reps A, B, C",23,5,Ca_ppm,0
+NaCl,0.1,"Average of Reps A, B, C",23,5,doc_mgperL,7.2
+NaCl,0.1,"Average of Reps A, B, C",23,6,conductivity_uSpercm,7.61
+NaCl,0.1,"Average of Reps A, B, C",23,6,Ca_ppm,0
+NaCl,0.1,"Average of Reps A, B, C",23,6,doc_mgperL,6.44
+NaCl,1,"Average of Reps A, B, C",24,0,conductivity_uSpercm,728.2
+NaCl,1,"Average of Reps A, B, C",24,0,Ca_ppm,0
+NaCl,1,"Average of Reps A, B, C",24,0,doc_mgperL,0
+NaCl,1,"Average of Reps A, B, C",24,1,conductivity_uSpercm,895.47
+NaCl,1,"Average of Reps A, B, C",24,1,Ca_ppm,4.06
+NaCl,1,"Average of Reps A, B, C",24,1,doc_mgperL,5.12
+NaCl,1,"Average of Reps A, B, C",24,2,conductivity_uSpercm,78.09
+NaCl,1,"Average of Reps A, B, C",24,2,Ca_ppm,0.11
+NaCl,1,"Average of Reps A, B, C",24,2,doc_mgperL,19.89
+NaCl,1,"Average of Reps A, B, C",24,3,conductivity_uSpercm,21.47
+NaCl,1,"Average of Reps A, B, C",24,3,Ca_ppm,0.18
+NaCl,1,"Average of Reps A, B, C",24,3,doc_mgperL,18.98
+NaCl,1,"Average of Reps A, B, C",24,4,conductivity_uSpercm,14.79
+NaCl,1,"Average of Reps A, B, C",24,4,Ca_ppm,0.12
+NaCl,1,"Average of Reps A, B, C",24,4,doc_mgperL,14.18
+NaCl,1,"Average of Reps A, B, C",24,5,conductivity_uSpercm,13.31
+NaCl,1,"Average of Reps A, B, C",24,5,Ca_ppm,0
+NaCl,1,"Average of Reps A, B, C",24,5,doc_mgperL,11.36
+NaCl,1,"Average of Reps A, B, C",24,6,conductivity_uSpercm,12.76
+NaCl,1,"Average of Reps A, B, C",24,6,Ca_ppm,0
+NaCl,1,"Average of Reps A, B, C",24,6,doc_mgperL,9.61
+NaCl,5,"Average of Reps A, B, C",25,0,conductivity_uSpercm,3425
+NaCl,5,"Average of Reps A, B, C",25,0,Ca_ppm,0
+NaCl,5,"Average of Reps A, B, C",25,0,doc_mgperL,0
+NaCl,5,"Average of Reps A, B, C",25,1,conductivity_uSpercm,4133.33
+NaCl,5,"Average of Reps A, B, C",25,1,Ca_ppm,12.79
+NaCl,5,"Average of Reps A, B, C",25,1,doc_mgperL,5.35
+NaCl,5,"Average of Reps A, B, C",25,2,conductivity_uSpercm,326.07
+NaCl,5,"Average of Reps A, B, C",25,2,Ca_ppm,0.18
+NaCl,5,"Average of Reps A, B, C",25,2,doc_mgperL,22.04
+NaCl,5,"Average of Reps A, B, C",25,3,conductivity_uSpercm,43.01
+NaCl,5,"Average of Reps A, B, C",25,3,Ca_ppm,0.27
+NaCl,5,"Average of Reps A, B, C",25,3,doc_mgperL,28.81
+NaCl,5,"Average of Reps A, B, C",25,4,conductivity_uSpercm,23.43
+NaCl,5,"Average of Reps A, B, C",25,4,Ca_ppm,0.2
+NaCl,5,"Average of Reps A, B, C",25,4,doc_mgperL,21.31
+NaCl,5,"Average of Reps A, B, C",25,5,conductivity_uSpercm,19.94
+NaCl,5,"Average of Reps A, B, C",25,5,Ca_ppm,0
+NaCl,5,"Average of Reps A, B, C",25,5,doc_mgperL,13.97
+NaCl,5,"Average of Reps A, B, C",25,6,conductivity_uSpercm,17.62
+NaCl,5,"Average of Reps A, B, C",25,6,Ca_ppm,0
+NaCl,5,"Average of Reps A, B, C",25,6,doc_mgperL,11.94
+NaCl,25,"Average of Reps A, B, C",26,0,conductivity_uSpercm,15580
+NaCl,25,"Average of Reps A, B, C",26,0,Ca_ppm,0
+NaCl,25,"Average of Reps A, B, C",26,0,doc_mgperL,0
+NaCl,25,"Average of Reps A, B, C",26,1,conductivity_uSpercm,18566.67
+NaCl,25,"Average of Reps A, B, C",26,1,Ca_ppm,25.45
+NaCl,25,"Average of Reps A, B, C",26,1,doc_mgperL,5.81
+NaCl,25,"Average of Reps A, B, C",26,2,conductivity_uSpercm,1570
+NaCl,25,"Average of Reps A, B, C",26,2,Ca_ppm,0.04
+NaCl,25,"Average of Reps A, B, C",26,2,doc_mgperL,14.25
+NaCl,25,"Average of Reps A, B, C",26,3,conductivity_uSpercm,127.83
+NaCl,25,"Average of Reps A, B, C",26,3,Ca_ppm,0.15
+NaCl,25,"Average of Reps A, B, C",26,3,doc_mgperL,45.76
+NaCl,25,"Average of Reps A, B, C",26,4,conductivity_uSpercm,34.81
+NaCl,25,"Average of Reps A, B, C",26,4,Ca_ppm,0
+NaCl,25,"Average of Reps A, B, C",26,4,doc_mgperL,30.53
+NaCl,25,"Average of Reps A, B, C",26,5,conductivity_uSpercm,25.66
+NaCl,25,"Average of Reps A, B, C",26,5,Ca_ppm,0
+NaCl,25,"Average of Reps A, B, C",26,5,doc_mgperL,22.59
+NaCl,25,"Average of Reps A, B, C",26,6,conductivity_uSpercm,22.92
+NaCl,25,"Average of Reps A, B, C",26,6,Ca_ppm,0
+NaCl,25,"Average of Reps A, B, C",26,6,doc_mgperL,15.92
+NaCl,100,"Average of Reps A, B, C",27,0,conductivity_uSpercm,70150
+NaCl,100,"Average of Reps A, B, C",27,0,Ca_ppm,0
+NaCl,100,"Average of Reps A, B, C",27,0,doc_mgperL,0
+NaCl,100,"Average of Reps A, B, C",27,1,conductivity_uSpercm,63480
+NaCl,100,"Average of Reps A, B, C",27,1,Ca_ppm,35.44
+NaCl,100,"Average of Reps A, B, C",27,1,doc_mgperL,9.31
+NaCl,100,"Average of Reps A, B, C",27,2,conductivity_uSpercm,5982
+NaCl,100,"Average of Reps A, B, C",27,2,Ca_ppm,0.27
+NaCl,100,"Average of Reps A, B, C",27,2,doc_mgperL,7.57
+NaCl,100,"Average of Reps A, B, C",27,3,conductivity_uSpercm,460.23
+NaCl,100,"Average of Reps A, B, C",27,3,Ca_ppm,0
+NaCl,100,"Average of Reps A, B, C",27,3,doc_mgperL,55.74
+NaCl,100,"Average of Reps A, B, C",27,4,conductivity_uSpercm,63.71
+NaCl,100,"Average of Reps A, B, C",27,4,Ca_ppm,0
+NaCl,100,"Average of Reps A, B, C",27,4,doc_mgperL,46.37
+NaCl,100,"Average of Reps A, B, C",27,5,conductivity_uSpercm,32.66
+NaCl,100,"Average of Reps A, B, C",27,5,Ca_ppm,0
+NaCl,100,"Average of Reps A, B, C",27,5,doc_mgperL,27.43
+NaCl,100,"Average of Reps A, B, C",27,6,conductivity_uSpercm,26.1
+NaCl,100,"Average of Reps A, B, C",27,6,Ca_ppm,0
+NaCl,100,"Average of Reps A, B, C",27,6,doc_mgperL,19.36
+ColEx,ASW,S10,17,0,conductivity_uSpercm,13240
+ColEx,ASW,S10,17,0,Ca_ppm,43.76
+ColEx,ASW,S10,17,0,doc_mgperL,0
+ColEx,ASW,S10,17,1,conductivity_uSpercm,10060
+ColEx,ASW,S10,17,1,Ca_ppm,48.31
+ColEx,ASW,S10,17,1,doc_mgperL,21.84
+ColEx,ASW,S10,17,2,conductivity_uSpercm,5092
+ColEx,ASW,S10,17,2,Ca_ppm,34.77
+ColEx,ASW,S10,17,2,doc_mgperL,18.12
+ColEx,ASW,S10,17,3,conductivity_uSpercm,2741
+ColEx,ASW,S10,17,3,Ca_ppm,18.96
+ColEx,ASW,S10,17,3,doc_mgperL,12.06
+ColEx,ASW,S10,17,4,conductivity_uSpercm,1204
+ColEx,ASW,S10,17,4,Ca_ppm,6.56
+ColEx,ASW,S10,17,4,doc_mgperL,6.6
+ColEx,ASW,S10,17,5,conductivity_uSpercm,1248
+ColEx,ASW,S10,17,5,Ca_ppm,6.52
+ColEx,ASW,S10,17,5,doc_mgperL,9.16
+ColEx,ASW,S10,17,6,conductivity_uSpercm,409.5
+ColEx,ASW,S10,17,6,Ca_ppm,1.56
+ColEx,ASW,S10,17,6,doc_mgperL,6.4
+ColEx,ASW,S10,17,7,conductivity_uSpercm,337
+ColEx,ASW,S10,17,7,Ca_ppm,1.15
+ColEx,ASW,S10,17,7,doc_mgperL,8.74
+ColEx,ASW,S10,17,8,conductivity_uSpercm,224.2
+ColEx,ASW,S10,17,8,Ca_ppm,0.72
+ColEx,ASW,S10,17,8,doc_mgperL,12.65
+ColEx,ASW,S10,17,9,conductivity_uSpercm,144.3
+ColEx,ASW,S10,17,9,Ca_ppm,0.52
+ColEx,ASW,S10,17,9,doc_mgperL,17.53
+ColEx,ASW,S10,17,10,conductivity_uSpercm,132.7
+ColEx,ASW,S10,17,10,Ca_ppm,0.29
+ColEx,ASW,S10,17,10,doc_mgperL,33.33
+ColEx,ASW,S10,17,11,conductivity_uSpercm,70.9
+ColEx,ASW,S10,17,11,Ca_ppm,0.19
+ColEx,ASW,S10,17,11,doc_mgperL,40.12
+ColEx,ASW,S10,17,12,conductivity_uSpercm,51.04
+ColEx,ASW,S10,17,12,Ca_ppm,0.17
+ColEx,ASW,S10,17,12,doc_mgperL,41.86
+ColEx,ASW,S2,18,0,conductivity_uSpercm,13240
+ColEx,ASW,S2,18,0,Ca_ppm,43.76
+ColEx,ASW,S2,18,0,doc_mgperL,0
+ColEx,ASW,S2,18,1,conductivity_uSpercm,10102
+ColEx,ASW,S2,18,1,Ca_ppm,45.16
+ColEx,ASW,S2,18,1,doc_mgperL,24.09
+ColEx,ASW,S2,18,2,conductivity_uSpercm,5015
+ColEx,ASW,S2,18,2,Ca_ppm,22.25
+ColEx,ASW,S2,18,2,doc_mgperL,23.04
+ColEx,ASW,S2,18,3,conductivity_uSpercm,2572
+ColEx,ASW,S2,18,3,Ca_ppm,10.13
+ColEx,ASW,S2,18,3,doc_mgperL,19.47
+ColEx,ASW,S2,18,4,conductivity_uSpercm,1570
+ColEx,ASW,S2,18,4,Ca_ppm,5.68
+ColEx,ASW,S2,18,4,doc_mgperL,19.58
+ColEx,ASW,S2,18,5,conductivity_uSpercm,972.6
+ColEx,ASW,S2,18,5,Ca_ppm,2.89
+ColEx,ASW,S2,18,5,doc_mgperL,15.38
+ColEx,ASW,S2,18,6,conductivity_uSpercm,514.3
+ColEx,ASW,S2,18,6,Ca_ppm,1.2
+ColEx,ASW,S2,18,6,doc_mgperL,19
+ColEx,ASW,S2,18,7,conductivity_uSpercm,296.1
+ColEx,ASW,S2,18,7,Ca_ppm,0.61
+ColEx,ASW,S2,18,7,doc_mgperL,23.29
+ColEx,ASW,S2,18,8,conductivity_uSpercm,176.2
+ColEx,ASW,S2,18,8,Ca_ppm,0.34
+ColEx,ASW,S2,18,8,doc_mgperL,27.77
+ColEx,ASW,S2,18,9,conductivity_uSpercm,131.4
+ColEx,ASW,S2,18,9,Ca_ppm,0.29
+ColEx,ASW,S2,18,9,doc_mgperL,36.7
+ColEx,ASW,S2,18,10,conductivity_uSpercm,80.8
+ColEx,ASW,S2,18,10,Ca_ppm,0.16
+ColEx,ASW,S2,18,10,doc_mgperL,50.25
+ColEx,ASW,S2,18,11,conductivity_uSpercm,55.25
+ColEx,ASW,S2,18,11,Ca_ppm,0.15
+ColEx,ASW,S2,18,11,doc_mgperL,54.76
+ColEx,ASW,S2,18,12,conductivity_uSpercm,49.13
+ColEx,ASW,S2,18,12,Ca_ppm,0.24
+ColEx,ASW,S2,18,12,doc_mgperL,55.35
+ColEx,ASW,S4,19,0,conductivity_uSpercm,13240
+ColEx,ASW,S4,19,0,Ca_ppm,43.76
+ColEx,ASW,S4,19,0,doc_mgperL,0
+ColEx,ASW,S4,19,1,conductivity_uSpercm,10220
+ColEx,ASW,S4,19,1,Ca_ppm,51.44
+ColEx,ASW,S4,19,1,doc_mgperL,75.88
+ColEx,ASW,S4,19,2,conductivity_uSpercm,4438
+ColEx,ASW,S4,19,2,Ca_ppm,27.18
+ColEx,ASW,S4,19,2,doc_mgperL,39.19
+ColEx,ASW,S4,19,3,conductivity_uSpercm,2851
+ColEx,ASW,S4,19,3,Ca_ppm,15.96
+ColEx,ASW,S4,19,3,doc_mgperL,24.33
+ColEx,ASW,S4,19,4,conductivity_uSpercm,1682
+ColEx,ASW,S4,19,4,Ca_ppm,7.46
+ColEx,ASW,S4,19,4,doc_mgperL,18.46
+ColEx,ASW,S4,19,5,conductivity_uSpercm,997.5
+ColEx,ASW,S4,19,5,Ca_ppm,3.52
+ColEx,ASW,S4,19,5,doc_mgperL,15.62
+ColEx,ASW,S4,19,6,conductivity_uSpercm,712.4
+ColEx,ASW,S4,19,6,Ca_ppm,1.93
+ColEx,ASW,S4,19,6,doc_mgperL,23.85
+ColEx,ASW,S4,19,7,conductivity_uSpercm,311
+ColEx,ASW,S4,19,7,Ca_ppm,0.66
+ColEx,ASW,S4,19,7,doc_mgperL,33.79
+ColEx,ASW,S4,19,8,conductivity_uSpercm,156.5
+ColEx,ASW,S4,19,8,Ca_ppm,0.29
+ColEx,ASW,S4,19,8,doc_mgperL,52.01
+ColEx,ASW,S4,19,9,conductivity_uSpercm,90.27
+ColEx,ASW,S4,19,9,Ca_ppm,0.33
+ColEx,ASW,S4,19,9,doc_mgperL,59.76
+ColEx,ASW,S4,19,10,conductivity_uSpercm,72.59
+ColEx,ASW,S4,19,10,Ca_ppm,0.19
+ColEx,ASW,S4,19,10,doc_mgperL,69.77
+ColEx,ASW,S4,19,11,conductivity_uSpercm,59.26
+ColEx,ASW,S4,19,11,Ca_ppm,0.22
+ColEx,ASW,S4,19,11,doc_mgperL,70.83
+ColEx,ASW,S4,19,12,conductivity_uSpercm,51.23
+ColEx,ASW,S4,19,12,Ca_ppm,0.18
+ColEx,ASW,S4,19,12,doc_mgperL,64.66
+ColEx,ASW,S6,20,0,conductivity_uSpercm,13240
+ColEx,ASW,S6,20,0,Ca_ppm,43.76
+ColEx,ASW,S6,20,0,doc_mgperL,0
+ColEx,ASW,S6,20,1,conductivity_uSpercm,9434
+ColEx,ASW,S6,20,1,Ca_ppm,38.84
+ColEx,ASW,S6,20,1,doc_mgperL,8
+ColEx,ASW,S6,20,2,conductivity_uSpercm,5542
+ColEx,ASW,S6,20,2,Ca_ppm,21.46
+ColEx,ASW,S6,20,2,doc_mgperL,11.5
+ColEx,ASW,S6,20,3,conductivity_uSpercm,2938
+ColEx,ASW,S6,20,3,Ca_ppm,10.36
+ColEx,ASW,S6,20,3,doc_mgperL,9.02
+ColEx,ASW,S6,20,4,conductivity_uSpercm,1628
+ColEx,ASW,S6,20,4,Ca_ppm,5.13
+ColEx,ASW,S6,20,4,doc_mgperL,7.17
+ColEx,ASW,S6,20,5,conductivity_uSpercm,1111
+ColEx,ASW,S6,20,5,Ca_ppm,3.15
+ColEx,ASW,S6,20,5,doc_mgperL,7.74
+ColEx,ASW,S6,20,6,conductivity_uSpercm,593.8
+ColEx,ASW,S6,20,6,Ca_ppm,1.34
+ColEx,ASW,S6,20,6,doc_mgperL,10.3
+ColEx,ASW,S6,20,7,conductivity_uSpercm,368.9
+ColEx,ASW,S6,20,7,Ca_ppm,0.76
+ColEx,ASW,S6,20,7,doc_mgperL,15.65
+ColEx,ASW,S6,20,8,conductivity_uSpercm,199
+ColEx,ASW,S6,20,8,Ca_ppm,0.39
+ColEx,ASW,S6,20,8,doc_mgperL,19.97
+ColEx,ASW,S6,20,9,conductivity_uSpercm,134.6
+ColEx,ASW,S6,20,9,Ca_ppm,0.3
+ColEx,ASW,S6,20,9,doc_mgperL,21.95
+ColEx,ASW,S6,20,10,conductivity_uSpercm,95.47
+ColEx,ASW,S6,20,10,Ca_ppm,0.15
+ColEx,ASW,S6,20,10,doc_mgperL,23.85
+ColEx,ASW,S6,20,11,conductivity_uSpercm,62.16
+ColEx,ASW,S6,20,11,Ca_ppm,0.16
+ColEx,ASW,S6,20,11,doc_mgperL,28.97
+ColEx,ASW,S6,20,12,conductivity_uSpercm,49.11
+ColEx,ASW,S6,20,12,Ca_ppm,0.12
+ColEx,ASW,S6,20,12,doc_mgperL,31.55
+ColEx,ASW,S7,21,0,conductivity_uSpercm,13240
+ColEx,ASW,S7,21,0,Ca_ppm,43.76
+ColEx,ASW,S7,21,0,doc_mgperL,0
+ColEx,ASW,S7,21,1,conductivity_uSpercm,9114
+ColEx,ASW,S7,21,1,Ca_ppm,65.48
+ColEx,ASW,S7,21,1,doc_mgperL,31.46
+ColEx,ASW,S7,21,2,conductivity_uSpercm,7349
+ColEx,ASW,S7,21,2,Ca_ppm,46.33
+ColEx,ASW,S7,21,2,doc_mgperL,26.33
+ColEx,ASW,S7,21,3,conductivity_uSpercm,3614
+ColEx,ASW,S7,21,3,Ca_ppm,18.99
+ColEx,ASW,S7,21,3,doc_mgperL,22.35
+ColEx,ASW,S7,21,4,conductivity_uSpercm,1666
+ColEx,ASW,S7,21,4,Ca_ppm,6.6
+ColEx,ASW,S7,21,4,doc_mgperL,21.69
+ColEx,ASW,S7,21,5,conductivity_uSpercm,868.1
+ColEx,ASW,S7,21,5,Ca_ppm,2.75
+ColEx,ASW,S7,21,5,doc_mgperL,28.55
+ColEx,ASW,S7,21,6,conductivity_uSpercm,383.1
+ColEx,ASW,S7,21,6,Ca_ppm,1
+ColEx,ASW,S7,21,6,doc_mgperL,49.35
+ColEx,ASW,S7,21,7,conductivity_uSpercm,201.9
+ColEx,ASW,S7,21,7,Ca_ppm,0.51
+ColEx,ASW,S7,21,7,doc_mgperL,65.62
+ColEx,ASW,S7,21,8,conductivity_uSpercm,116.7
+ColEx,ASW,S7,21,8,Ca_ppm,0.28
+ColEx,ASW,S7,21,8,doc_mgperL,63.53
+ColEx,ASW,S7,21,9,conductivity_uSpercm,94.31
+ColEx,ASW,S7,21,9,Ca_ppm,0.32
+ColEx,ASW,S7,21,9,doc_mgperL,67.18
+ColEx,ASW,S7,21,10,conductivity_uSpercm,90.2
+ColEx,ASW,S7,21,10,Ca_ppm,0.23
+ColEx,ASW,S7,21,10,doc_mgperL,85.13
+ColEx,ASW,S7,21,11,conductivity_uSpercm,65.05
+ColEx,ASW,S7,21,11,Ca_ppm,0.18
+ColEx,ASW,S7,21,11,doc_mgperL,69.27
+ColEx,ASW,S7,21,12,conductivity_uSpercm,60.07
+ColEx,ASW,S7,21,12,Ca_ppm,0.17
+ColEx,ASW,S7,21,12,doc_mgperL,64.08
+ColEx,Control,C1,7,0,conductivity_uSpercm,1.38
+ColEx,Control,C1,7,0,Ca_ppm,0
+ColEx,Control,C1,7,0,doc_mgperL,0
+ColEx,Control,C1,7,1,conductivity_uSpercm,7.97
+ColEx,Control,C1,7,1,Ca_ppm,0.194
+ColEx,Control,C1,7,1,doc_mgperL,6.45
+ColEx,Control,C1,7,2,conductivity_uSpercm,9.96
+ColEx,Control,C1,7,2,Ca_ppm,0.212
+ColEx,Control,C1,7,2,doc_mgperL,8.8
+ColEx,Control,C1,7,3,conductivity_uSpercm,9.44
+ColEx,Control,C1,7,3,Ca_ppm,0.217
+ColEx,Control,C1,7,3,doc_mgperL,8.84
+ColEx,Control,C1,7,4,conductivity_uSpercm,9.02
+ColEx,Control,C1,7,4,Ca_ppm,0.192
+ColEx,Control,C1,7,4,doc_mgperL,8.98
+ColEx,Control,C1,7,5,conductivity_uSpercm,8.44
+ColEx,Control,C1,7,5,Ca_ppm,0.168
+ColEx,Control,C1,7,5,doc_mgperL,8.79
+ColEx,Control,C1,7,6,conductivity_uSpercm,8.64
+ColEx,Control,C1,7,6,Ca_ppm,0.178
+ColEx,Control,C1,7,6,doc_mgperL,9.95
+ColEx,Control,C1,7,7,conductivity_uSpercm,10.65
+ColEx,Control,C1,7,7,Ca_ppm,0.173
+ColEx,Control,C1,7,7,doc_mgperL,8.97
+ColEx,Control,C1,7,8,conductivity_uSpercm,7.83
+ColEx,Control,C1,7,8,Ca_ppm,0.157
+ColEx,Control,C1,7,8,doc_mgperL,8.81
+ColEx,Control,C1,7,9,conductivity_uSpercm,7.76
+ColEx,Control,C1,7,9,Ca_ppm,0.152
+ColEx,Control,C1,7,9,doc_mgperL,8.51
+ColEx,Control,C1,7,10,conductivity_uSpercm,8.41
+ColEx,Control,C1,7,10,Ca_ppm,0.17
+ColEx,Control,C1,7,10,doc_mgperL,8.89
+ColEx,Control,C1,7,11,conductivity_uSpercm,8.7
+ColEx,Control,C1,7,11,Ca_ppm,0.164
+ColEx,Control,C1,7,11,doc_mgperL,8.98
+ColEx,Control,C1,7,12,conductivity_uSpercm,8.33
+ColEx,Control,C1,7,12,Ca_ppm,0.159
+ColEx,Control,C1,7,12,doc_mgperL,8.28
+ColEx,Control,C2,8,0,conductivity_uSpercm,1.38
+ColEx,Control,C2,8,0,Ca_ppm,0
+ColEx,Control,C2,8,0,doc_mgperL,0
+ColEx,Control,C2,8,1,conductivity_uSpercm,23.21
+ColEx,Control,C2,8,1,Ca_ppm,0.392
+ColEx,Control,C2,8,1,doc_mgperL,6.28
+ColEx,Control,C2,8,2,conductivity_uSpercm,16.7
+ColEx,Control,C2,8,2,Ca_ppm,0.313
+ColEx,Control,C2,8,2,doc_mgperL,9.99
+ColEx,Control,C2,8,3,conductivity_uSpercm,15.12
+ColEx,Control,C2,8,3,Ca_ppm,0.271
+ColEx,Control,C2,8,3,doc_mgperL,10.71
+ColEx,Control,C2,8,4,conductivity_uSpercm,11.46
+ColEx,Control,C2,8,4,Ca_ppm,0.22
+ColEx,Control,C2,8,4,doc_mgperL,10.3
+ColEx,Control,C2,8,5,conductivity_uSpercm,11.91
+ColEx,Control,C2,8,5,Ca_ppm,0.23
+ColEx,Control,C2,8,5,doc_mgperL,10.94
+ColEx,Control,C2,8,6,conductivity_uSpercm,11.14
+ColEx,Control,C2,8,6,Ca_ppm,0.235
+ColEx,Control,C2,8,6,doc_mgperL,11.4
+ColEx,Control,C2,8,7,conductivity_uSpercm,10.49
+ColEx,Control,C2,8,7,Ca_ppm,0.195
+ColEx,Control,C2,8,7,doc_mgperL,10.92
+ColEx,Control,C2,8,8,conductivity_uSpercm,10.64
+ColEx,Control,C2,8,8,Ca_ppm,0.221
+ColEx,Control,C2,8,8,doc_mgperL,11.8
+ColEx,Control,C2,8,9,conductivity_uSpercm,7.89
+ColEx,Control,C2,8,9,Ca_ppm,0.178
+ColEx,Control,C2,8,9,doc_mgperL,8.7
+ColEx,Control,C2,8,10,conductivity_uSpercm,8.71
+ColEx,Control,C2,8,10,Ca_ppm,0.175
+ColEx,Control,C2,8,10,doc_mgperL,9.65
+ColEx,Control,C2,8,11,conductivity_uSpercm,9.68
+ColEx,Control,C2,8,11,Ca_ppm,0.175
+ColEx,Control,C2,8,11,doc_mgperL,10.69
+ColEx,Control,C2,8,12,conductivity_uSpercm,8.96
+ColEx,Control,C2,8,12,Ca_ppm,0.17
+ColEx,Control,C2,8,12,doc_mgperL,10.28
+ColEx,Control,C3,9,0,conductivity_uSpercm,1.38
+ColEx,Control,C3,9,0,Ca_ppm,0
+ColEx,Control,C3,9,0,doc_mgperL,0
+ColEx,Control,C3,9,1,conductivity_uSpercm,14.56
+ColEx,Control,C3,9,1,Ca_ppm,0.354
+ColEx,Control,C3,9,1,doc_mgperL,4.01
+ColEx,Control,C3,9,2,conductivity_uSpercm,16.59
+ColEx,Control,C3,9,2,Ca_ppm,0.396
+ColEx,Control,C3,9,2,doc_mgperL,5.74
+ColEx,Control,C3,9,3,conductivity_uSpercm,14.53
+ColEx,Control,C3,9,3,Ca_ppm,0.311
+ColEx,Control,C3,9,3,doc_mgperL,5.39
+ColEx,Control,C3,9,4,conductivity_uSpercm,11.4
+ColEx,Control,C3,9,4,Ca_ppm,0.245
+ColEx,Control,C3,9,4,doc_mgperL,5.26
+ColEx,Control,C3,9,5,conductivity_uSpercm,10
+ColEx,Control,C3,9,5,Ca_ppm,0.207
+ColEx,Control,C3,9,5,doc_mgperL,4.62
+ColEx,Control,C3,9,6,conductivity_uSpercm,8.36
+ColEx,Control,C3,9,6,Ca_ppm,0.185
+ColEx,Control,C3,9,6,doc_mgperL,3.87
+ColEx,Control,C3,9,7,conductivity_uSpercm,7.98
+ColEx,Control,C3,9,7,Ca_ppm,0.174
+ColEx,Control,C3,9,7,doc_mgperL,4.12
+ColEx,Control,C3,9,8,conductivity_uSpercm,7.1
+ColEx,Control,C3,9,8,Ca_ppm,0.159
+ColEx,Control,C3,9,8,doc_mgperL,3.63
+ColEx,Control,C3,9,9,conductivity_uSpercm,8.19
+ColEx,Control,C3,9,9,Ca_ppm,0.161
+ColEx,Control,C3,9,9,doc_mgperL,4.69
+ColEx,Control,C3,9,10,conductivity_uSpercm,7.72
+ColEx,Control,C3,9,10,Ca_ppm,0.161
+ColEx,Control,C3,9,10,doc_mgperL,4.11
+ColEx,Control,C3,9,11,conductivity_uSpercm,8.63
+ColEx,Control,C3,9,11,Ca_ppm,0.197
+ColEx,Control,C3,9,11,doc_mgperL,4.39
+ColEx,Control,C3,9,12,conductivity_uSpercm,8.1
+ColEx,Control,C3,9,12,Ca_ppm,0.193
+ColEx,Control,C3,9,12,doc_mgperL,4.49
+ColEx,Control,C4,10,0,conductivity_uSpercm,1.38
+ColEx,Control,C4,10,0,Ca_ppm,0
+ColEx,Control,C4,10,0,doc_mgperL,0
+ColEx,Control,C4,10,1,conductivity_uSpercm,9.98
+ColEx,Control,C4,10,1,Ca_ppm,0.294
+ColEx,Control,C4,10,1,doc_mgperL,9.87
+ColEx,Control,C4,10,2,conductivity_uSpercm,10.27
+ColEx,Control,C4,10,2,Ca_ppm,0.314
+ColEx,Control,C4,10,2,doc_mgperL,14.49
+ColEx,Control,C4,10,3,conductivity_uSpercm,10.18
+ColEx,Control,C4,10,3,Ca_ppm,0.303
+ColEx,Control,C4,10,3,doc_mgperL,15.33
+ColEx,Control,C4,10,4,conductivity_uSpercm,9.52
+ColEx,Control,C4,10,4,Ca_ppm,0.269
+ColEx,Control,C4,10,4,doc_mgperL,14.92
+ColEx,Control,C4,10,5,conductivity_uSpercm,9.36
+ColEx,Control,C4,10,5,Ca_ppm,0.242
+ColEx,Control,C4,10,5,doc_mgperL,14.9
+ColEx,Control,C4,10,6,conductivity_uSpercm,9.05
+ColEx,Control,C4,10,6,Ca_ppm,0.224
+ColEx,Control,C4,10,6,doc_mgperL,14.17
+ColEx,Control,C4,10,7,conductivity_uSpercm,9.01
+ColEx,Control,C4,10,7,Ca_ppm,0.212
+ColEx,Control,C4,10,7,doc_mgperL,13.71
+ColEx,Control,C4,10,8,conductivity_uSpercm,8.41
+ColEx,Control,C4,10,8,Ca_ppm,0.175
+ColEx,Control,C4,10,8,doc_mgperL,13.34
+ColEx,Control,C4,10,9,conductivity_uSpercm,7.9
+ColEx,Control,C4,10,9,Ca_ppm,0.164
+ColEx,Control,C4,10,9,doc_mgperL,12.13
+ColEx,Control,C4,10,10,conductivity_uSpercm,8.16
+ColEx,Control,C4,10,10,Ca_ppm,0.185
+ColEx,Control,C4,10,10,doc_mgperL,12.16
+ColEx,Control,C4,10,11,conductivity_uSpercm,8.56
+ColEx,Control,C4,10,11,Ca_ppm,0.168
+ColEx,Control,C4,10,11,doc_mgperL,12.7
+ColEx,Control,C4,10,12,conductivity_uSpercm,7.97
+ColEx,Control,C4,10,12,Ca_ppm,0.16
+ColEx,Control,C4,10,12,doc_mgperL,12.45
+ColEx,Control,C5,11,0,conductivity_uSpercm,1.38
+ColEx,Control,C5,11,0,Ca_ppm,0
+ColEx,Control,C5,11,0,doc_mgperL,0
+ColEx,Control,C5,11,1,conductivity_uSpercm,8.3
+ColEx,Control,C5,11,1,Ca_ppm,0.111
+ColEx,Control,C5,11,1,doc_mgperL,5.49
+ColEx,Control,C5,11,2,conductivity_uSpercm,8.86
+ColEx,Control,C5,11,2,Ca_ppm,0.279
+ColEx,Control,C5,11,2,doc_mgperL,7.95
+ColEx,Control,C5,11,3,conductivity_uSpercm,7.87
+ColEx,Control,C5,11,3,Ca_ppm,0.259
+ColEx,Control,C5,11,3,doc_mgperL,8.04
+ColEx,Control,C5,11,4,conductivity_uSpercm,7.16
+ColEx,Control,C5,11,4,Ca_ppm,0.302
+ColEx,Control,C5,11,4,doc_mgperL,7.92
+ColEx,Control,C5,11,5,conductivity_uSpercm,7.08
+ColEx,Control,C5,11,5,Ca_ppm,0.309
+ColEx,Control,C5,11,5,doc_mgperL,7.84
+ColEx,Control,C5,11,6,conductivity_uSpercm,7.5
+ColEx,Control,C5,11,6,Ca_ppm,0.244
+ColEx,Control,C5,11,6,doc_mgperL,7.82
+ColEx,Control,C5,11,7,conductivity_uSpercm,7.57
+ColEx,Control,C5,11,7,Ca_ppm,0.346
+ColEx,Control,C5,11,7,doc_mgperL,8.4
+ColEx,Control,C5,11,8,conductivity_uSpercm,6.92
+ColEx,Control,C5,11,8,Ca_ppm,0.184
+ColEx,Control,C5,11,8,doc_mgperL,8.04
+ColEx,Control,C5,11,9,conductivity_uSpercm,6.36
+ColEx,Control,C5,11,9,Ca_ppm,0.228
+ColEx,Control,C5,11,9,doc_mgperL,7.07
+ColEx,Control,C5,11,10,conductivity_uSpercm,6.44
+ColEx,Control,C5,11,10,Ca_ppm,0.173
+ColEx,Control,C5,11,10,doc_mgperL,6.68
+ColEx,Control,C5,11,11,conductivity_uSpercm,6.94
+ColEx,Control,C5,11,11,Ca_ppm,0.166
+ColEx,Control,C5,11,11,doc_mgperL,7.5
+ColEx,Control,C5,11,12,conductivity_uSpercm,6.05
+ColEx,Control,C5,11,12,Ca_ppm,0.151
+ColEx,Control,C5,11,12,doc_mgperL,6.72
+ColEx,Freshwater,F1,12,0,conductivity_uSpercm,91.41
+ColEx,Freshwater,F1,12,0,Ca_ppm,0.34
+ColEx,Freshwater,F1,12,0,doc_mgperL,0
+ColEx,Freshwater,F1,12,1,conductivity_uSpercm,112.8
+ColEx,Freshwater,F1,12,1,Ca_ppm,1.32
+ColEx,Freshwater,F1,12,1,doc_mgperL,28.21
+ColEx,Freshwater,F1,12,2,conductivity_uSpercm,56.58
+ColEx,Freshwater,F1,12,2,Ca_ppm,0.93
+ColEx,Freshwater,F1,12,2,doc_mgperL,13.02
+ColEx,Freshwater,F1,12,3,conductivity_uSpercm,33.23
+ColEx,Freshwater,F1,12,3,Ca_ppm,0.61
+ColEx,Freshwater,F1,12,3,doc_mgperL,11.55
+ColEx,Freshwater,F1,12,4,conductivity_uSpercm,24.18
+ColEx,Freshwater,F1,12,4,Ca_ppm,0.41
+ColEx,Freshwater,F1,12,4,doc_mgperL,12.23
+ColEx,Freshwater,F1,12,5,conductivity_uSpercm,20.05
+ColEx,Freshwater,F1,12,5,Ca_ppm,0.49
+ColEx,Freshwater,F1,12,5,doc_mgperL,11.77
+ColEx,Freshwater,F1,12,6,conductivity_uSpercm,16.65
+ColEx,Freshwater,F1,12,6,Ca_ppm,0.39
+ColEx,Freshwater,F1,12,6,doc_mgperL,13.22
+ColEx,Freshwater,F1,12,7,conductivity_uSpercm,49.29
+ColEx,Freshwater,F1,12,7,Ca_ppm,0.3
+ColEx,Freshwater,F1,12,7,doc_mgperL,15.29
+ColEx,Freshwater,F1,12,8,conductivity_uSpercm,14.84
+ColEx,Freshwater,F1,12,8,Ca_ppm,0.3
+ColEx,Freshwater,F1,12,8,doc_mgperL,15.7
+ColEx,Freshwater,F1,12,9,conductivity_uSpercm,13.92
+ColEx,Freshwater,F1,12,9,Ca_ppm,0.35
+ColEx,Freshwater,F1,12,9,doc_mgperL,14.8
+ColEx,Freshwater,F1,12,10,conductivity_uSpercm,18.3
+ColEx,Freshwater,F1,12,10,Ca_ppm,0.22
+ColEx,Freshwater,F1,12,10,doc_mgperL,13.96
+ColEx,Freshwater,F1,12,11,conductivity_uSpercm,12.34
+ColEx,Freshwater,F1,12,11,Ca_ppm,0.25
+ColEx,Freshwater,F1,12,11,doc_mgperL,15.3
+ColEx,Freshwater,F1,12,12,conductivity_uSpercm,10.84
+ColEx,Freshwater,F1,12,12,Ca_ppm,0.24
+ColEx,Freshwater,F1,12,12,doc_mgperL,12.98
+ColEx,Freshwater,F3,13,0,conductivity_uSpercm,91.41
+ColEx,Freshwater,F3,13,0,Ca_ppm,0.34
+ColEx,Freshwater,F3,13,0,doc_mgperL,0
+ColEx,Freshwater,F3,13,1,conductivity_uSpercm,110
+ColEx,Freshwater,F3,13,1,Ca_ppm,1.4
+ColEx,Freshwater,F3,13,1,doc_mgperL,33.4
+ColEx,Freshwater,F3,13,2,conductivity_uSpercm,61.35
+ColEx,Freshwater,F3,13,2,Ca_ppm,1.04
+ColEx,Freshwater,F3,13,2,doc_mgperL,35.55
+ColEx,Freshwater,F3,13,3,conductivity_uSpercm,35.25
+ColEx,Freshwater,F3,13,3,Ca_ppm,0.69
+ColEx,Freshwater,F3,13,3,doc_mgperL,32.77
+ColEx,Freshwater,F3,13,4,conductivity_uSpercm,25.2
+ColEx,Freshwater,F3,13,4,Ca_ppm,0.52
+ColEx,Freshwater,F3,13,4,doc_mgperL,30.27
+ColEx,Freshwater,F3,13,5,conductivity_uSpercm,20.62
+ColEx,Freshwater,F3,13,5,Ca_ppm,0.56
+ColEx,Freshwater,F3,13,5,doc_mgperL,23.7
+ColEx,Freshwater,F3,13,6,conductivity_uSpercm,19.19
+ColEx,Freshwater,F3,13,6,Ca_ppm,0.47
+ColEx,Freshwater,F3,13,6,doc_mgperL,29.16
+ColEx,Freshwater,F3,13,7,conductivity_uSpercm,21.04
+ColEx,Freshwater,F3,13,7,Ca_ppm,0.37
+ColEx,Freshwater,F3,13,7,doc_mgperL,28.78
+ColEx,Freshwater,F3,13,8,conductivity_uSpercm,17.93
+ColEx,Freshwater,F3,13,8,Ca_ppm,0.34
+ColEx,Freshwater,F3,13,8,doc_mgperL,26.64
+ColEx,Freshwater,F3,13,9,conductivity_uSpercm,15.9
+ColEx,Freshwater,F3,13,9,Ca_ppm,0.43
+ColEx,Freshwater,F3,13,9,doc_mgperL,24.86
+ColEx,Freshwater,F3,13,10,conductivity_uSpercm,18.41
+ColEx,Freshwater,F3,13,10,Ca_ppm,0.33
+ColEx,Freshwater,F3,13,10,doc_mgperL,27.7
+ColEx,Freshwater,F3,13,11,conductivity_uSpercm,15.86
+ColEx,Freshwater,F3,13,11,Ca_ppm,0.31
+ColEx,Freshwater,F3,13,11,doc_mgperL,25.13
+ColEx,Freshwater,F3,13,12,conductivity_uSpercm,15.5
+ColEx,Freshwater,F3,13,12,Ca_ppm,0.32
+ColEx,Freshwater,F3,13,12,doc_mgperL,24.23
+ColEx,Freshwater,F5,14,0,conductivity_uSpercm,91.41
+ColEx,Freshwater,F5,14,0,Ca_ppm,0.34
+ColEx,Freshwater,F5,14,0,doc_mgperL,0
+ColEx,Freshwater,F5,14,1,conductivity_uSpercm,77.96
+ColEx,Freshwater,F5,14,1,Ca_ppm,1.08
+ColEx,Freshwater,F5,14,1,doc_mgperL,5.26
+ColEx,Freshwater,F5,14,2,conductivity_uSpercm,51.84
+ColEx,Freshwater,F5,14,2,Ca_ppm,0.74
+ColEx,Freshwater,F5,14,2,doc_mgperL,5.55
+ColEx,Freshwater,F5,14,3,conductivity_uSpercm,26.66
+ColEx,Freshwater,F5,14,3,Ca_ppm,0.46
+ColEx,Freshwater,F5,14,3,doc_mgperL,7.76
+ColEx,Freshwater,F5,14,4,conductivity_uSpercm,17.77
+ColEx,Freshwater,F5,14,4,Ca_ppm,0.28
+ColEx,Freshwater,F5,14,4,doc_mgperL,9.26
+ColEx,Freshwater,F5,14,5,conductivity_uSpercm,15.66
+ColEx,Freshwater,F5,14,5,Ca_ppm,0.4
+ColEx,Freshwater,F5,14,5,doc_mgperL,10.59
+ColEx,Freshwater,F5,14,6,conductivity_uSpercm,12.56
+ColEx,Freshwater,F5,14,6,Ca_ppm,0.27
+ColEx,Freshwater,F5,14,6,doc_mgperL,11.37
+ColEx,Freshwater,F5,14,7,conductivity_uSpercm,13.42
+ColEx,Freshwater,F5,14,7,Ca_ppm,0.24
+ColEx,Freshwater,F5,14,7,doc_mgperL,10.7
+ColEx,Freshwater,F5,14,8,conductivity_uSpercm,11.67
+ColEx,Freshwater,F5,14,8,Ca_ppm,0.23
+ColEx,Freshwater,F5,14,8,doc_mgperL,10.29
+ColEx,Freshwater,F5,14,9,conductivity_uSpercm,10.79
+ColEx,Freshwater,F5,14,9,Ca_ppm,0.26
+ColEx,Freshwater,F5,14,9,doc_mgperL,10.15
+ColEx,Freshwater,F5,14,10,conductivity_uSpercm,11.93
+ColEx,Freshwater,F5,14,10,Ca_ppm,0.19
+ColEx,Freshwater,F5,14,10,doc_mgperL,10.74
+ColEx,Freshwater,F5,14,11,conductivity_uSpercm,10.48
+ColEx,Freshwater,F5,14,11,Ca_ppm,0.22
+ColEx,Freshwater,F5,14,11,doc_mgperL,10.18
+ColEx,Freshwater,F5,14,12,conductivity_uSpercm,10.33
+ColEx,Freshwater,F5,14,12,Ca_ppm,0.19
+ColEx,Freshwater,F5,14,12,doc_mgperL,9.79
+ColEx,Freshwater,F8,15,0,conductivity_uSpercm,91.41
+ColEx,Freshwater,F8,15,0,Ca_ppm,0.34
+ColEx,Freshwater,F8,15,0,doc_mgperL,0
+ColEx,Freshwater,F8,15,1,conductivity_uSpercm,102.2
+ColEx,Freshwater,F8,15,1,Ca_ppm,0.93
+ColEx,Freshwater,F8,15,1,doc_mgperL,14.66
+ColEx,Freshwater,F8,15,2,conductivity_uSpercm,32.96
+ColEx,Freshwater,F8,15,2,Ca_ppm,0.47
+ColEx,Freshwater,F8,15,2,doc_mgperL,12.41
+ColEx,Freshwater,F8,15,3,conductivity_uSpercm,22.04
+ColEx,Freshwater,F8,15,3,Ca_ppm,0.41
+ColEx,Freshwater,F8,15,3,doc_mgperL,13.5
+ColEx,Freshwater,F8,15,4,conductivity_uSpercm,17.27
+ColEx,Freshwater,F8,15,4,Ca_ppm,0.3
+ColEx,Freshwater,F8,15,4,doc_mgperL,14.62
+ColEx,Freshwater,F8,15,5,conductivity_uSpercm,15.58
+ColEx,Freshwater,F8,15,5,Ca_ppm,0.4
+ColEx,Freshwater,F8,15,5,doc_mgperL,15.61
+ColEx,Freshwater,F8,15,6,conductivity_uSpercm,17.75
+ColEx,Freshwater,F8,15,6,Ca_ppm,0.32
+ColEx,Freshwater,F8,15,6,doc_mgperL,19.55
+ColEx,Freshwater,F8,15,7,conductivity_uSpercm,19.62
+ColEx,Freshwater,F8,15,7,Ca_ppm,0.26
+ColEx,Freshwater,F8,15,7,doc_mgperL,19.71
+ColEx,Freshwater,F8,15,8,conductivity_uSpercm,15.58
+ColEx,Freshwater,F8,15,8,Ca_ppm,0.26
+ColEx,Freshwater,F8,15,8,doc_mgperL,18.12
+ColEx,Freshwater,F8,15,9,conductivity_uSpercm,13.93
+ColEx,Freshwater,F8,15,9,Ca_ppm,0.29
+ColEx,Freshwater,F8,15,9,doc_mgperL,16.7
+ColEx,Freshwater,F8,15,10,conductivity_uSpercm,14.26
+ColEx,Freshwater,F8,15,10,Ca_ppm,0.21
+ColEx,Freshwater,F8,15,10,doc_mgperL,16.27
+ColEx,Freshwater,F8,15,11,conductivity_uSpercm,14.77
+ColEx,Freshwater,F8,15,11,Ca_ppm,0.27
+ColEx,Freshwater,F8,15,11,doc_mgperL,17.05
+ColEx,Freshwater,F8,15,12,conductivity_uSpercm,14.19
+ColEx,Freshwater,F8,15,12,Ca_ppm,0.24
+ColEx,Freshwater,F8,15,12,doc_mgperL,16.56
+ColEx,Freshwater,F9,16,0,conductivity_uSpercm,91.41
+ColEx,Freshwater,F9,16,0,Ca_ppm,0.34
+ColEx,Freshwater,F9,16,0,doc_mgperL,0
+ColEx,Freshwater,F9,16,1,conductivity_uSpercm,96.17
+ColEx,Freshwater,F9,16,1,Ca_ppm,0.72
+ColEx,Freshwater,F9,16,1,doc_mgperL,6.76
+ColEx,Freshwater,F9,16,2,conductivity_uSpercm,37.49
+ColEx,Freshwater,F9,16,2,Ca_ppm,0.48
+ColEx,Freshwater,F9,16,2,doc_mgperL,4.19
+ColEx,Freshwater,F9,16,3,conductivity_uSpercm,23.75
+ColEx,Freshwater,F9,16,3,Ca_ppm,0.35
+ColEx,Freshwater,F9,16,3,doc_mgperL,4.54
+ColEx,Freshwater,F9,16,4,conductivity_uSpercm,19.66
+ColEx,Freshwater,F9,16,4,Ca_ppm,0.25
+ColEx,Freshwater,F9,16,4,doc_mgperL,5.06
+ColEx,Freshwater,F9,16,5,conductivity_uSpercm,15.31
+ColEx,Freshwater,F9,16,5,Ca_ppm,0.39
+ColEx,Freshwater,F9,16,5,doc_mgperL,5.17
+ColEx,Freshwater,F9,16,6,conductivity_uSpercm,14.57
+ColEx,Freshwater,F9,16,6,Ca_ppm,0.25
+ColEx,Freshwater,F9,16,6,doc_mgperL,6.99
+ColEx,Freshwater,F9,16,7,conductivity_uSpercm,13.71
+ColEx,Freshwater,F9,16,7,Ca_ppm,0.21
+ColEx,Freshwater,F9,16,7,doc_mgperL,6.21
+ColEx,Freshwater,F9,16,8,conductivity_uSpercm,11.89
+ColEx,Freshwater,F9,16,8,Ca_ppm,0.2
+ColEx,Freshwater,F9,16,8,doc_mgperL,6.32
+ColEx,Freshwater,F9,16,9,conductivity_uSpercm,10.11
+ColEx,Freshwater,F9,16,9,Ca_ppm,0.32
+ColEx,Freshwater,F9,16,9,doc_mgperL,6.02
+ColEx,Freshwater,F9,16,10,conductivity_uSpercm,9.25
+ColEx,Freshwater,F9,16,10,Ca_ppm,0.15
+ColEx,Freshwater,F9,16,10,doc_mgperL,5.77
+ColEx,Freshwater,F9,16,11,conductivity_uSpercm,10.32
+ColEx,Freshwater,F9,16,11,Ca_ppm,0.19
+ColEx,Freshwater,F9,16,11,doc_mgperL,6.89
+ColEx,Freshwater,F9,16,12,conductivity_uSpercm,9.96
+ColEx,Freshwater,F9,16,12,Ca_ppm,0.18
+ColEx,Freshwater,F9,16,12,doc_mgperL,6.48

@@ -1,5 +1,5 @@
 ---
-title: "Porewater DOC Manuscript Analysis"
+title: "Porewater DOC Manuscript Figures"
 author: "AMP"
 date: "`r Sys.Date()`"
 output: html_document
@@ -143,14 +143,14 @@ event_labels <- data.frame(
 data: 
 ```{r load doc data}
 
-doc_all <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_FINAL.rds")
+doc_all <- read_rds("~/GitHub/TEMPEST-1-porewater/data/figure_data/DOC_Figure1_FINAL.rds")
 
 doc_sw <- doc_all %>%
   filter(plot == "Saltwater") %>%
    mutate(nominal_datetime = as.POSIXct(nominal_date)) %>%
   filter(between(nominal_date, startstudydate, endstudydate))
 
-doc_effect_size <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_effectsizes.rds") %>%
+doc_effect_size <- read_rds("~/GitHub/TEMPEST-1-porewater/data/figure_data/DOC_Figure1_effectsizes.rds") %>%
    mutate(nominal_datetime = as.POSIXct(nominal_date))
 
 ```
@@ -160,14 +160,14 @@ doc_effect_size <- read_rds("~/GitHub/TEMPEST-1-porewater/data/DOC_Figure1_effec
 ec_to_doc_scale <- 100 / 1735.222 # doc max range vs ec max
 #ec_scaled_offset <- doc_range[1] - ec_range[1] * ec_to_doc_scale
 
-pw_ec_plotting <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds") %>%
+pw_ec_plotting <- read_rds("~/GitHub/TEMPEST-1-porewater/data/figure_data/averaged_by_plot_ec_teros_porewater.rds") %>%
   mutate(EC_scaled_to_doc_axis = EC_uScm * ec_to_doc_scale) %>% #scale EC to plot 
   filter(plot =="Saltwater") %>%
   filter(between(datetime_est, startstudydate, endstudydate))
 
- pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/processed data/TMP_PW_EC_15cm_2021-2025_L2.rds")
+ pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/data/inputs/TMP_PW_EC_15cm_2021-2025_L2.rds")
 
-pw_doc_dates <- read_rds("~/GitHub/TEMPEST-1-porewater/data/dates_DOC_higher_than_variance.rds")
+pw_doc_dates <- read_rds("~/GitHub/TEMPEST-1-porewater/data/figure_data/dates_DOC_higher_than_variance.rds")
 
 pw_doc_dates
 ```
@@ -506,7 +506,7 @@ Figure1 <- cowplot::plot_grid(
 
 Figure1
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/Figure1_updated.png",Figure1, base_width = 8.5,
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/Figure1_updated.png",Figure1, base_width = 8.5,
   base_height = 7, dpi=600)
 
 ```
@@ -521,9 +521,9 @@ These factors in isolation or combination may explain large interannual variatio
 
 ```{r precip data}
 
-precip_data <- read_csv("~/GitHub/TEMPEST-1-porewater/data/daily_precip_2021-2026.csv")
+precip_data <- read_csv("~/GitHub/TEMPEST-1-porewater/data/inputs/daily_precip_2021-2026.csv")
 
-pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_by_plot_ec_teros_porewater.rds")
+pw_ec_all <- read_rds("~/GitHub/TEMPEST-1-porewater/data/figure_data/averaged_by_plot_ec_teros_porewater.rds")
 
 ```
 
@@ -643,7 +643,7 @@ SI_1 <- cowplot::plot_grid(
 
 SI_1 
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure1.png", SI_1 , base_width = 8.5,
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/SI_Figure1.png", SI_1 , base_width = 8.5,
   base_height = 7, dpi=600)
 
 ```
@@ -654,16 +654,6 @@ cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_F
 The defining characteristic of the field response — a delayed and persistent DOC increase following salinity exposure — was reproduced in intact soil cores in the absence of living vegetation and ecosystem-scale biological feedbacks. 
 
 ```{r load col ex}
-# exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Processed Data/DOC/TEMPEST_ColEx_NPOC_TDN_meansforCDOM.csv") %>%
-#   mutate(Wash = case_when(is.na(Wash) ~ 0,
-#                           TRUE ~ Wash),
-#     Treatment = case_when(Treatment == "AS" ~ "Artificial Saltwater",
-#                                Treatment == "FW" ~ "Artificial Freshwater",
-#                                Treatment == "Control" ~ "Control",
-#                                Treatment == "SWE" ~ "Artificial Saltwater",
-#                                Treatment == "CL" ~ "Artificial Freshwater",
-#                           TRUE ~ Treatment)) %>%
-#   mutate(Treatment = factor(Treatment, levels = Treatment_order))
 
 exp_doc <- read_csv("~/GitHub/tempest_ionic_strength/Data/Exp 3 Column Experiment ColEx Data/TEMPEST_Col_Ex_all_chem_averaged_L2.csv") %>%
   mutate(Wash = case_when(is.na(Timepoint) ~ 0,
@@ -712,16 +702,16 @@ SI2 <- exp_doc %>%
 
 print(SI2)
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure2.png",SI2, dpi=600)
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/SI_Figure2.png",SI2, dpi=600)
 ```
 # Extended Data Figure 3: CDOM
 Likewise, if DOC increases were related only to increased microbial metabolism, we would expect an increase in non-colored, small molecular weight OM, whereas we observed instead an increase in colored DOC that coincides with the increase in DOC concentrations (Extended Data Figure 3). 
 
 ```{r load eems data}
 
-cdom_indicies_divided_all <- readRDS("~/GitHub/TEMPEST-1-porewater/data/cdom_all_forplotting.rds")
+cdom_indicies_divided_all <- readRDS("~/GitHub/TEMPEST-1-porewater/data/figure_data/cdom_all_forplotting.rds")
 
-eemspca <- readRDS("~/GitHub/TEMPEST-1-porewater/data/cdom_pca.rds")
+eemspca <- readRDS("~/GitHub/TEMPEST-1-porewater/data/figure_data/cdom_pca.rds")
 
 ```
 
@@ -792,7 +782,7 @@ SI3 <-
 
 SI3
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure3.png",SI3, dpi=600)
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/SI_Figure3.png",SI3, dpi=600)
 
 ```
 # Extended Data Figure 4
@@ -890,17 +880,17 @@ geom_line(aes(x = Wash, y = Al_ppm, color = "Al"), linetype = "dotted") +
 
 print(SI4)
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure4.png",SI4, base_asp= 1, dpi=600)
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/SI_Figure4.png",SI4, base_asp= 1, dpi=600)
 ```
 
 
 
-# Extended Data Figure 5: a) pH, b) Fe, Al, or Ca ColEx c) Fe, Al, or Ca TMP1
+# Extended Data Figure 5: a) porewater pH, b) pH-manipulation partition coefficients, c) column Fe, Al, and Ca
 
 
 ```{r load pH data}
 
-ph <-  read_rds("~/GitHub/TEMPEST-1-porewater/data/averaged_ph_porewater.rds") 
+ph <-  read_rds("~/GitHub/TEMPEST-1-porewater/data/figure_data/averaged_ph_porewater.rds") 
 
 plot_dates <- sort(as.Date(c(
   WaterDeliveryStart1,
@@ -1043,7 +1033,7 @@ SI_5a
 
 ```{r kent data}
 
-ph_exp <- readxl::read_excel("~/GitHub/TEMPEST-1-porewater/data_do_not_commit/kent_ph_data.xlsx", sheet =2)
+ph_exp <- readxl::read_excel("~/GitHub/TEMPEST-1-porewater/data/inputs/kent_ph_data.xlsx", sheet =2)
 
 head(ph_exp)
 ```
@@ -1300,10 +1290,8 @@ SI_5 <-
 
 SI_5
 
-#cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure5.png", SI_5 , dpi=600)
-
 ggsave(
-  filename = "~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure5.png",
+  filename = "~/GitHub/TEMPEST-1-porewater/figures/SI_Figure5.png",
   plot = SI_5,
   width = 8.5,
   height = 12,
@@ -1313,111 +1301,16 @@ ggsave(
 )
 ```
 
-  geom_vline(xintercept = 1, linetype="dashed", color="darkgrey")+ 
-   geom_pointrange(aes(x = Wash, y = Fe_ppm_avg, ymin=Fe_ppm_avg-Fe_ppm_sd, ymax=Fe_ppm_avg+Fe_ppm_sd), shape=17, size = 1, color = "#C38D18")+
-    ylab("Fe mg/L")+
-    xlab("Treatment Wash Number")+
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    scale_shape_manual(values = c(2, 17))+ 
-    theme_classic() +
-    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "   a) "), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE) +
-    theme(
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    legend.text = element_text(size = legend_text_size),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
-    text = element_text(size = base_text_size),
-    axis.text = element_text(size = axis_text_size),
-    axis.title = element_text(size = axis_title_size),
-    axis.title.x = element_text(size = axis_title_size),
-    axis.title.y.right = element_text(color = "transparent", size = axis_title_size),
-    axis.text.x = element_text(size = axis_text_size),
-    axis.text.y.right = element_blank(),
-    axis.ticks.y.right = element_blank(),
-    axis.ticks.length = unit(0.2, "cm"),
-    plot.margin = margin(5.5, 5.5, 2, 5.5)
-  )
-
-print(SI4_a)
-
-SI4_b <- exp_col_dat %>%
-  filter(Treatment == "Artificial Saltwater")  %>%
-   ggplot(aes(x = Wash, y = Al_ppm_avg), color = "#DCDCDA") +
-   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=Al_ppm_avg-Al_ppm_sd, ymax=Al_ppm_avg+Al_ppm_sd), shape=17, size = 1, color = "#DCDCDA")+
-    ylab("Al mg/L")+
-    xlab(" ")+
-   # title("Field Manipulation") +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    scale_shape_manual(values = c(2, 17))+ 
-    theme_classic() +
-    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "   b) "), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)+
-    theme(
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    legend.text = element_text(size = legend_text_size),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
-    text = element_text(size = base_text_size),
-    axis.text = element_text(size = axis_text_size),
-    axis.title = element_text(size = axis_title_size),
-    axis.title.x = element_text(size = axis_title_size),
-    axis.title.y.right = element_text(color = "transparent", size = axis_title_size),
-    axis.text.x = element_text(size = axis_text_size),
-    axis.text.y.right = element_blank(),
-    axis.ticks.y.right = element_blank(),
-    axis.ticks.length = unit(0.2, "cm"),
-    plot.margin = margin(5.5, 5.5, 2, 5.5)
-  )
-
-print(SI4_b)
-
-SI4_c <- exp_col_dat %>%
-  filter(Treatment == "Artificial Saltwater")  %>%
-   ggplot(aes(x = Wash, y = Ca_ppm_avg), color = "#009DBD") +
-   geom_vline(xintercept = 1,linetype="dashed",color="darkgrey")+ 
-   geom_pointrange(aes(ymin=Ca_ppm_avg-Ca_ppm_sd, ymax=Ca_ppm_avg+Ca_ppm_sd), shape=17, size = 1, color = "#009DBD")+
-    ylab("Ca mg/L")+
-    xlab("Treatment Wash Number")+
-   # title("Field Manipulation") +
-    scale_x_continuous(breaks = pretty_breaks(), limits= c(0,12)) +
-    scale_shape_manual(values = c(2, 17))+ 
-    theme_classic() +
-    theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16)) +
-  geom_text(data = data.frame(x = -Inf, y = Inf, label = "   c)"), aes(x, y, label = label), hjust = -0.1, vjust = 2, inherit.aes = FALSE)+
-    theme(
-    legend.position = "bottom",
-    legend.title = element_blank(),
-    legend.text = element_text(size = legend_text_size),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
-    text = element_text(size = base_text_size),
-    axis.text = element_text(size = axis_text_size),
-    axis.title = element_text(size = axis_title_size),
-    axis.title.x = element_text(size = axis_title_size),
-    axis.title.y.right = element_text(color = "transparent", size = axis_title_size),
-    axis.text.x = element_text(size = axis_text_size),
-    axis.text.y.right = element_blank(),
-    axis.ticks.y.right = element_blank(),
-    axis.ticks.length = unit(0.2, "cm"),
-    plot.margin = margin(5.5, 5.5, 2, 5.5)
-  )
-
-
-
-# Supplemental Figure 6: ICP data from YR 1 through time 
+# Supporting observations for Extended Data Table 2: field porewater Fe, Al, and Ca
 
 
 ```{r load ICP data}
 
-icp <-  read_csv("~/GitHub/TEMPEST-1-porewater/processed data/for_google_drive/TMP_PW_POOL_ICP_2022_L1.csv") 
+icp <-  read_csv("~/GitHub/TEMPEST-1-porewater/data/inputs/TMP_PW_POOL_ICP_2022_L1.csv") 
 
 ```
 
-```{r icp timeseries}
+```{r field icp table2 reference}
 library(scales)
 figure_z_limits <- c(as.Date(format(startstudydate, "%Y-%m-01")), as.Date("2023-06-01"))
 
@@ -1431,7 +1324,7 @@ plot_labels_z <- data.frame(
   label = c( "T1","DOC \u2191")
 )
 
-SI_5c <- icp %>%
+field_icp_table2_reference <- icp %>%
   select(
     Event, plot, grid, date,
     Ca_mgL_Porewater_average,
@@ -1502,95 +1395,26 @@ SI_5c <- icp %>%
     plot.margin = margin(5.5, 5.5, 2, 5.5)
   )
 
-SI_5c
+field_icp_table2_reference
 
 ```
-
-ca <- icp %>%
-  mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = date, y = Ca_mgL_Porewater_average, color = plot)) +
-    geom_point(shape=17, size=4)+
-    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="blue")+ 
-    geom_vline(xintercept = as.Date("2022-07-21 15:59:00"),linetype="solid",color="grey")+
-    ylab("Porewater Ca (mg/L)")+
-    xlab("")+
-    scale_color_manual(values=Anyas_colors) +
-    theme_classic()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) +
-  theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16))
-
-mg <- icp %>%
-  mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = date, y = Mg_mgL_Porewater_average, color = plot)) +
-    geom_point(shape=17, size=4)+
-    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
-    ylab("Porewater Mg2+ mg/L")+
-    xlab("Date")+
-    scale_color_manual(values=Anyas_colors) +
-    theme_classic()
-
-na <- icp %>%
-  mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = date, y = Na_mgL_Porewater_average, color = plot)) +
-    geom_point(shape=17, size=4)+
-    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="grey")+ 
-    ylab("Porewater Na+ mg/L")+
-    xlab("Date")+
-    scale_color_manual(values=Anyas_colors) +
-    theme_classic()
-
-fe <-icp %>%
-  mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = date, y = Fe_mgL_Porewater_average, color = plot)) +
-    geom_point(shape=17, size=4)+
-    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="blue")+ 
-    geom_vline(xintercept = as.Date("2022-07-21 15:59:00"),linetype="solid",color="grey")+ 
-    ylab("Porewater Fe (mg/L)")+
-    xlab("")+
-    scale_color_manual(values=Anyas_colors) +
-    theme_classic()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))  +
-  theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16))
-
-al <- icp %>%
-  mutate(plot = factor(plot, levels = plot_order)) %>%
-    ggplot(aes(x = date, y = Al_mgL_Porewater_average, color = plot)) +
-    geom_point(shape=17, size=4)+
-    geom_vline(xintercept = as.Date(WaterDeliveryStart2022),linetype="dashed",color="blue")+ 
-    geom_vline(xintercept = as.Date("2022-07-21 15:59:00"),linetype="solid",color="grey")+ 
-    ylab("Porewater Al (mg/L)")+
-    xlab("Date")+
-    scale_color_manual(values=Anyas_colors) +
-    theme_classic()+
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))  +
-  theme(legend.position = "bottom", panel.border = element_rect(color = "black", fill = NA, size = 1),
-          text= element_text(size = 16))
-
-SI6 <- ggarrange(fe, al, ca, nrow = 1, legend = "bottom", common.legend = TRUE, align = "hv")
-
-SI6
-
- cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/FigureS6.png",SI6, dpi=600,
-                  nrow = 1)
 
 
 # Extended Data Figure 6: Jim's model output 
 
-See: 
+See: [Figure 6 code](../../BHM/3%20Sensitivity%20Analysis.R)
 
 # Extended Data Figure 7: Jim made this
 Incoming salts interact with soil exchange sites and mineralogy, which results in different recovery trajectories as the salinity of treatment waters increases
 
-See: 
+See: [Figure 7 code](../../BHM/1%20Data%20Vis.R)
 
 
 # Extended Data Figure 8: DOC after TMP 3
 
 ```{r load doc data through May 2026}
 
-doc_after_t3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/DOC_FigureS8.rds") %>%
+doc_after_t3 <- readRDS("~/GitHub/TEMPEST-1-porewater/data/figure_data/DOC_FigureS8.rds") %>%
   filter(nominal_date > WaterDeliveryStart1_2024 )
 ```
 
@@ -1683,5 +1507,5 @@ scale_x_date(
 
 FigS8 
 
-cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/manuscript_figures/SI_Figure8.png",FigS8, dpi=600)
+cowplot::save_plot("~/GitHub/TEMPEST-1-porewater/figures/SI_Figure8.png",FigS8, dpi=600)
 ```

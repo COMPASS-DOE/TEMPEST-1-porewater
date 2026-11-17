@@ -1,0 +1,44 @@
+---
+title: "Simple Soil Model"
+author: "James R Holmquist"
+date: "2026-03-13"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## A simple heirarchical model
+
+This model should predict the flux of DOC for a specific column for a specific wash event. The model is non-linear, and the resistance of  bivalent cation cocentration. 
+
+The inventory of DOC should be a randomized but centered on a mean, to take into account heterogeneity in soil cores. 
+
+i - core
+t - time step, or wash
+
+$$ C_i \sim N(\mu_C, \tau_C) T(0,)  $$ Eq. 1
+
+The concentration of DOC should be a function of the concentraiton in the soil core, and the specific conductance of the first wash for core/treatment i ($C_i$). We treat this relationship as logistic. The effect can be anywhere between 0 and 1.
+
+$$ DOC_{S|i,t=0} = C_i \times(1/1+exp(\beta_{1}\gamma_i + \beta_{2})) + \epsilon_1$$
+Every time we get a wash we calculate the DOC concentration of the wash ($DOC_{W}$) based on the concentration of DOC in the soil ($DOC_S$) and a rate term ($k_1$) which represents the strength of the cation bridging effect. The strength of the cation bridging effect changes based on the treatment and wash as the concentration of bivalent cations changes.
+
+The error term ($\epsilon_1$) is there so we can link our observations to model predictions.
+
+$$ DOC_{W|t} = DOC_{S|t-1}k_{1|i,t} + \epsilon_1 $$
+
+At each step, we update the pool in the soil.
+
+$$ DOC_{S|t} = DOC_{S|t-1} - DOC_{W|t} $$ 
+
+Cation bridging effect is a function of concentration of bivalent cations. We use Calcium as a proxy. It is also logit transformed, squished between 1 and 0.
+
+$$ logit(k_{1|i,t}) = [Ca^{2+}_{i,t}]\beta_3+\beta_4 $$
+
+Every time we get a wash we also change the concentration of cations. This is regulated by a flushing term ($k_2$) that replaces some cations with DI water at each time step.
+
+$$ [Ca^{2+}_{i,t}]=[Ca^{2+}_{i,t-1}]k_2 + (1-k_2)[Ca^{2+}_{DI}] + \epsilon_2 $$
+
+
